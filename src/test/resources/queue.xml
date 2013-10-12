@@ -1,0 +1,21 @@
+<queue-entries>
+
+	<!-- Queue for Testing Delete Counter Operations. Add this to your GAE configuration 
+		to use the ShardedCounter properly -->
+	<queue>
+		<name>deleteCounterShardQueue</name>
+		<rate>20/s</rate>
+		<bucket-size>40</bucket-size>
+		<max-concurrent-requests>10</max-concurrent-requests>
+		<retry-parameters>
+			<!-- Min 60 seconds -->
+			<min-backoff-seconds>60</min-backoff-seconds>
+			<!-- This is an 8hr Max Backoff -->
+			<max-backoff-seconds>30720</max-backoff-seconds>
+			<!-- This will execute at 60s, 120s (2m), 240s (4m), 480s (8m), 960s (16m), 
+				1920s (32m); 3840s (64m); 7680s (2hrs); 15360s (4h); 30720s (8h); -->
+			<max-doublings>8</max-doublings>
+		</retry-parameters>
+	</queue>
+
+</queue-entries>
