@@ -18,7 +18,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.oodlemud.appengine.counter</groupId>
 	<artifactId>appengine-counter</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1</version>
 	<name>appengine-counter</name>
 	<description>A sharded-counter implementation for Google Appengine from Oodlemud</description>
 	<packaging>jar</packaging>
@@ -104,9 +104,12 @@
 		<!-- Test Scope -->
 		<!-- ############## -->
 
-		<!-- <dependency> <groupId>com.google.appengine</groupId> <artifactId>appengine-tools-sdk</artifactId> 
-			<version>${appengine.target.version}</version> <scope>test</scope> </dependency> -->
-
+		<dependency>
+			<groupId>com.google.appengine</groupId>
+			<artifactId>appengine-tools-sdk</artifactId>
+			<version>${appengine.target.version}</version>
+			<scope>test</scope>
+		</dependency>
 
 		<dependency>
 			<groupId>com.google.appengine</groupId>
@@ -136,8 +139,12 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- <dependency> <groupId>javax.servlet</groupId> <artifactId>servlet-api</artifactId> 
-			<version>2.5</version> <scope>test</scope> </dependency> -->
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>servlet-api</artifactId>
+			<version>2.5</version>
+			<scope>test</scope>
+		</dependency>
 
 		<!-- ############## -->
 		<!-- Compile Scope -->
