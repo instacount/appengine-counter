@@ -1,17 +1,17 @@
 /**
  * Copyright (C) 2013 Oodlemud Inc. (developers@oodlemud.com)
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package com.oodlemud.appengine.counter.service;
 
@@ -47,8 +47,8 @@ import com.googlecode.objectify.Work;
 import com.oodlemud.appengine.counter.Counter;
 import com.oodlemud.appengine.counter.CounterBuilder;
 import com.oodlemud.appengine.counter.data.CounterData;
-import com.oodlemud.appengine.counter.data.CounterShardData;
 import com.oodlemud.appengine.counter.data.CounterData.CounterStatus;
+import com.oodlemud.appengine.counter.data.CounterShardData;
 
 /**
  * A durable implementation of a {@link ShardedCounterService} that provides

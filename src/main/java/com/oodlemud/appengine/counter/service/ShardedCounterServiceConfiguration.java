@@ -15,8 +15,6 @@
  */
 package com.oodlemud.appengine.counter.service;
 
-import javax.annotation.concurrent.Immutable;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,6 +22,7 @@ import lombok.ToString;
 
 import com.google.appengine.api.memcache.Expiration;
 import com.google.common.base.Preconditions;
+import com.oodlemud.annotations.Immutable;
 
 /**
  * A Configuration class for {@link ShardedCounterService}.

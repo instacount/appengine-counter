@@ -1,22 +1,20 @@
-<!--
-
-    Copyright (C) 2013 Oodlemud Inc. (developers@oodlemud.com)
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-            http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License. 
-
--->
+<!-- Copyright (C) 2013 Oodlemud Inc. (developers@oodlemud.com) Licensed 
+	under the Apache License, Version 2.0 (the "License"); you may not use this 
+	file except in compliance with the License. You may obtain a copy of the 
+	License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by 
+	applicable law or agreed to in writing, software distributed under the License 
+	is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY 
+	KIND, either express or implied. See the License for the specific language 
+	governing permissions and limitations under the License. -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+	<parent>
+		<groupId>org.sonatype.oss</groupId>
+		<artifactId>oss-parent</artifactId>
+		<version>7</version>
+	</parent>
+
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.oodlemud.appengine.counter</groupId>
 	<artifactId>appengine-counter</artifactId>
@@ -24,36 +22,57 @@
 	<name>appengine-counter</name>
 	<description>A sharded-counter implementation for Google Appengine from Oodlemud</description>
 	<packaging>jar</packaging>
+	<inceptionYear>2013</inceptionYear>
+	<licenses>
+		<license>
+			<name>The Apache Software License, Version 2.0</name>
+			<url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
 	<organization>
 		<name>Oodlemud Inc.</name>
 		<url>http://developer.oodlemud.com</url>
 	</organization>
-	<inceptionYear>2013</inceptionYear>
-	<contributors>
-		<contributor>
-			<name>David Fuelling</name>
-			<organizationUrl>http://www.oodlemud.com</organizationUrl>
-			<url>http://developer.oodlemud.com</url>
-		</contributor>
-	</contributors>
 
-	<pluginRepositories />
-	<repositories />
+	<developers>
+		<developer>
+			<name>David Fuelling</name>
+		</developer>
+	</developers>
+
+	<scm>
+		<connection>scm:git:git://github.com/oodlemud/appengine-counter.git</connection>
+		<developerConnection>scm:git:git@github.com:oodlemud/appengine-counter.git</developerConnection>
+		<url>http://github.com/oodlemud/appengine-counter</url>
+	</scm>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-		<gae.version>1.8.4</gae.version>
-		<objectify.version>4.0rc1</objectify.version>
+		<appengine.target.version>1.8.8</appengine.target.version>
+		<objectify.version>4.0rc2</objectify.version>
 
 		<joda.money.version>0.9</joda.money.version>
 		<joda.time.version>2.3</joda.time.version>
 		<guava.version>15.0</guava.version>
-		<lombok.version>0.12.0</lombok.version>
+		<lombok.version>1.12.2</lombok.version>
 
 		<maven.compiler.plugin.version>3.0</maven.compiler.plugin.version>
 	</properties>
 
+	<distributionManagement>
+		<snapshotRepository>
+			<id>sonatype-nexus-snapshots</id>
+			<name>Sonatype Nexus snapshot repository</name>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+		<repository>
+			<id>sonatype-nexus-staging</id>
+			<name>Sonatype Nexus release repository</name>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
+	</distributionManagement>
 
 	<dependencies>
 
@@ -67,29 +86,39 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>com.google.appengine</groupId>
+			<artifactId>appengine-api-1.0-sdk</artifactId>
+			<version>${appengine.target.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.appengine</groupId>
+			<artifactId>appengine-api-labs</artifactId>
+			<version>${appengine.target.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
 		<!-- ############## -->
 		<!-- Test Scope -->
 		<!-- ############## -->
 
-		<dependency>
-			<groupId>com.google.appengine</groupId>
-			<artifactId>appengine-tools-sdk</artifactId>
-			<version>${gae.version}</version>
-			<scope>test</scope>
-		</dependency>
+		<!-- <dependency> <groupId>com.google.appengine</groupId> <artifactId>appengine-tools-sdk</artifactId> 
+			<version>${appengine.target.version}</version> <scope>test</scope> </dependency> -->
 
 
 		<dependency>
 			<groupId>com.google.appengine</groupId>
 			<artifactId>appengine-api-stubs</artifactId>
-			<version>${gae.version}</version>
+			<version>${appengine.target.version}</version>
 			<scope>test</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>com.google.appengine</groupId>
 			<artifactId>appengine-testing</artifactId>
-			<version>${gae.version}</version>
+			<version>${appengine.target.version}</version>
 			<scope>test</scope>
 		</dependency>
 
@@ -107,12 +136,8 @@
 			<scope>test</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>servlet-api</artifactId>
-			<version>2.5</version>
-			<scope>test</scope>
-		</dependency>
+		<!-- <dependency> <groupId>javax.servlet</groupId> <artifactId>servlet-api</artifactId> 
+			<version>2.5</version> <scope>test</scope> </dependency> -->
 
 		<!-- ############## -->
 		<!-- Compile Scope -->
@@ -121,19 +146,7 @@
 		<dependency>
 			<groupId>com.sappenin.objectify</groupId>
 			<artifactId>objectify-utils</artifactId>
-			<version>2.3.0-SNAPSHOT</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.google.appengine</groupId>
-			<artifactId>appengine-api-1.0-sdk</artifactId>
-			<version>${gae.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.google.appengine</groupId>
-			<artifactId>appengine-api-labs</artifactId>
-			<version>${gae.version}</version>
+			<version>2.3.5</version>
 		</dependency>
 
 		<dependency>
@@ -143,29 +156,16 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>${guava.version}</version>
-		</dependency>
-
-		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-lang3</artifactId>
 			<version>3.1</version>
 		</dependency>
 
-		<dependency>
-			<groupId>joda-time</groupId>
-			<artifactId>joda-time</artifactId>
-			<version>${joda.time.version}</version>
-		</dependency>
+		<!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> 
+			<version>${guava.version}</version> </dependency> -->
 
-		<dependency>
-			<!-- http://findbugs.googlecode.com/svn/trunk/ -->
-			<groupId>com.google.code.findbugs</groupId>
-			<artifactId>jsr305</artifactId>
-			<version>2.0.1</version>
-		</dependency>
+		<!-- <dependency> <groupId>joda-time</groupId> <artifactId>joda-time</artifactId> 
+			<version>${joda.time.version}</version> </dependency> -->
 
 	</dependencies>
 
@@ -249,7 +249,49 @@
 				<version>2.16</version>
 			</plugin>
 
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<configuration>
+					<arguments>-Dgpg.passphrase=${gpg.passphrase}</arguments>
+				</configuration>
+			</plugin>
+
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>release-sign-artifacts</id>
+			<activation>
+				<property>
+					<name>performRelease</name>
+					<value>true</value>
+				</property>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>1.4</version>
+						<configuration>
+							<repositoryId>sonatype-nexus-staging-oodlemud</repositoryId>
+							<passphrase>${gpg.passphrase}</passphrase>
+						</configuration>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>
