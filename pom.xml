@@ -18,7 +18,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.oodlemud.appengine.counter</groupId>
 	<artifactId>appengine-counter</artifactId>
-	<version>1.0.1</version>
+	<version>1.0.2-SNAPSHOT</version>
 	<name>appengine-counter</name>
 	<description>A sharded-counter implementation for Google Appengine from Oodlemud</description>
 	<packaging>jar</packaging>
