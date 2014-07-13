@@ -1,6 +1,6 @@
 <!--
 
-    Copyright (C) ${project.inceptionYear} Oodlemud Inc. (developers@oodlemud.com)
+    Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -16,231 +16,258 @@
 
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-	<modelVersion>4.0.0</modelVersion>
-	<packaging>war</packaging>
-	<version>1.0.0</version>
+    <modelVersion>4.0.0</modelVersion>
+    <packaging>war</packaging>
+    <version>1.0.0-SNAPSHOT</version>
 
-	<groupId>com.oodlemud.appengine.counter.web.test.gendpoint</groupId>
-	<artifactId>appengine-counter-web-test-endpoints</artifactId>
+    <groupId>com.theupswell.appengine.counter.web.test.gendpoint</groupId>
+    <artifactId>appengine-counter-web-test-endpoints</artifactId>
 
-	<properties>
-		<guice.version>3.0</guice.version>
-		<jackson.fasterxml.version>2.2.3</jackson.fasterxml.version>
-		<appengine.app.version>1</appengine.app.version>
-		<appengine.target.version>1.8.5</appengine.target.version>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-	</properties>
+    <inceptionYear>2014</inceptionYear>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <organization>
+        <name>UpSwell LLC</name>
+        <url>http://developer.theupswell.com</url>
+    </organization>
 
-	<dependencies>
+    <developers>
+        <developer>
+            <name>David Fuelling</name>
+        </developer>
+    </developers>
 
-		<!-- ############## -->
-		<!-- Provided Scope -->
-		<!-- ############## -->
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<scope>provided</scope>
-			<version>0.12.0</version>
-		</dependency>
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>servlet-api</artifactId>
-			<scope>provided</scope>
-			<version>2.5</version>
-		</dependency>
+    <properties>
+        <guice.version>3.0</guice.version>
+        <jackson.fasterxml.version>2.2.3</jackson.fasterxml.version>
+        <appengine.app.version>1</appengine.app.version>
+        <appengine.target.version>1.9.6</appengine.target.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <appengine-counter.version>1.0.0-SNAPSHOT</appengine-counter.version>
+        <objectify-utils.version>5.0.0-SNAPSHOT</objectify-utils.version>
+    </properties>
 
-		<!-- ############## -->
-		<!-- Test Scope -->
-		<!-- ############## -->
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<scope>test</scope>
-			<version>4.11</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.appengine</groupId>
-			<artifactId>appengine-testing</artifactId>
-			<version>${appengine.target.version}</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.google.appengine</groupId>
-			<artifactId>appengine-api-stubs</artifactId>
-			<version>${appengine.target.version}</version>
-			<scope>test</scope>
-		</dependency>
+    <dependencies>
 
-		<!-- ############## -->
-		<!-- Compile Scope -->
-		<!-- ############## -->
+        <!-- ############## -->
+        <!-- Provided Scope -->
+        <!-- ############## -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+            <version>1.14.4</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <scope>provided</scope>
+            <version>2.5</version>
+        </dependency>
 
-		<dependency>
-			<groupId>com.oodlemud.appengine.counter</groupId>
-			<artifactId>appengine-counter</artifactId>
-			<version>1.0.0</version>
-		</dependency>
+        <!-- ############## -->
+        <!-- Test Scope -->
+        <!-- ############## -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+            <version>4.11</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.appengine</groupId>
+            <artifactId>appengine-testing</artifactId>
+            <version>${appengine.target.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.appengine</groupId>
+            <artifactId>appengine-api-stubs</artifactId>
+            <version>${appengine.target.version}</version>
+            <scope>test</scope>
+        </dependency>
 
-		<!-- ========= -->
-		<!-- Appengine -->
-		<!-- ========= -->
-		<dependency>
-			<groupId>com.google.appengine</groupId>
-			<artifactId>appengine-api-1.0-sdk</artifactId>
-			<version>${appengine.target.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.appengine</groupId>
-			<artifactId>appengine-endpoints</artifactId>
-			<version>${appengine.target.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>javax.inject</groupId>
-			<artifactId>javax.inject</artifactId>
-			<version>1</version>
-		</dependency>
+        <!-- ############## -->
+        <!-- Compile Scope -->
+        <!-- ############## -->
 
-		<!-- ========= -->
-		<!-- Jackson -->
-		<!-- ========= -->
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-core</artifactId>
-			<version>${jackson.fasterxml.version}</version>
-		</dependency>
-		<!-- <dependency> <groupId>com.fasterxml.jackson.core</groupId> <artifactId>jackson-annotations</artifactId> 
-			<version>${jackson.fasterxml.version}</version> </dependency> -->
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<version>${jackson.fasterxml.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.jaxrs</groupId>
-			<artifactId>jackson-jaxrs-json-provider</artifactId>
-			<version>${jackson.fasterxml.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-joda</artifactId>
-			<version>${jackson.fasterxml.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.datatype</groupId>
-			<artifactId>jackson-datatype-guava</artifactId>
-			<version>${jackson.fasterxml.version}</version>
-		</dependency>
+        <dependency>
+            <groupId>com.theupswell.appengine.counter</groupId>
+            <artifactId>appengine-counter</artifactId>
+            <version>${appengine-counter.version}</version>
+        </dependency>
 
+        <dependency>
+            <groupId>com.sappenin.objectify</groupId>
+            <artifactId>objectify-utils</artifactId>
+            <version>${objectify-utils.version}</version>
+        </dependency>
 
-	</dependencies>
+        <!-- ========= -->
+        <!-- Appengine -->
+        <!-- ========= -->
+        <dependency>
+            <groupId>com.google.appengine</groupId>
+            <artifactId>appengine-api-1.0-sdk</artifactId>
+            <version>${appengine.target.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.appengine</groupId>
+            <artifactId>appengine-endpoints</artifactId>
+            <version>${appengine.target.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>1</version>
+        </dependency>
 
-	<build>
-
-		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<version>3.1</version>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<configuration>
-					<source>1.7</source>
-					<target>1.7</target>
-				</configuration>
-			</plugin>
-
-
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-war-plugin</artifactId>
-				<version>2.4</version>
-				<configuration>
-					<webXml>${project.build.directory}/generated-sources/appengine-endpoints/WEB-INF/web.xml</webXml>
-					<webResources>
-						<resource>
-							<!-- this is relative to the pom.xml directory -->
-							<directory>${project.build.directory}/generated-sources/appengine-endpoints</directory>
-							<!-- the list has a default value of ** -->
-							<includes>
-								<include>WEB-INF/*.discovery</include>
-								<include>WEB-INF/*.api</include>
-							</includes>
-						</resource>
-					</webResources>
-				</configuration>
-			</plugin>
-
-			<plugin>
-				<groupId>com.mycila</groupId>
-				<artifactId>license-maven-plugin</artifactId>
-				<version>2.5</version>
-				<configuration>
-					<header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
-					<properties>
-						<owner>Oodlemud Inc.</owner>
-						<year>${project.inceptionYear}</year>
-						<email>developers@oodlemud.com</email>
-					</properties>
-					<excludes>
-						<exclude>**/README</exclude>
-						<exclude>src/test/resources/**</exclude>
-						<exclude>src/main/resources/**</exclude>
-					</excludes>
-					<executions>
-						<execution>
-							<goals>
-								<goal>check</goal>
-							</goals>
-						</execution>
-					</executions>
-					<!-- <header>src/main/resources/license.txt</header> -->
-				</configuration>
-			</plugin>
-
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.16</version>
-				<configuration>
-					<!-- GAE does not support multiple Threads -->
-					<parallel>methods</parallel>
-					<threadCount>1</threadCount>
-					<systemPropertyVariables>
-						<properties>
-							<property>
-								<name>java.util.logging.config.file</name>
-								<value>${logging.location}</value>
-							</property>
-						</properties>
-					</systemPropertyVariables>
-				</configuration>
-			</plugin>
-
-			<plugin>
-				<groupId>com.google.appengine</groupId>
-				<artifactId>appengine-maven-plugin</artifactId>
-				<version>${appengine.target.version}</version>
-				<configuration>
-					<fullScanSeconds>-1</fullScanSeconds>
-					<jvmFlags>
-						<jvmFlag>-Xdebug</jvmFlag>
-						<jvmFlag>-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n</jvmFlag>
-						<jvmFlag>-Ddatastore.default_high_rep_job_policy_unapplied_job_pct=20</jvmFlag>
-					</jvmFlags>
-					<enableJarClasses>false</enableJarClasses>
-				</configuration>
-				<executions>
-					<execution>
-						<goals>
-							<goal>endpoints_get_discovery_doc</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
+        <!-- ========= -->
+        <!-- Jackson -->
+        <!-- ========= -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.fasterxml.version}</version>
+        </dependency>
+        <!-- <dependency> <groupId>com.fasterxml.jackson.core</groupId> <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.fasterxml.version}</version> </dependency> -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.fasterxml.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.jaxrs</groupId>
+            <artifactId>jackson-jaxrs-json-provider</artifactId>
+            <version>${jackson.fasterxml.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-joda</artifactId>
+            <version>${jackson.fasterxml.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-guava</artifactId>
+            <version>${jackson.fasterxml.version}</version>
+        </dependency>
 
 
-		</plugins>
+    </dependencies>
 
-	</build>
+    <build>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <version>3.1</version>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <webXml>${project.build.directory}/generated-sources/appengine-endpoints/WEB-INF/web.xml</webXml>
+                    <webResources>
+                        <resource>
+                            <!-- this is relative to the pom.xml directory -->
+                            <directory>${project.build.directory}/generated-sources/appengine-endpoints</directory>
+                            <!-- the list has a default value of ** -->
+                            <includes>
+                                <include>WEB-INF/*.discovery</include>
+                                <include>WEB-INF/*.api</include>
+                            </includes>
+                        </resource>
+                    </webResources>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.mycila</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
+                    <properties>
+                        <owner>UpSwell LLC</owner>
+                        <year>${project.inceptionYear}</year>
+                        <email>developers@theupswell.com</email>
+                    </properties>
+                    <excludes>
+                        <exclude>**/README</exclude>
+                        <exclude>src/test/resources/**</exclude>
+                        <exclude>src/main/resources/**</exclude>
+                    </excludes>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <!-- <header>src/main/resources/license.txt</header> -->
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.16</version>
+                <configuration>
+                    <!-- GAE does not support multiple Threads -->
+                    <parallel>methods</parallel>
+                    <threadCount>1</threadCount>
+                    <systemPropertyVariables>
+                        <properties>
+                            <property>
+                                <name>java.util.logging.config.file</name>
+                                <value>${logging.location}</value>
+                            </property>
+                        </properties>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.google.appengine</groupId>
+                <artifactId>appengine-maven-plugin</artifactId>
+                <version>${appengine.target.version}</version>
+                <configuration>
+                    <fullScanSeconds>-1</fullScanSeconds>
+                    <jvmFlags>
+                        <jvmFlag>-Xdebug</jvmFlag>
+                        <jvmFlag>-agentlib:jdwp=transport=dt_socket,address=8000,server=y,suspend=n</jvmFlag>
+                        <jvmFlag>-Ddatastore.default_high_rep_job_policy_unapplied_job_pct=20</jvmFlag>
+                    </jvmFlags>
+                    <enableJarClasses>false</enableJarClasses>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>endpoints_get_discovery_doc</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+
+        </plugins>
+
+    </build>
 
 </project>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
 
-    Copyright (C) ${project.inceptionYear} Oodlemud Inc. (developers@oodlemud.com)
+    Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 
 	<filter>
 		<filter-name>ObjectifyFilter</filter-name>
-		<filter-class>com.oodlemud.appengine.counter.web.test.gendpoint.ofy.OfyFilter</filter-class>
+		<filter-class>com.theupswell.appengine.counter.web.test.gendpoint.ofy.OfyFilter</filter-class>
 	</filter>
 	<filter-mapping>
 		<filter-name>ObjectifyFilter</filter-name>
