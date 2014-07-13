@@ -304,6 +304,7 @@ Finally, wire everything together in the configure() method of one of your Guice
 Change Log
 ----------
 **Version 1.0.0**
++ Update Library for Objectify5
 + Name change from Oodlemud to UpSwell
 + Package naming change from com.oodlemud to com.theupswell.
 + Initial Commit of revised code.
