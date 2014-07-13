@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2013 Oodlemud Inc. (developers@oodlemud.com)
+ * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.oodlemud.appengine.counter.service;
+package com.theupswell.appengine.counter.service;
 
 import org.junit.After;
 import org.junit.Before;
@@ -25,12 +25,12 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalMemcacheServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.google.appengine.tools.development.testing.LocalTaskQueueTestConfig;
-import com.oodlemud.appengine.counter.service.ShardedCounterService;
+import com.theupswell.appengine.counter.service.ShardedCounterService;
 
 /**
  * Test class for {@link ShardedCounterService}.
  * 
- * @author David Fuelling <dfuelling@oodlemud.com>
+ * @author David Fuelling
  */
 public class ShardedCounterServiceDecrementNoMemcacheTest extends ShardedCounterServiceDecrementTest
 {

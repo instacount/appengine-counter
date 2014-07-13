@@ -1,6 +1,6 @@
 appengine-counter (A Sharded Counter for Google Appengine)
 ===========================
-[![Build Status](https://travis-ci.org/oodlemud/appengine-counter.png)](https://travis-ci.org/oodlemud/appengine-counter)
+[![Build Status](https://travis-ci.org/theupswell/appengine-counter.png)](https://travis-ci.org/theupswell/appengine-counter)
 
 Appengine-counter is a ShardedCounter implementation for use in Google Appengine.  It offers strongly conistent increment/decrement functionality while maintaining high-throughput via on-the-fly shard configuration.  Appengine-counter uses memcache for fast counter retrieval, all the while being fully backed by the GAE Datastore for incredibly durability and availability.<br/><br/>
 Appengine-counter is patterned off of the following <a href="https://developers.google.com/appengine/articles/sharding_counters">article</a> from developer.google.com, but uses Objectify4 for improved maintainability.<br/><br/>
@@ -40,19 +40,19 @@ Because some counters may have a large number of counter shards, counter deletio
 
 Getting Started
 ----------
-First, download the latest <a href="https://github.com/oodlemud/appengine-counter/archive/1.0.0.zip">appengine-counter-1.0.0.jar</a> and include it your application's classpath.
+First, download the latest <a href="https://github.com/theupswell/appengine-counter/archive/1.0.0.zip">appengine-counter-1.0.0.jar</a> and include it your application's classpath.
 
 Maven users should utilize the following repository and dependency instead:
 
 	<repositories>
 		<repository>
 			<id>sappenin-objectify-utils</id>
-			<url>https://github.com/oodlemud/appengine-counter/tree/master/maven</url>
+			<url>https://github.com/theupswell/appengine-counter/tree/master/maven</url>
 		</repository>
 	</repositories>
 
     <dependency>
-    	<groupId>com.oodlemud.appengine.counter</groupId>
+    	<groupId>com.theupswell.appengine.counter</groupId>
 		<artifactId>appengine-counter</artifactId>
 		<version>1.0.0</version>
     </dependency>
@@ -84,7 +84,7 @@ Spring: Default Setup
 To utilize the ShardedCounterService with Spring, using the following glue code to provide a default configuration:
 
 	<bean id="shardedCounterService"
-		class="com.oodlemud.appengine.counter.service.ShardedCounterServiceImpl">
+		class="com.theupswell.appengine.counter.service.ShardedCounterServiceImpl">
 	</bean>
 
 Spring: Custom Configuration
@@ -92,7 +92,7 @@ Spring: Custom Configuration
 If you want to control the configuration of the ShardedCounterService, you will need to configure an instance of <b>ShardedCounterServiceConfiguration.Builder</b> as follows:
 
 	<bean id="shardedCounterServiceConfigurationBuilder"
-		class="com.oodlemud.appengine.counter.service.ShardedCounterServiceConfiguration.Builder">
+		class="com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration.Builder">
 
 		<!-- The number of shards to create when a new counter is created -->
 		<property name="numInitialShards">
@@ -118,7 +118,7 @@ If you want to control the configuration of the ShardedCounterService, you will 
 Next, use the builder defined above to populate a <b>ShardedCounterServiceConfiguration</b>:
 
 	<bean id="shardedCounterServiceConfiguration"
-		class="com.oodlemud.appengine.counter.service.ShardedCounterServiceConfiguration">
+		class="com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration">
 
 		<constructor-arg>
 			<ref bean="shardedCounterServiceConfigurationBuilder" />
@@ -139,7 +139,7 @@ Finally, use the configuration defined above to create a <b>ShardedCounterServic
 	</bean>
 
 	<bean id="shardedCounterService"
-		class="com.oodlemud.appengine.counter.service.ShardedCounterService">
+		class="com.theupswell.appengine.counter.service.ShardedCounterService">
 
 		<constructor-arg>
 			<ref bean="memcacheService" />
@@ -304,22 +304,24 @@ Finally, wire everything together in the configure() method of one of your Guice
 Change Log
 ----------
 **Version 1.0.0**
-+ Initial Commit
++ Name change from Oodlemud to UpSwell
++ Package naming change from com.oodlemud to com.theupswell.
++ Initial Commit of revised code.
 
 Authors
 -------
 
-**Oodlemud Inc.**
+**UpSwell LLC**
 **David Fuelling**
 
-+ http://twitter.com/oodlemud
-+ http://github.com/oodlemud
++ http://twitter.com/theupswell
++ http://github.com/theupswell
 
 
 Copyright and License
 ---------------------
 
-Copyright 2013 Oodlemud Inc.
+Copyright 2014 UpSwell LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
