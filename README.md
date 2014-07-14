@@ -57,7 +57,7 @@ Maven users should utilize the following repository and dependency instead:
 		<version>1.0.0</version>
     </dependency>
 
-Sharded counters can be accessed via an implementation of <a href="">ShardedCounterService</a>.  Currently, the only implementation is <a href="">ShardedCounterServiceImpl<a/>, which requires a TaskQueue (the "/default" queue is used by default) if Counter deletion is required.
+Sharded counters can be accessed via an implementation of <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterService.java">ShardedCounterService</a>.  Currently, the only implementation is <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterServiceImpl.java">ShardedCounterServiceImpl<a/>, which requires a TaskQueue (the "/default" queue is used by default) if Counter deletion is required.
 
 Queue Configuration
 ----------
