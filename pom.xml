@@ -61,7 +61,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <appengine.target.version>1.9.6</appengine.target.version>
         <objectify.version>5.0.3</objectify.version>
-        <objectify-utils.version>5.0.0-SNAPSHOT</objectify-utils.version>
+        <objectify-utils.version>5.0.2</objectify-utils.version>
 
         <joda.time.version>2.3</joda.time.version>
         <guava.version>17.0</guava.version>
