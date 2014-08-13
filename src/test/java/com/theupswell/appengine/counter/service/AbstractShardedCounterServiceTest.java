@@ -43,7 +43,7 @@ import static org.junit.Assert.*;
  *
  * @author David Fuelling
  */
-public class AbstractShardedCounterServiceTest
+public abstract class AbstractShardedCounterServiceTest
 {
 	protected static final String DELETE_COUNTER_SHARD_QUEUE_NAME = "deleteCounterShardQueue";
 
