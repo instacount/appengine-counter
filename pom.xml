@@ -63,9 +63,8 @@
         <objectify.version>5.0.3</objectify.version>
         <objectify-utils.version>5.0.2</objectify-utils.version>
 
-        <joda.time.version>2.3</joda.time.version>
-        <guava.version>17.0</guava.version>
-        <lombok.version>1.14.4</lombok.version>
+        <joda.time.version>2.4</joda.time.version>
+        <lombok.version>1.14.8</lombok.version>
 
         <maven.compiler.plugin.version>3.0</maven.compiler.plugin.version>
     </properties>
@@ -177,15 +176,6 @@
             <version>3.1</version>
         </dependency>
 
-        <!-- <dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId>
-            <version>${guava.version}</version> </dependency> -->
-
-        <dependency>
-            <groupId>joda-time</groupId>
-            <artifactId>joda-time</artifactId>
-            <version>${joda.time.version}</version>
-        </dependency>
-
     </dependencies>
 
 
@@ -271,8 +261,8 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
+                <version>2.5</version>
                 <configuration>
-                    <arguments>-Dgpg.passphrase=${gpg.passphrase}</arguments>
                 </configuration>
             </plugin>
 
@@ -293,10 +283,9 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.4</version>
+                        <version>1.5</version>
                         <configuration>
-                            <repositoryId>sonatype-nexus-staging-upswell</repositoryId>
-                            <passphrase>${gpg.passphrase}</passphrase>
+                            <repositoryId>sonatype-nexus-staging-theupswell</repositoryId>
                         </configuration>
                         <executions>
                             <execution>
