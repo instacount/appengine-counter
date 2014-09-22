@@ -1,29 +1,19 @@
 /**
  * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License. You may obtain a copy of
+ * the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
  */
 package com.theupswell.appengine.counter.service;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import com.sappenin.objectify.translate.UTCReadableInstantDateTranslatorFactory;
-import com.theupswell.appengine.counter.service.ShardedCounterService;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl;
-import org.junit.After;
-import org.junit.Before;
 
 import com.google.appengine.api.capabilities.CapabilitiesService;
 import com.google.appengine.api.capabilities.CapabilitiesServiceFactory;
@@ -39,19 +29,26 @@ import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.google.appengine.tools.development.testing.LocalTaskQueueTestConfig;
 import com.googlecode.objectify.ObjectifyFilter;
 import com.googlecode.objectify.ObjectifyService;
+import com.sappenin.objectify.translate.UTCReadableInstantDateTranslatorFactory;
 import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import org.junit.After;
+import org.junit.Before;
+
+import static org.junit.Assert.*;
 
 /**
- * Constructor Test class for {@link com.theupswell.appengine.counter.service.ShardedCounterService}.
- * 
+ * An abstract base class for testing {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}
+ *
  * @author David Fuelling
  */
-public class AbstractShardedCounterServiceTest
+public abstract class AbstractShardedCounterServiceTest
 {
 	protected static final String DELETE_COUNTER_SHARD_QUEUE_NAME = "deleteCounterShardQueue";
+
 	protected static final String TEST_COUNTER1 = "test-counter1";
+
 	protected static final String TEST_COUNTER2 = "test-counter2";
 
 	protected ShardedCounterService shardedCounterService;
@@ -59,12 +56,13 @@ public class AbstractShardedCounterServiceTest
 	protected LocalTaskQueueTestConfig.TaskCountDownLatch countdownLatch;
 
 	protected LocalServiceTestHelper helper = new LocalServiceTestHelper(
-		// Our tests assume strong consistency, but a bug in the appengine test
-		// harness forces us to set this value to at least 1.
-		new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
-		new LocalMemcacheServiceTestConfig(), new LocalTaskQueueTestConfig());
+			// Our tests assume strong consistency, but a bug in the appengine test
+			// harness forces us to set this value to at least 1.
+			new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
+			new LocalMemcacheServiceTestConfig(), new LocalTaskQueueTestConfig());
 
 	protected MemcacheService memcache;
+
 	protected CapabilitiesService capabilitiesService;
 
 	public static class DeleteShardedCounterDeferredCallback extends LocalTaskQueueTestConfig.DeferredTaskCallback
@@ -101,13 +99,13 @@ public class AbstractShardedCounterServiceTest
 		// below
 		// http://stackoverflow.com/questions/11197058/testing-non-default-app-engine-task-queues
 		final LocalTaskQueueTestConfig localTaskQueueConfig = new LocalTaskQueueTestConfig()
-			.setDisableAutoTaskExecution(false).setQueueXmlPath("src/test/resources/queue.xml")
-			.setTaskExecutionLatch(countdownLatch).setCallbackClass(DeleteShardedCounterDeferredCallback.class);
+				.setDisableAutoTaskExecution(false).setQueueXmlPath("src/test/resources/queue.xml")
+				.setTaskExecutionLatch(countdownLatch).setCallbackClass(DeleteShardedCounterDeferredCallback.class);
 
 		// Use a different queue.xml for testing purposes
 		helper = new LocalServiceTestHelper(
-			new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
-			new LocalMemcacheServiceTestConfig(), new LocalCapabilitiesServiceTestConfig(), localTaskQueueConfig);
+				new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
+				new LocalMemcacheServiceTestConfig(), new LocalCapabilitiesServiceTestConfig(), localTaskQueueConfig);
 		helper.setUp();
 
 		memcache = MemcacheServiceFactory.getMemcacheService();
@@ -139,7 +137,7 @@ public class AbstractShardedCounterServiceTest
 
 	/**
 	 * Helper method to perform assertions on a specified counter.
-	 * 
+	 *
 	 * @param counter
 	 */
 	protected void assertCounter(Counter counter, String expectedCounterName, long expectedCounterCount)
@@ -150,19 +148,20 @@ public class AbstractShardedCounterServiceTest
 	}
 
 	/**
-	 * Create a new {@link com.theupswell.appengine.counter.service.CounterService} with the specified
-	 * "number of initial shards".
-	 * 
+	 * Create a new {@link com.theupswell.appengine.counter.service.CounterService} with the specified "number of
+	 * initial shards" as found in {@code numInitialShards} .
+	 *
 	 * @param numInitialShards
+	 *
 	 * @return
 	 */
 	protected ShardedCounterService initialShardedCounterService(int numInitialShards)
 	{
 		ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
-			.withNumInitialShards(numInitialShards).build();
+				.withNumInitialShards(numInitialShards).build();
 
 		ShardedCounterService service = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(),
-			CapabilitiesServiceFactory.getCapabilitiesService(), config);
+				CapabilitiesServiceFactory.getCapabilitiesService(), config);
 		return service;
 	}
 
@@ -173,6 +172,30 @@ public class AbstractShardedCounterServiceTest
 	{
 		CapabilityStatus capabilityStatus = this.capabilitiesService.getStatus(Capability.MEMCACHE).getStatus();
 		return capabilityStatus == CapabilityStatus.ENABLED;
+	}
+
+	protected void disableMemcache()
+	{
+		// See
+		// http://www.ensor.cc/2010/11/unit-testing-named-queues-spring.html
+		// NOTE: THE QUEUE XML PATH RELATIVE TO WEB APP ROOT, More info
+		// below
+		// http://stackoverflow.com/questions/11197058/testing-non-default-app-engine-task-queues
+		final LocalTaskQueueTestConfig localTaskQueueConfig = new LocalTaskQueueTestConfig()
+				.setDisableAutoTaskExecution(false).setQueueXmlPath("src/test/resources/queue.xml")
+				.setTaskExecutionLatch(countdownLatch).setCallbackClass(DeleteShardedCounterDeferredCallback.class);
+
+		Capability testOne = new Capability("memcache");
+		CapabilityStatus testStatus = CapabilityStatus.DISABLED;
+		// Initialize
+		LocalCapabilitiesServiceTestConfig capabilityStatusConfig = new LocalCapabilitiesServiceTestConfig()
+				.setCapabilityStatus(testOne, testStatus);
+
+		// Use a different queue.xml for testing purposes
+		helper = new LocalServiceTestHelper(
+				new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
+				new LocalMemcacheServiceTestConfig(), localTaskQueueConfig, capabilityStatusConfig);
+		helper.setUp();
 	}
 
 }
