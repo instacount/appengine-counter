@@ -1,19 +1,35 @@
 appengine-counter (A Sharded Counter for Google Appengine)
 ===========================
 [![Build Status](https://travis-ci.org/theupswell/appengine-counter.png)](https://travis-ci.org/theupswell/appengine-counter)
+[![Coverage Status](https://coveralls.io/repos/theupswell/appengine-counter/badge.png?branch=master)](https://coveralls.io/r/theupswell/appengine-counter?branch=master)
 
-Appengine-counter is a ShardedCounter implementation for use in Google Appengine.  It offers strongly conistent increment/decrement functionality while maintaining high-throughput via on-the-fly shard configuration.  Appengine-counter uses memcache for fast counter retrieval, all the while being fully backed by the GAE Datastore for incredibly durability and availability.<br/><br/>
-Appengine-counter is patterned off of the following <a href="https://developers.google.com/appengine/articles/sharding_counters">article</a> from developer.google.com, but uses Objectify4 for improved maintainability.<br/><br/>
-The rationale for a ShardedCounter is as follows (quoted from the linked article):
+Appengine-counter is a ShardedCounter implementation for use in Google Appengine.  It offers strongly 
+consistent increment/decrement functionality while maintaining high-throughput via on-the-fly shard configuration.  
+Appengine-counter uses memcache for fast counter retrieval, all the while being fully backed by the GAE Datastore 
+for incredible durability and availability.<br/><br/>
+Appengine-counter is patterned off of the following <a href="https://developers.google.com/appengine/articles/sharding_counters">article</a> 
+from developer.google.com, but uses Objectify for improved maintainability.<br/><br/>
+The rationale for a ShardedCounter is as follows (quoted from the above linked Google article):
 
-> When developing an efficient application on Google App Engine, you need to pay attention to how often an entity is updated. While App Engine's datastore scales to support a huge number of entities, it is important to note that you can only expect to update any single entity or entity group about five times a second. That is an estimate and the actual update rate for an entity is dependent on several attributes of the entity, including how many properties it has, how large it is, and how many indexes need updating. While a single entity or entity group has a limit on how quickly it can be updated, App Engine excels at handling many parallel requests distributed across distinct entities, and we can take advantage of this by using sharding."
+> When developing an efficient application on Google App Engine, you need to pay attention to how often an entity 
+is updated. While App Engine's datastore scales to support a huge number of entities, it is important to note that 
+you can only expect to update any single entity or entity group about five times a second. That is an estimate and 
+the actual update rate for an entity is dependent on several attributes of the entity, including how many properties 
+it has, how large it is, and how many indexes need updating. While a single entity or entity group has a limit on how 
+quickly it can be updated, App Engine excels at handling many parallel requests distributed across distinct entities,
+ and we can take advantage of this by using sharding."
 
-Thus, when a datastore-backed counter is required (i.e., for counter consistency, redundancy, and availability) we can increment random Counter shards in parallel and achieve a high-throughput counter without sacrificing consistency or availability.  For example, if a particular counter needs to support 100 increments per second, then the application supporting this counter could create the counter with approximately 20 shards, and the throughput could be sustained (this is because any particular entity group in the appengine HRD can support ~5 updates/second).
+Thus, when a datastore-backed counter is required (i.e., for counter consistency, redundancy, and availability) 
+we can increment random Counter shards in parallel and achieve a high-throughput counter without sacrificing consistency 
+or availability.  For example, if a particular counter needs to support 100 increments per second, then the application 
+supporting this counter could create the counter with approximately 20 shards, and the throughput could be sustained 
+(this is because, per the above quote, any particular entity group in the appengine HRD can support ~5 updates/second).
 
 Features
 ------
 + <b>Durable</b><br/>
-Counter values are stored in the Google Appengine <a href="https://developers.google.com/appengine/docs/python/datastore/structuring_for_strong_consistency">HRD Datastore</a> for data durability and redundancy.  Once an increment or decrement is recorded by the datastore, it's there for good.
+Counter values are stored in the Google Appengine <a href="https://developers.google.com/appengine/docs/python/datastore/structuring_for_strong_consistency">HRD Datastore</a> 
+for data durability and redundancy.  Once an increment or decrement is recorded by the datastore, it's there for good.
 
 + <b>Available</b><br/>
 Since counters are backed by the appengine datastore and appengine itself, counter counts are highly available.
@@ -22,34 +38,37 @@ Since counters are backed by the appengine datastore and appengine itself, count
 Counter increment/decrement operations are atomic and will either succeed or fail as a single unit of work.
 
 + <b>High Performance</b><br/>
-Appengine datastore entity groups are limited to ~5 writes/second, so in order to provide a high-throughput counter implementation, a particular counter's 'count' is distributed amongst various counter-shard entities.  Whenever an increment operation is peformed, one of the available shards is chosen to have its count incremented.  In this way, counter throughput is limited only by the number of shards configured for each counter.
+Appengine datastore entity groups are limited to ~5 writes/second, so in order to provide a high-throughput counter
+ implementation, a particular counter's 'count' is distributed amongst various counter-shard entities.  Whenever an 
+ increment operation is peformed, one of the available shards is chosen to have its count incremented.  In this way,
+  counter throughput is limited only by the number of shards configured for each counter.
 
 + <b>Smart Caching</b><br/>
-Counter values are cached in memcache for high-performance counter reads, and increment/decrement operations update memache so you almost never have to worry about stale counts.
+Counter values are cached in memcache for high-performance counter reads, and increment/decrement operations update 
+memache so you almost never have to worry about stale counts.
 
 + <b>Growable Shards --> Higher Throughput</b><br/>
-Increasing the number of shards for a particular counter will increase the number of updates/second that the system can handle.  Using appengine-counter, any counter's shard-count can be adjusted in real-time using the appengine datastore viewer.  The more shards, the higher the throughput for any particular counter.
+Increasing the number of shards for a particular counter will increase the number of updates/second that the system
+ can handle.  Using appengine-counter, any counter's shard-count can be adjusted in real-time using the appengine
+  datastore viewer.  The more shards, the higher the throughput for any particular counter.
 
 + <b>Optional Transactionality</b><br/>
-By default, counter increment/decrement operations do not happen in an existing datastore transaction.  Instead, a new transaction is always created, which allows the counter to be atomically incremented without having to worry about XG-transaction limits (currently 5 entity groups per Transaction).  However, sometimes it's necessary to increment a counter inside of an XG transaction, and appengine-counter allows for this.
+By default, counter increment/decrement operations do not happen in an existing datastore transaction.  Instead, 
+a new transaction is always created, which allows the counter to be atomically incremented without having to worry 
+about XG-transaction limits (currently 5 entity groups per Transaction).  However, sometimes it's necessary to increment 
+a counter inside of an XG transaction, and appengine-counter allows for this.
 
 + <b>Async Counter Deletion<b><br/>
-Because some counters may have a large number of counter shards, counter deletion is facilitated in an asynchronous manner using a TaskQueue.  Because of this, counter deletion is eventually consistent, although the counter-status will reflect the fact that it is being deleted, and this information is strongly-consistent.
+Because some counters may have a large number of counter shards, counter deletion is facilitated in an asynchronous 
+manner using a TaskQueue.  Because of this, counter deletion is eventually consistent, although the counter-status will 
+reflect the fact that it is being deleted, and this information is strongly-consistent.
 
-<b><i><u>Note: The current release of this library is not compatible with Objectify versions prior to version 4.0rc1.  See the changelog for previous version support.</u></i></b>
+<b><i><u>Note: The current release of this library is not compatible with Objectify versions prior to version 4.0rc1.  
+See the changelog for previous version support.</u></i></b>
 
 Getting Started
 ----------
-First, download the latest <a href="https://github.com/theupswell/appengine-counter/archive/1.0.0.zip">appengine-counter-1.0.0.jar</a> and include it your application's classpath.
-
-Maven users should utilize the following repository and dependency instead:
-
-	<repositories>
-		<repository>
-			<id>sappenin-objectify-utils</id>
-			<url>https://github.com/theupswell/appengine-counter/tree/master/maven</url>
-		</repository>
-	</repositories>
+Appengine-counter can be found in maven-central.  To use it in your project, include the following dependency information:
 
     <dependency>
     	<groupId>com.theupswell.appengine.counter</groupId>
@@ -57,7 +76,9 @@ Maven users should utilize the following repository and dependency instead:
 		<version>1.0.0</version>
     </dependency>
 
-Sharded counters can be accessed via an implementation of <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterService.java">ShardedCounterService</a>.  Currently, the only implementation is <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterServiceImpl.java">ShardedCounterServiceImpl<a/>, which requires a TaskQueue (the "/default" queue is used by default) if Counter deletion is required.
+Sharded counters can be accessed via an implementation of <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterService.java">ShardedCounterService</a>.  
+Currently, the only implementation is <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterServiceImpl.java">ShardedCounterServiceImpl<a/>, 
+which requires a TaskQueue (the "/default" queue is used by default) if Counter deletion is required.
 
 Queue Configuration
 ----------
@@ -68,7 +89,10 @@ Queue Configuration
 		</queue>
 	</queue-entries>
 
-Don't forget to add a URL mapping for the default queue, or for the queue mapping you specify below!  By default, the ShardedCounterService uses the default queue URL.  See <a href="https://developers.google.com/appengine/docs/java/taskqueue/overview-push#URL_Endpoints">here</a> for how to configure your push queue URL endpoints.
+Don't forget to add a URL mapping for the default queue, or for the queue mapping you specify below!  
+By default, the ShardedCounterService uses the default queue URL.  
+See <a href="https://developers.google.com/appengine/docs/java/taskqueue/overview-push#URL_Endpoints">here</a> 
+for how to configure your push queue URL endpoints.
 
 <i><b>Note that this queue is not required if Counter deletion won't be utilized by your application</b></i>.
 
@@ -303,6 +327,10 @@ Finally, wire everything together in the configure() method of one of your Guice
 
 Change Log
 ----------
+**Version 1.0.1**
++ Javadoc and license updates
++ First release deploy to maven central
+
 **Version 1.0.0**
 + Update Library for Objectify5
 + Name change from Oodlemud to UpSwell
