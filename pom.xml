@@ -61,11 +61,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <appengine.target.version>1.9.7</appengine.target.version>
+        <appengine.target.version>1.9.17</appengine.target.version>
         <objectify.version>5.0.3</objectify.version>
         <objectify-utils.version>5.0.2</objectify-utils.version>
 
-        <joda.time.version>2.4</joda.time.version>
+        <joda.time.version>2.6</joda.time.version>
         <lombok.version>1.14.8</lombok.version>
 
         <maven.compiler.plugin.version>3.1</maven.compiler.plugin.version>
@@ -82,7 +82,6 @@
             <name>Sonatype Nexus release repository</name>
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
-
     </distributionManagement>
 
     <dependencies>
@@ -139,14 +138,14 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.11</version>
+            <version>4.12</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>1.9.5</version>
+            <version>1.10.8</version>
             <scope>test</scope>
         </dependency>
 
@@ -176,7 +175,7 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.1</version>
+            <version>3.3.2</version>
         </dependency>
 
     </dependencies>
