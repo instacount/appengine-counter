@@ -1,17 +1,14 @@
 /**
  * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.theupswell.appengine.counter.data;
 
@@ -31,11 +28,9 @@ import com.theupswell.appengine.counter.data.base.AbstractEntity;
 import com.theupswell.appengine.counter.service.ShardedCounterService;
 
 /**
- * Represents a named counter in the datastore and allows for
- * shard-initialization and shard-association. Note that this entity does not
- * have a {@code count} property since counts are stored in
- * {@link CounterShardData} entities and aggregated by
- * {@link ShardedCounterService} implementations.
+ * Represents a named counter in the datastore and allows for shard-initialization and shard-association. Note that this
+ * entity does not have a {@code count} property since counts are stored in {@link CounterShardData} entities and
+ * aggregated by {@link ShardedCounterService} implementations.
  * 
  * @author David Fuelling
  */
@@ -53,6 +48,8 @@ public class CounterData extends AbstractEntity
 	{
 		// This Counter is available to be incremented, decremented, or deleted.
 		AVAILABLE,
+		// This Counter is not available to be incremented or decremented (though its details can be updated).
+		READ_ONLY_COUNT,
 		// This Counter is expanding the number of shards it holds internally,
 		// and may not be incremented, decremented, or deleted.
 		EXPANDING_SHARDS,
@@ -72,6 +69,8 @@ public class CounterData extends AbstractEntity
 	// amongst all shards for a given counterName
 	private int numShards;
 
+	private String counterDescription;
+
 	// This is AVAILABLE by default, which means it can be incremented and
 	// decremented
 	private CounterStatus counterStatus = CounterStatus.AVAILABLE;
@@ -90,11 +89,10 @@ public class CounterData extends AbstractEntity
 	/**
 	 * The param-based constructor
 	 * 
-	 * @param counterName The name of this CounterData. May not be null, blank,
-	 *            or empty.
+	 * @param counterName The name of this CounterData. May not be null, blank, or empty.
 	 * @param numShards The number of shards this counter will contain.
 	 */
-	public CounterData(String counterName, int numShards)
+	public CounterData(final String counterName, final int numShards)
 	{
 		super(counterName);
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
@@ -114,21 +112,20 @@ public class CounterData extends AbstractEntity
 		return this.getId();
 	}
 
-	public void setNumShards(int numShards)
+	public void setNumShards(final int numShards)
 	{
 		this.numShards = numShards;
 		this.setUpdatedDateTime(new DateTime(DateTimeZone.UTC));
 	}
 
 	/**
-	 * Create a {@link Key Key<CounterData>}. Keys for this entity are not
-	 * "parented" so that they can be added under high volume load in a given
-	 * application. Note that CounterData will be in a namespace specific.
+	 * Create a {@link Key Key<CounterData>}. Keys for this entity are not "parented" so that they can be added under
+	 * high volume load in a given application. Note that CounterData will be in a namespace specific.
 	 * 
 	 * @param counterName The name of the Counter to create a Key for.
 	 * @return A {@link Key}
 	 */
-	public static Key<CounterData> key(String counterName)
+	public static Key<CounterData> key(final String counterName)
 	{
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
 			"CounterData Names may not be null, blank, or empty!");

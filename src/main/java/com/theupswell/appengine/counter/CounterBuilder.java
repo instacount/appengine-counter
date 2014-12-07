@@ -1,24 +1,23 @@
 /**
  * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.theupswell.appengine.counter;
 
-import com.theupswell.appengine.counter.data.CounterData;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+
+import com.theupswell.appengine.counter.data.CounterData;
+import com.theupswell.appengine.counter.service.OpsPerSecondCalculator;
 
 @Data
 @RequiredArgsConstructor
@@ -26,30 +25,72 @@ public class CounterBuilder
 {
 	@NonNull
 	private final String counterName;
+	private String counterDescription;
+	private int opsPerSecond;
 	private CounterData.CounterStatus counterStatus = CounterData.CounterStatus.AVAILABLE;
 	private long count;
 
 	/**
 	 * Build method for constructing a new Counter.
 	 * 
-	 * @param builder
+	 * @param counterData
 	 * @return
 	 */
-	public CounterBuilder(CounterData counterData)
+	public CounterBuilder(final CounterData counterData)
 	{
 		this.counterName = counterData.getCounterName();
+		this.counterDescription = counterData.getCounterDescription();
+		this.opsPerSecond = OpsPerSecondCalculator.getOpsPerSecond(counterData.getNumShards());
+		this.opsPerSecond = counterData.getNumShards();
 		this.counterStatus = counterData.getCounterStatus();
 	}
 
 	/**
 	 * Build method for constructing a new Counter.
+	 *
+	 * @param counter
+	 * @return
+	 */
+	public CounterBuilder(final Counter counter)
+	{
+		this.counterName = counter.getCounterName();
+		this.counterDescription = counter.getCounterDescription();
+		this.opsPerSecond = counter.getOpsPerSecond();
+		this.counterStatus = counter.getCounterStatus();
+		this.count = counter.getCount();
+	}
+
+	/**
+	 * Build method for constructing a new Counter.
 	 * 
-	 * @param builder
 	 * @return
 	 */
 	public Counter build()
 	{
-		return new Counter(this.getCounterName(), this.getCounterStatus(), this.getCount());
+		return new Counter(this.getCounterName(), this.getCounterDescription(), this.getOpsPerSecond(),
+			this.getCounterStatus(), this.getCount());
+	}
+
+	/**
+	 *
+	 * @param counterDescription
+	 * @return
+	 */
+	public CounterBuilder withCounterDescription(final String counterDescription)
+	{
+		this.setCounterDescription(counterDescription);
+		return this;
+	}
+
+	/**
+	 *
+	 * @param opsPerSecond
+	 * @return
+	 */
+	public CounterBuilder withOpsPerSecond(final String opsPerSecond)
+	{
+		this.withOpsPerSecond(opsPerSecond);
+		return this;
 	}
 
 	/**
@@ -57,7 +98,7 @@ public class CounterBuilder
 	 * @param counterStatus
 	 * @return
 	 */
-	public CounterBuilder withCounterStatus(CounterData.CounterStatus counterStatus)
+	public CounterBuilder withCounterStatus(final CounterData.CounterStatus counterStatus)
 	{
 		this.setCounterStatus(counterStatus);
 		return this;

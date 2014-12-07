@@ -1,17 +1,14 @@
 /**
  * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.theupswell.appengine.counter.service;
 
@@ -22,9 +19,6 @@ import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.theupswell.appengine.counter.Counter;
-import com.theupswell.appengine.counter.CounterBuilder;
-import com.theupswell.appengine.counter.data.CounterData;
 import org.apache.commons.lang3.StringUtils;
 
 import com.google.appengine.api.capabilities.CapabilitiesService;
@@ -47,72 +41,60 @@ import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
 import com.googlecode.objectify.Work;
+import com.theupswell.appengine.counter.Counter;
+import com.theupswell.appengine.counter.CounterBuilder;
+import com.theupswell.appengine.counter.data.CounterData;
+import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
 
 /**
- * A durable implementation of a {@link ShardedCounterService} that provides
- * counter increment, decrement, and delete functionality. This implementation
- * is is backed by one or more Datastore "shard" entities which each hold a
- * discrete count in order to provide for high throughput. When aggregated, the
- * sum total of all CounterShard entity counts is the value of the counter. See
- * the google link below for more details on Sharded Counters in appengine. Note
- * that CounterShards cannot go negative, and there is no difference between a
- * counter being "zero" and a counter not existing.<br/>
+ * A durable implementation of a {@link ShardedCounterService} that provides counter increment, decrement, and delete
+ * functionality. This implementation is is backed by one or more Datastore "shard" entities which each hold a discrete
+ * count in order to provide for high throughput. When aggregated, the sum total of all CounterShard entity counts is
+ * the value of the counter. See the google link below for more details on Sharded Counters in appengine. Note that
+ * CounterShards cannot go negative, and there is no difference between a counter being "zero" and a counter not
+ * existing.<br/>
  * <br/>
- * Note that this implementation is capable of incrementing/decrementing various
- * counter shard counts but does not automatically increase or reduce the
- * <b>number</b> of shards for a given counter in response to load.<br/>
+ * Note that this implementation is capable of incrementing/decrementing various counter shard counts but does not
+ * automatically increase or reduce the <b>number</b> of shards for a given counter in response to load.<br/>
  * <br/>
  * All datastore operations are performed using Objectify.<br/>
  * <br/>
  * <br/>
  * <b>Incrementing a Counter</b><br/>
- * When incrementing, a random shard is selected to prevent a single shard from
- * being written to too frequently.<br/>
+ * When incrementing, a random shard is selected to prevent a single shard from being written to too frequently.<br/>
  * <br/>
  * <b>Decrementing a Counter</b><br/>
- * This implementation does not support negative counts, so CounterShard counts
- * can not go below zero. Thus, when decrementing, a random shard is selected to
- * prevent a single shard from being written to too frequently. However, if a
- * particular shard cannot be decremented then other shards are tried until all
- * shards have been tried. If no shard can be decremented, then the decrement
- * function is considered complete, even though nothing was decremented. Because
- * of this, it is possible that a request to reduce a counter by more than its
- * available count will succeed with a lesser count having been reduced.
- * <b>Getting the Count</b><br/>
- * Aggregate Counter counter lookups are first attempted using Memcache. If the
- * counter value is not in the cache, then the shards are read from the
- * datastore and accumulated to reconstruct the current count. This operation
- * has a cost of O(numShards), or O(N). Increase the number of shards to improve
- * counter increment throughput, but beware that this has a cost - it makes
- * counter lookups from the Datastore more expensive.<br/>
+ * This implementation does not support negative counts, so CounterShard counts can not go below zero. Thus, when
+ * decrementing, a random shard is selected to prevent a single shard from being written to too frequently. However, if
+ * a particular shard cannot be decremented then other shards are tried until all shards have been tried. If no shard
+ * can be decremented, then the decrement function is considered complete, even though nothing was decremented. Because
+ * of this, it is possible that a request to reduce a counter by more than its available count will succeed with a
+ * lesser count having been reduced. <b>Getting the Count</b><br/>
+ * Aggregate Counter counter lookups are first attempted using Memcache. If the counter value is not in the cache, then
+ * the shards are read from the datastore and accumulated to reconstruct the current count. This operation has a cost of
+ * O(numShards), or O(N). Increase the number of shards to improve counter increment throughput, but beware that this
+ * has a cost - it makes counter lookups from the Datastore more expensive.<br/>
  * <br/>
  * <b>Throughput</b><br/>
- * As an upper-bound calculation of throughput and shard-count, the Psy
- * "Gangham Style" youtube video (arguably one of the most viral videos of all
- * time) reached 750m views in approximately 60 days. If that video's
- * 'hit-counter' was using appengine-counter as its underlying implementation,
- * then the counter would have needed to sustain an increment rate of 145
- * updates per second for 60 days. Since each CounterShard could have provided
- * up to 5 updates per second (this seems to be the average indicated by the
- * appengine team and in various documentation), then the counter would have
- * required at least 29 CounterShard entities, which in the grand scheme of the
- * Appengine Datastore seems prett small. In reality, a counter with this much
- * traffic would not need to be highly consistent, but it could have been using
- * appengine-counter.<br/>
+ * As an upper-bound calculation of throughput and shard-count, the Psy "Gangham Style" youtube video (arguably one of
+ * the most viral videos of all time) reached 750m views in approximately 60 days. If that video's 'hit-counter' was
+ * using appengine-counter as its underlying implementation, then the counter would have needed to sustain an increment
+ * rate of 145 updates per second for 60 days. Since each CounterShard could have provided up to 5 updates per second
+ * (this seems to be the average indicated by the appengine team and in various documentation), then the counter would
+ * have required at least 29 CounterShard entities, which in the grand scheme of the Appengine Datastore seems prett
+ * small. In reality, a counter with this much traffic would not need to be highly consistent, but it could have been
+ * using appengine-counter.<br/>
  * <br/>
  * <b>Future Improvements</b><br/>
  * <ul>
- * <li><b>CounterShard Expansion</b>: A shard-expansion mechanism can be
- * envisioned to increase the number of CounterShard entities for a particular
- * Counter when load increases to a specified amount for a given Counter.</li>
- * <li><b>CounterShard Contraction</b>: A shard-reduction mechanism can be
- * envisioned to aggregate multiple shards (and their counts) into fewer shards
- * to improve datastore counter lookup performance when Counter load falls below
- * some threshold.</li>
- * <li><b>Counter Reset</b>: Reset a counter to zero by resetting all counter
- * shards 'counts' to zero. This would need to be, by nature of this
- * implementation, async.</li>
+ * <li><b>CounterShard Expansion</b>: A shard-expansion mechanism can be envisioned to increase the number of
+ * CounterShard entities for a particular Counter when load increases to a specified amount for a given Counter.</li>
+ * <li><b>CounterShard Contraction</b>: A shard-reduction mechanism can be envisioned to aggregate multiple shards (and
+ * their counts) into fewer shards to improve datastore counter lookup performance when Counter load falls below some
+ * threshold.</li>
+ * <li><b>Counter Reset</b>: Reset a counter to zero by resetting all counter shards 'counts' to zero. This would need
+ * to be, by nature of this implementation, async.</li>
  * </ul>
  * 
  * @see "https://developers.google.com/appengine/articles/sharding_counters"
@@ -139,10 +121,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// /////////////////////////////
 
 	/**
-	 * Default Constructor for Dependency-Injection that uses
-	 * {@link MemcacheServiceFactory} to construct the {@link MemcacheService}
-	 * and {@link CapabilitiesServiceFactory} to construct the
-	 * {@link CapabilitiesService}. dependency for this service.
+	 * Default Constructor for Dependency-Injection that uses {@link MemcacheServiceFactory} to construct the
+	 * {@link MemcacheService} and {@link CapabilitiesServiceFactory} to construct the {@link CapabilitiesService}.
+	 * dependency for this service.
 	 */
 	public ShardedCounterServiceImpl()
 	{
@@ -150,9 +131,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	}
 
 	/**
-	 * Default Constructor for Dependency-Injection that uses a default number
-	 * of counter shards (set to 1) and a default configuration per
-	 * {@link ShardedCounterServiceConfiguration#defaultConfiguration}.
+	 * Default Constructor for Dependency-Injection that uses a default number of counter shards (set to 1) and a
+	 * default configuration per {@link ShardedCounterServiceConfiguration#defaultConfiguration}.
 	 * 
 	 * @param memcacheService
 	 * @param capabilitiesService
@@ -197,11 +177,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// /////////////////////////////
 
 	/**
-	 * The cache will expire after {@code defeaultExpiration} seconds, so the
-	 * counter will be accurate after a minute because it performs a load from
-	 * the datastore.
+	 * The cache will expire after {@code defeaultExpiration} seconds, so the counter will be accurate after a minute
+	 * because it performs a load from the datastore.
 	 * 
-	 * @param counterData
+	 * @param counterName
 	 * @return
 	 */
 	@Override
@@ -307,6 +286,56 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		}
 	}
 
+	/**
+	 * NOTE: We don't allow the counter's "count" to be updated by this method. Instead, {@link #increment} and
+	 * {@link #decrement} should be used.
+	 * 
+	 * @param incomingCounter
+	 */
+	@Override
+	public void updateCounterDetails(final Counter incomingCounter)
+	{
+		Preconditions.checkNotNull(incomingCounter);
+
+		ObjectifyService.ofy().transact(new Work<Void>()
+		{
+			@Override
+			public Void run()
+			{
+				// First, load the incomingCounter from the datastore.
+				CounterData counterDataInDatastore = getOrCreateCounterData(incomingCounter.getCounterName());
+				if (counterDataInDatastore.getCounterStatus() == CounterData.CounterStatus.DELETING)
+				{
+					throw new RuntimeException("Can't update Counter details for \"" + counterDataInDatastore
+						+ "\" because it is currently being deleted!");
+				}
+
+				// NOTE: READ_ONLY_COUNT status means the count can't be incremented/decremented. However, it's details
+				// can still be mutated.
+
+				// NOTE: The counterName/counterId may not change!
+
+				// Update the Description
+				counterDataInDatastore.setCounterDescription(incomingCounter.getCounterDescription());
+
+				// Update the numShards. Aside from setting this value, nothing exclicitly needs to happen in the
+				// datastore since shards will be created when a counter in incremented (if the shard doesn't already
+				// exist).
+				counterDataInDatastore.setNumShards(OpsPerSecondCalculator.getNumShards(incomingCounter
+					.getOpsPerSecond()));
+
+				// The Exception above disallows any invalid states.
+				counterDataInDatastore.setCounterStatus(incomingCounter.getCounterStatus());
+
+				// Update the counter in the datastore.
+				ObjectifyService.ofy().save().entity(counterDataInDatastore).now();
+
+				// return this to satisfy Java...
+				return null;
+			}
+		});
+	}
+
 	// /////////////////////////////
 	// Increment Functions
 	// /////////////////////////////
@@ -350,6 +379,11 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 					throw new RuntimeException("Can't increment counter \"" + counterName
 						+ "\" because it is currently being deleted!");
 				}
+				else if (counterData.getCounterStatus() == CounterStatus.READ_ONLY_COUNT)
+				{
+					throw new RuntimeException("Can't increment counter \"" + counterName
+						+ "\" because it is currently in the READ_ONLY_COUNT state!");
+				}
 
 				// Find how many shards are in this counter.
 				final int currentNumShards = counterData.getNumShards();
@@ -392,11 +426,12 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// Perform the increment inside of its own, isolated transaction.
 		if (isolated)
 		{
-			amountIncrementedInTx = ObjectifyService.ofy().transactNew(atomicIncrementShardWork);
+			amountIncrementedInTx = ObjectifyService.ofy().transactNew(1, atomicIncrementShardWork);
 		}
 		// Perform the increment inside of the existing transaction, if any.
 		else
 		{
+			//
 			amountIncrementedInTx = ObjectifyService.ofy().transact(atomicIncrementShardWork);
 		}
 
@@ -503,10 +538,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 	}
 	/**
-	 * An implementation of {@link Work} that decrements a specific
-	 * {@link CounterShardData} by a specified amount. {@link CounterShardData}
-	 * entities may not go below zero, so the amount returned by this callable
-	 * may be less than the requested amount.
+	 * An implementation of {@link Work} that decrements a specific {@link CounterShardData} by a specified amount.
+	 * {@link CounterShardData} entities may not go below zero, so the amount returned by this callable may be less than
+	 * the requested amount.
 	 */
 	final class DecrementShardWork implements Work<Long>
 	{
@@ -517,9 +551,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		/**
 		 * Required args Constructor
 		 * 
+		 * @param counterName
 		 * @param counterShardKey
-		 * @param isolated
-		 * @param allowNegativeShardCounts
+		 * @param requestedDecrementAmount
 		 */
 		public DecrementShardWork(final String counterName, final Key<CounterShardData> counterShardKey,
 				final long requestedDecrementAmount)
@@ -534,10 +568,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		}
 
 		/**
-		 * Attempt to decrement a particular CounterShardData by the
-		 * {@code decrementAmount}, or something less if the shard does not have
-		 * enough count to fulfill the entire decrement request. Note that
-		 * CounterShardData counts are not permitted to go negative!
+		 * Attempt to decrement a particular CounterShardData by the {@code decrementAmount}, or something less if the
+		 * shard does not have enough count to fulfill the entire decrement request. Note that CounterShardData counts
+		 * are not permitted to go negative!
 		 */
 		@Override
 		public Long run()
@@ -545,8 +578,13 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			CounterData counterData = getOrCreateCounterData(counterName);
 			if (counterData.getCounterStatus() == CounterData.CounterStatus.DELETING)
 			{
-				throw new RuntimeException("Can't increment counter \"" + counterName
+				throw new RuntimeException("Can't decrement counter \"" + counterName
 					+ "\" because it is currently being deleted!");
+			}
+			else if (counterData.getCounterStatus() == CounterStatus.READ_ONLY_COUNT)
+			{
+				throw new RuntimeException("Can't decrement counter \"" + counterName
+					+ "\" because it is currently in the READ_ONLY_COUNT state!");
 			}
 
 			// Load the appropriate Shard
@@ -601,10 +639,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		}
 
 		/**
-		 * Returns a decrement amount that is either zero, or a positive long
-		 * amount that a particular CounterShard can be reduced by.
+		 * Returns a decrement amount that is either zero, or a positive long amount that a particular CounterShard can
+		 * be reduced by.
 		 * 
-		 * @param counterShardData
+		 * @param counterShardCount
 		 * @param decrementAmount
 		 * @return
 		 */
@@ -715,7 +753,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		else if (counterData.getCounterStatus() != CounterData.CounterStatus.DELETING)
 		{
 			throw new RuntimeException("Can't delete a counter \"" + counterName
-				+ "\" because it is currently no in the DELETING state!");
+				+ "\" because it is currently not in the DELETING state!");
 		}
 
 		// Assemble a list of CounterShard keys, and delete them all in a batch!
@@ -744,14 +782,12 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// //////////////////////////////////
 
 	/**
-	 * Helper method to get (or create and then get) a {@link CounterData} from
-	 * the Datastore with a given name. The result of this function is
-	 * guaranteed to be non-null if no exception is thrown.
+	 * Helper method to get (or create and then get) a {@link CounterData} from the Datastore with a given name. The
+	 * result of this function is guaranteed to be non-null if no exception is thrown.
 	 * 
 	 * @param counterName
 	 * @return
-	 * @throws NullPointerException in the case where no CounterData could be
-	 *             loaded from the Datastore.
+	 * @throws NullPointerException in the case where no CounterData could be loaded from the Datastore.
 	 */
 	@VisibleForTesting
 	protected CounterData getOrCreateCounterData(final String counterName)
@@ -780,12 +816,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	}
 
 	/**
-	 * Increment the memcache version of the named-counter by {@code amount}
-	 * (positive or negative) in an atomic fashion. Use memcache as a
-	 * Semaphore/Mutex, and retry up to 10 times if other threads are attempting
-	 * to update memcache at the same time. If nothing is in Memcache when this
-	 * function is called, then do nothing because only #getCounter should "put"
-	 * a value to memcache.
+	 * Increment the memcache version of the named-counter by {@code amount} (positive or negative) in an atomic
+	 * fashion. Use memcache as a Semaphore/Mutex, and retry up to 10 times if other threads are attempting to update
+	 * memcache at the same time. If nothing is in Memcache when this function is called, then do nothing because only
+	 * #getCounter should "put" a value to memcache.
 	 * 
 	 * @param counterName
 	 * @param amount
