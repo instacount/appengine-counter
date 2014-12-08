@@ -41,7 +41,6 @@ public class CounterBuilder
 		this.counterName = counterData.getCounterName();
 		this.counterDescription = counterData.getCounterDescription();
 		this.opsPerSecond = OpsPerSecondCalculator.getOpsPerSecond(counterData.getNumShards());
-		this.opsPerSecond = counterData.getNumShards();
 		this.counterStatus = counterData.getCounterStatus();
 	}
 
