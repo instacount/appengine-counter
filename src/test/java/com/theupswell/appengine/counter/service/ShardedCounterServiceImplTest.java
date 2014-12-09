@@ -13,76 +13,54 @@ public class ShardedCounterServiceImplTest extends TestCase
 
 	public void testGetCounter() throws Exception
 	{
-
+		fail();
 	}
 
 	public void testUpdateCounterDetails() throws Exception
 	{
-
-	}
-
-	public void testIncrement() throws Exception
-	{
-
-	}
-
-	public void testIncrement1() throws Exception
-	{
-
-	}
-
-	public void testIncrement2() throws Exception
-	{
-
-	}
-
-	public void testDecrement() throws Exception
-	{
-
-	}
-
-	public void testDecrement1() throws Exception
-	{
-
-	}
-
-	public void testDelete() throws Exception
-	{
+		fail();
 
 	}
 
 	public void testOnTaskQueueCounterDeletion() throws Exception
 	{
+		fail();
 
 	}
 
 	public void testGetOrCreateCounterData() throws Exception
 	{
+		fail();
 
 	}
 
 	public void testIncrementMemcacheAtomic() throws Exception
 	{
+		fail();
 
 	}
 
 	public void testAssembleCounterKeyforMemcache() throws Exception
 	{
+		fail();
 
 	}
 
 	public void testIsMemcacheAvailable() throws Exception
 	{
+		fail();
 
 	}
 
 	public void testGetLogger() throws Exception
 	{
+		fail();
 
 	}
 
 	public void testAssertCounterAmountMutatable() throws Exception
 	{
+		fail();
 
 	}
 }
