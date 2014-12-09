@@ -80,7 +80,8 @@ public interface CounterService
 	 * @param amount A positive number to increment the counter's count by.
 	 * @param isolatedTransactionContext {@code true} if the increment operation should be performed inside of a new
 	 *            Datastore transaction that is different from the current transactional context, if any. {@code false}
-	 *            if the increment should occur inside of the existing transactional context, if any.
+	 *            if the increment should occur inside of the existing transactional context, if any, or a new
+	 *            transaction if no pre-existing context exists.
 	 *
 	 * @return A Counter with the current count of the Counter.
 	 * @throws NullPointerException if the {@code counterName} is null.
