@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Preconditions;
 import com.theupswell.appengine.counter.data.CounterData;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration;
 
 /**
  * An immutable object that stores count information.
@@ -31,25 +32,35 @@ import com.theupswell.appengine.counter.data.CounterData;
 @ToString
 public class Counter
 {
-	public static final int DEFAULT_OPS_PER_SECOND = 5;
-
 	private final String counterName;
 	private final String counterDescription;
-	// The number of increment/decrements per second this counter can sustain. GAE entity groups can sustain ~5 updates
-	// per-second, so a setting of 10 here would imply 2 shards.
-	private final int opsPerSecond;
+	// The number of shards available for this counter.
+	private final int numShards;
 	private final CounterData.CounterStatus counterStatus;
 	private final long count;
 
 	/**
 	 * Required-args Constructor. Sets the {@code counterStatus} to
 	 * {@link com.theupswell.appengine.counter.data.CounterData.CounterStatus#AVAILABLE} and the {@code count} to zero.
+	 *
+	 * @param counterName
+	 */
+	public Counter(final String counterName)
+	{
+		this(counterName, null);
+	}
+
+	/**
+	 * Required-args Constructor. Sets the {@code counterStatus} to
+	 * {@link com.theupswell.appengine.counter.data.CounterData.CounterStatus#AVAILABLE} and the {@code count} to zero.
 	 * 
 	 * @param counterName
+	 * @param counterDescription
 	 */
 	public Counter(final String counterName, final String counterDescription)
 	{
-		this(counterName, counterDescription, DEFAULT_OPS_PER_SECOND, CounterData.CounterStatus.AVAILABLE);
+		this(counterName, counterDescription, ShardedCounterServiceConfiguration.DEFAULT_NUM_COUNTER_SHARDS,
+			CounterData.CounterStatus.AVAILABLE);
 	}
 
 	/**
@@ -57,11 +68,13 @@ public class Counter
 	 * 
 	 * @param counterName
 	 * @param counterStatus
+	 * @param numShards
+	 * @param counterStatus
 	 */
-	public Counter(final String counterName, final String counterDescription, final int opsPerSecond,
+	public Counter(final String counterName, final String counterDescription, final int numShards,
 			final CounterData.CounterStatus counterStatus)
 	{
-		this(counterName, counterDescription, opsPerSecond, counterStatus, 0);
+		this(counterName, counterDescription, numShards, counterStatus, 0);
 	}
 
 	/**
@@ -72,7 +85,7 @@ public class Counter
 	 * @param counterStatus
 	 * @param count
 	 */
-	public Counter(final String counterName, final String counterDescription, final int opsPerSecond,
+	public Counter(final String counterName, final String counterDescription, final int numShards,
 			final CounterData.CounterStatus counterStatus, final long count)
 	{
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName), "CounterName may not be empty, blank, or null!");
@@ -80,7 +93,7 @@ public class Counter
 
 		this.counterName = counterName;
 		this.counterDescription = counterDescription;
-		this.opsPerSecond = opsPerSecond;
+		this.numShards = numShards;
 		this.counterStatus = counterStatus;
 		this.count = count;
 	}

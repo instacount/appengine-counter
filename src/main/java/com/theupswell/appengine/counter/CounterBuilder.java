@@ -17,7 +17,6 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 import com.theupswell.appengine.counter.data.CounterData;
-import com.theupswell.appengine.counter.service.OpsPerSecondCalculator;
 
 @Data
 @RequiredArgsConstructor
@@ -26,7 +25,7 @@ public class CounterBuilder
 	@NonNull
 	private final String counterName;
 	private String counterDescription;
-	private int opsPerSecond;
+	private int numShards;
 	private CounterData.CounterStatus counterStatus = CounterData.CounterStatus.AVAILABLE;
 	private long count;
 
@@ -40,7 +39,7 @@ public class CounterBuilder
 	{
 		this.counterName = counterData.getCounterName();
 		this.counterDescription = counterData.getCounterDescription();
-		this.opsPerSecond = OpsPerSecondCalculator.getOpsPerSecond(counterData.getNumShards());
+		this.numShards = counterData.getNumShards();
 		this.counterStatus = counterData.getCounterStatus();
 	}
 
@@ -54,7 +53,7 @@ public class CounterBuilder
 	{
 		this.counterName = counter.getCounterName();
 		this.counterDescription = counter.getCounterDescription();
-		this.opsPerSecond = counter.getOpsPerSecond();
+		this.numShards = counter.getNumShards();
 		this.counterStatus = counter.getCounterStatus();
 		this.count = counter.getCount();
 	}
@@ -66,7 +65,7 @@ public class CounterBuilder
 	 */
 	public Counter build()
 	{
-		return new Counter(this.getCounterName(), this.getCounterDescription(), this.getOpsPerSecond(),
+		return new Counter(this.getCounterName(), this.getCounterDescription(), this.getNumShards(),
 			this.getCounterStatus(), this.getCount());
 	}
 
@@ -83,12 +82,12 @@ public class CounterBuilder
 
 	/**
 	 *
-	 * @param opsPerSecond
+	 * @param numShards
 	 * @return
 	 */
-	public CounterBuilder withOpsPerSecond(final String opsPerSecond)
+	public CounterBuilder withNumShards(final String numShards)
 	{
-		this.withOpsPerSecond(opsPerSecond);
+		this.withNumShards(numShards);
 		return this;
 	}
 

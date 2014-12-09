@@ -313,11 +313,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// Update the Description
 				counterDataInDatastore.setCounterDescription(incomingCounter.getCounterDescription());
 
-				// Update the numShards. Aside from setting this value, nothing exclicitly needs to happen in the
+				// Update the numShards. Aside from setting this value, nothing explicitly needs to happen in the
 				// datastore since shards will be created when a counter in incremented (if the shard doesn't already
 				// exist).
-				counterDataInDatastore.setNumShards(OpsPerSecondCalculator.getNumShards(incomingCounter
-					.getOpsPerSecond()));
+				counterDataInDatastore.setNumShards(incomingCounter.getNumShards());
 
 				// The Exception above disallows any invalid states.
 				counterDataInDatastore.setCounterStatus(incomingCounter.getCounterStatus());
