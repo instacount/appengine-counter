@@ -51,9 +51,10 @@ import com.theupswell.appengine.counter.data.CounterShardData;
  * A durable implementation of a {@link ShardedCounterService} that provides counter increment, decrement, and delete
  * functionality. This implementation is is backed by one or more Datastore "shard" entities which each hold a discrete
  * count in order to provide for high throughput. When aggregated, the sum total of all CounterShard entity counts is
- * the value of the counter. See the google link below for more details on Sharded Counters in appengine. Note that
- * CounterShards cannot go negative, and there is no difference between a counter being "zero" and a counter not
- * existing.<br/>
+ * the value of the counter. See the google link below for more details on Sharded Counters in Appengine. Note that
+ * CounterShards may go negative, depending on the configuration of the counter. Also, note that there is no difference
+ * between a counter being "zero" and a counter not existing. As such, there is no concept of "creating" a counter, and
+ * deleting a counter will actually just remove all shards for a given counter, thereby resetting the counter to 0. <br/>
  * <br/>
  * Note that this implementation is capable of incrementing/decrementing various counter shard counts but does not
  * automatically increase or reduce the <b>number</b> of shards for a given counter in response to load.<br/>
@@ -71,7 +72,7 @@ import com.theupswell.appengine.counter.data.CounterShardData;
  * can be decremented, then the decrement function is considered complete, even though nothing was decremented. Because
  * of this, it is possible that a request to reduce a counter by more than its available count will succeed with a
  * lesser count having been reduced. <b>Getting the Count</b><br/>
- * Aggregate Counter counter lookups are first attempted using Memcache. If the counter value is not in the cache, then
+ * Aggregate ounter lookups are first attempted using Memcache. If the counter value is not in the cache, then
  * the shards are read from the datastore and accumulated to reconstruct the current count. This operation has a cost of
  * O(numShards), or O(N). Increase the number of shards to improve counter increment throughput, but beware that this
  * has a cost - it makes counter lookups from the Datastore more expensive.<br/>
@@ -82,7 +83,7 @@ import com.theupswell.appengine.counter.data.CounterShardData;
  * using appengine-counter as its underlying implementation, then the counter would have needed to sustain an increment
  * rate of 145 updates per second for 60 days. Since each CounterShard could have provided up to 5 updates per second
  * (this seems to be the average indicated by the appengine team and in various documentation), then the counter would
- * have required at least 29 CounterShard entities, which in the grand scheme of the Appengine Datastore seems prett
+ * have required at least 29 CounterShard entities, which in the grand scheme of the Appengine Datastore seems pretty
  * small. In reality, a counter with this much traffic would not need to be highly consistent, but it could have been
  * using appengine-counter.<br/>
  * <br/>

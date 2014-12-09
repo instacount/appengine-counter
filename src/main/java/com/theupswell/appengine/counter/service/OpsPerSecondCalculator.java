@@ -33,6 +33,5 @@ public class OpsPerSecondCalculator
 		// support up to ~10 ops per second.
 
 		return (int) Math.ceil(opsPerSecond / ENTITY_GROUP_UPDATES_PER_SECOND);
-
 	}
 }

@@ -1,21 +1,17 @@
 /**
  * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.theupswell.appengine.counter.data;
 
-import com.theupswell.appengine.counter.data.base.AbstractEntity;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -28,12 +24,12 @@ import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Unindex;
+import com.theupswell.appengine.counter.data.base.AbstractEntity;
 
 /**
  * Represents a discrete shard belonging to a named counter.<br/>
  * <br/>
- * An individual shard is written to infrequently to allow the counter in
- * aggregate to be incremented rapidly.
+ * An individual shard is written to infrequently to allow the counter in aggregate to be incremented rapidly.
  * 
  * @author David Fuelling
  */
@@ -104,8 +100,7 @@ public class CounterShardData extends AbstractEntity
 	 * Helper method to set the internal identifier for this entity.
 	 * 
 	 * @param counterName
-	 * @param shardNumber A unique identifier to distinguish shards for the same
-	 *            {@code counterName} from each other.
+	 * @param shardNumber A unique identifier to distinguish shards for the same {@code counterName} from each other.
 	 */
 	private static String constructCounterShardIdentifier(final String counterName, final int shardNumber)
 	{
@@ -117,11 +112,11 @@ public class CounterShardData extends AbstractEntity
 	}
 
 	/**
-	 * Create a {@link Key Key<CounterShardData>}. Keys for this entity are not
-	 * "parented" so that they can be added under high volume load in a given
-	 * application. Note that CounterData will be in a namespace specific.
+	 * Create a {@link Key Key<CounterShardData>}. Keys for this entity are not "parented" so that they can be added
+	 * under high volume load in a given application. Note that CounterData will be in a namespace specific.
 	 * 
-	 * @param actorId
+	 * @param counterName
+	 * @param shardNumber
 	 * @return
 	 */
 	public static Key<CounterShardData> key(final String counterName, final int shardNumber)
