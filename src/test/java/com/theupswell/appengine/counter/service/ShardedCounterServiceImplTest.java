@@ -63,4 +63,6 @@ public class ShardedCounterServiceImplTest extends TestCase
 		fail();
 
 	}
+
+	// TODO: Test the individual units of work for increment/decrement to enforce specific functional use cases of each.
 }
