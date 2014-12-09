@@ -48,16 +48,16 @@ public class CounterData extends AbstractEntity
 	{
 		// This Counter is available to be incremented, decremented, or deleted.
 		AVAILABLE,
-		// This Counter is not available to be incremented or decremented (though its details can be updated).
+		// This Counter is not available to be incremented or decremented, though its details can be updated.
 		READ_ONLY_COUNT,
-		// This Counter is expanding the number of shards it holds internally,
-		// and may not be incremented, decremented, or deleted.
+		// This Counter is expanding the number of shards it holds internally, and may not be incremented, decremented,
+		// or deleted, or mutated.
 		EXPANDING_SHARDS,
-		// // This Counter is contracting the number of shards it holds
-		// internally, and may not be incremented, decremented, or deleted.
+		// This Counter is contracting the number of shards it holds internally, and may not be incremented,
+		// decremented, or deleted, or mutated.
 		CONTRACTING_SHARDS,
-		// This Counter is in the process of being deleted, and may not be
-		// incremented or decremented.
+		// This Counter is in the process of being deleted, and may not be incremented or decremented and its details
+		// may not be changed.
 		DELETING
 	}
 
