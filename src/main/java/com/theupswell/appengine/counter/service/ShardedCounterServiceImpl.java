@@ -353,7 +353,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	}
 
 	@Override
-	public Counter increment(final String counterName, final long amount, boolean isolated)
+	public Counter increment(final String counterName, final long amount, boolean isolatedTransactionContext)
 	{
 		// ///////////
 		// Precondition Checks
@@ -423,15 +423,38 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// Take Off!
 
 		Long amountIncrementedInTx = new Long(0L);
-		// Perform the increment inside of its own, isolated transaction.
-		if (isolated)
+		// Perform the increment inside of its own, isolatedTransactionContext transaction.
+		if (isolatedTransactionContext)
 		{
-			amountIncrementedInTx = ObjectifyService.ofy().transactNew(1, atomicIncrementShardWork);
+			// Note that this operation is idempotent from the perspective of a ConcurrentModificationException. In that
+			// case, the get/increment/put operation will fail and the increment will not have been applied. An
+			// Objectify retry of the increment will occur in a new transaction, and the increment will only ever happen
+			// once (if the Appengine datastore is functioning properly). WARNING: Be aware that per the GAE
+			// docs, in certain rare cases "If your application receives an exception when committing a transaction, it
+			// does not always mean that the transaction failed. You can receive DatastoreTimeoutException or
+			// DatastoreFailureException exceptions in cases where transactions have been committed and eventually will
+			// be applied successfully." See more at
+			// https://cloud.google.com/appengine/docs/java/datastore/transactions. In these cases, it's possible that
+			// the increment will actually succeed on a particular shard, and it won't be easily discernable if
+			// the increment should be retried. This problem is compounded for high-load counters. For more details, see
+			// https://github.com/theupswell/appengine-counter/issues/15.
+			amountIncrementedInTx = ObjectifyService.ofy().transactNew(atomicIncrementShardWork);
 		}
 		// Perform the increment inside of the existing transaction, if any.
 		else
 		{
-			//
+			// The caller of this increment method is asking for this increment to take place in either a new
+			// transaction or the parent transaction context. In the case that this method is being executed inside of
+			// an existing transaction, the retry semantics of that transaction will be in effect (i.e., if that
+			// transaction retries 10 times, then this counter increment will only happen once, generally). However,
+			// Callers should know that, per the GAE docs, "In extremely rare cases, the transaction is fully committed
+			// even if a transaction returns a timeout or internal error exception. For this reason, it's best to make
+			// transactions idempotent whenever possible." In this case, it's possible that the atomicIncrement
+			// succeeds, but an error is thrown that triggers the retry. For this reason, usage of
+			// isolatedTransactionContext is
+			// deprecated and should not be used.
+
+			// overall transaction,
 			amountIncrementedInTx = ObjectifyService.ofy().transact(atomicIncrementShardWork);
 		}
 
