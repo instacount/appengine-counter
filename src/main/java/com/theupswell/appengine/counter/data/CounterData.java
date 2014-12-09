@@ -65,8 +65,7 @@ public class CounterData extends AbstractEntity
 	// @Id -- The counterName is the @Id of this entity, found in AbstractEntity
 	// ////////////////
 
-	// This is necessary to know in order to be able to evenly distribute
-	// amongst all shards for a given counterName
+	// This is necessary to know in order to be able to evenly distribute amongst all shards for a given counterName
 	private int numShards;
 
 	private String counterDescription;
