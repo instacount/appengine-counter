@@ -85,9 +85,9 @@ public class CounterBuilder
 	 * @param numShards
 	 * @return
 	 */
-	public CounterBuilder withNumShards(final String numShards)
+	public CounterBuilder withNumShards(final int numShards)
 	{
-		this.withNumShards(numShards);
+		this.setNumShards(numShards);
 		return this;
 	}
 
