@@ -12,6 +12,7 @@
  */
 package com.theupswell.appengine.counter.data;
 
+import com.googlecode.objectify.annotation.Cache;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -35,6 +36,7 @@ import com.theupswell.appengine.counter.service.ShardedCounterService;
  * @author David Fuelling
  */
 @Entity
+@Cache
 @Getter
 @Setter
 @Unindex
