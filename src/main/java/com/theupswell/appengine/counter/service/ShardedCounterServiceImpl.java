@@ -368,7 +368,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			// https://cloud.google.com/appengine/docs/java/datastore/transactions. In these cases, it's possible that
 			// the increment will actually succeed on a particular shard, and it won't be easily discernable if
 			// the increment should be retried. This problem is compounded for high-load counters. For more details, see
-			// https://github.com/theupswell/appengine-counter/issues/15.
+			// https://github.com/theupswell/appengine-counter/issues/15.  Fortunately, Objectify will only retry if a
+			// ConcurrentModification is encounterd.  In cases of a DatastoreTimeoutException or DatastoreFailureException
+			// exception, Objectify will not retry (though the increment may have succeeded).
 			amountIncrementedInTx = ObjectifyService.ofy().transactNew(atomicIncrementShardWork);
 		}
 		// Perform the increment inside of the existing transaction, if any.
@@ -381,8 +383,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			// Callers should know that, per the GAE docs, "In extremely rare cases, the transaction is fully committed
 			// even if a transaction returns a timeout or internal error exception. For this reason, it's best to make
 			// transactions idempotent whenever possible." In this case, it's possible that the atomicIncrement
-			// succeeds, but an error is thrown that triggers the retry. For this reason, usage of
-			// isolatedTransactionContext is deprecated and should not be used.
+			// succeeds, but an error is thrown that triggers the retry.
 			amountIncrementedInTx = ObjectifyService.ofy().transact(atomicIncrementShardWork);
 		}
 
@@ -854,6 +855,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	@VisibleForTesting
 	protected Optional<Long> incrementMemcacheAtomic(final String counterName, final long amount)
 	{
+
+		TODO: Use increment here instead of putIfUntouched!
+			memcacheService.increment(memCacheKey, amount);
+
 		// Memcache update did not succeed!
 		if (!isMemcacheAvailable())
 		{
@@ -866,6 +871,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		int numRetries = 10;
 		while (numRetries > 0)
 		{
+
+
 			try
 			{
 				IdentifiableValue identifiableCounter = memcacheService.getIdentifiable(memCacheKey);
