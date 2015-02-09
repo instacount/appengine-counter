@@ -295,6 +295,11 @@ Finally, wire everything together in the configure() method of one of your Guice
 
 Change Log
 ----------
+**Version 1.0.2**
++ Fix #17 Increments in an existing Transaction may populate Memcache incorrectly
++ Improved unit test coverage
++ Improved Javadoc in CounterService and its descendants.
+
 **Version 1.0.1**
 + Javadoc and license updates
 + First release deploy to maven central
