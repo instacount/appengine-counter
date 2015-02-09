@@ -23,14 +23,12 @@ import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 
 /**
- * Unit tests for incrementing a counter via {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}.
+ * Unit tests for incrementing a counter via {@link ShardedCounterServiceImpl}.
  * 
  * @author David Fuelling
  */
-public class ShardedCounterServiceIncrementTest extends
-		com.theupswell.appengine.counter.service.AbstractShardedCounterServiceTest
+public class ShardedCounterServiceIncrementTest extends AbstractShardedCounterServiceTest
 {
-	private static final String TEST_COUNTER2 = "test-counter2";
 
 	@Before
 	public void setUp() throws Exception
@@ -62,8 +60,8 @@ public class ShardedCounterServiceIncrementTest extends
 		}
 		catch (RuntimeException e)
 		{
-			assertEquals("Can't mutate the amount of counter \"" + TEST_COUNTER1
-				+ "\" because it's currently in the DELETING state but must be in in the AVAILABLE state!",
+			assertEquals("Can't mutate the amount of counter '" + TEST_COUNTER1
+				+ "' because it's currently in the DELETING state but must be in in the AVAILABLE state!",
 				e.getMessage());
 			throw e;
 		}
@@ -86,7 +84,7 @@ public class ShardedCounterServiceIncrementTest extends
 	@Test
 	public void testIncrement_Specifiy3Shard() throws InterruptedException
 	{
-		shardedCounterService = initialShardedCounterService(1);
+		shardedCounterService = initialShardedCounterService(3);
 		doCounterIncrementAssertions(TEST_COUNTER1, 50);
 	}
 
@@ -101,6 +99,10 @@ public class ShardedCounterServiceIncrementTest extends
 	// ///////////////////
 	// ///////////////////
 
+	/**
+	 * Combines serial increment and decrement operations across two counters to ensure that each counter in operated
+	 * upon in isolation.
+	 */
 	@Test
 	public void testIncrementDecrementInterleaving()
 	{

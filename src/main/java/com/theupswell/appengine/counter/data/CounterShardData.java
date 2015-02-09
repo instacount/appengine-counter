@@ -20,6 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
@@ -115,8 +116,10 @@ public class CounterShardData extends AbstractEntity
 	 * @param counterName
 	 * @param shardNumber A unique identifier to distinguish shards for the same {@code counterName} from each other.
 	 */
-	private static String constructCounterShardIdentifier(final String counterName, final int shardNumber)
+	@VisibleForTesting
+	static String constructCounterShardIdentifier(final String counterName, final int shardNumber)
 	{
+		Preconditions.checkNotNull(counterName);
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
 			"CounterData Names may not be null, blank, or empty!");
 		Preconditions.checkArgument(shardNumber >= 0, "shardNumber must be greater than or equal to 0!");

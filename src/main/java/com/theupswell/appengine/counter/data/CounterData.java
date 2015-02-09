@@ -12,7 +12,6 @@
  */
 package com.theupswell.appengine.counter.data;
 
-import com.googlecode.objectify.annotation.Cache;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -23,6 +22,7 @@ import org.joda.time.DateTimeZone;
 
 import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
+import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Unindex;
 import com.theupswell.appengine.counter.data.base.AbstractEntity;
@@ -68,7 +68,7 @@ public class CounterData extends AbstractEntity
 	// ////////////////
 
 	// This is necessary to know in order to be able to evenly distribute amongst all shards for a given counterName
-	private int numShards;
+	private int numShards = 1;
 
 	private String counterDescription;
 
@@ -85,6 +85,7 @@ public class CounterData extends AbstractEntity
 	public CounterData()
 	{
 		// Implement for Objectify
+		this.setNumShards(1);
 	}
 
 	/**
@@ -98,7 +99,9 @@ public class CounterData extends AbstractEntity
 		super(counterName);
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
 			"CounterData Names may not be null, blank, or empty!");
-		this.numShards = numShards;
+
+		Preconditions.checkArgument(numShards > 0);
+		this.setNumShards(numShards);
 	}
 
 	// //////////////////////////////
@@ -115,6 +118,8 @@ public class CounterData extends AbstractEntity
 
 	public void setNumShards(final int numShards)
 	{
+		Preconditions.checkArgument(numShards > 0, "A Counter must have at least 1 CounterShard!");
+
 		this.numShards = numShards;
 		this.setUpdatedDateTime(new DateTime(DateTimeZone.UTC));
 	}
@@ -128,6 +133,7 @@ public class CounterData extends AbstractEntity
 	 */
 	public static Key<CounterData> key(final String counterName)
 	{
+		Preconditions.checkNotNull(counterName);
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
 			"CounterData Names may not be null, blank, or empty!");
 		return Key.create(CounterData.class, counterName);
