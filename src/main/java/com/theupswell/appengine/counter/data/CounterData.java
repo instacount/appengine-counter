@@ -22,6 +22,7 @@ import org.joda.time.DateTimeZone;
 
 import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
+import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Unindex;
 import com.theupswell.appengine.counter.data.base.AbstractEntity;
@@ -35,6 +36,7 @@ import com.theupswell.appengine.counter.service.ShardedCounterService;
  * @author David Fuelling
  */
 @Entity
+@Cache
 @Getter
 @Setter
 @Unindex
@@ -48,16 +50,16 @@ public class CounterData extends AbstractEntity
 	{
 		// This Counter is available to be incremented, decremented, or deleted.
 		AVAILABLE,
-		// This Counter is not available to be incremented or decremented (though its details can be updated).
+		// This Counter is not available to be incremented or decremented, though its details can be updated.
 		READ_ONLY_COUNT,
-		// This Counter is expanding the number of shards it holds internally,
-		// and may not be incremented, decremented, or deleted.
+		// This Counter is expanding the number of shards it holds internally, and may not be incremented, decremented,
+		// or deleted, or mutated.
 		EXPANDING_SHARDS,
-		// // This Counter is contracting the number of shards it holds
-		// internally, and may not be incremented, decremented, or deleted.
+		// This Counter is contracting the number of shards it holds internally, and may not be incremented,
+		// decremented, or deleted, or mutated.
 		CONTRACTING_SHARDS,
-		// This Counter is in the process of being deleted, and may not be
-		// incremented or decremented.
+		// This Counter is in the process of being deleted, and may not be incremented or decremented and its details
+		// may not be changed.
 		DELETING
 	}
 
@@ -65,9 +67,8 @@ public class CounterData extends AbstractEntity
 	// @Id -- The counterName is the @Id of this entity, found in AbstractEntity
 	// ////////////////
 
-	// This is necessary to know in order to be able to evenly distribute
-	// amongst all shards for a given counterName
-	private int numShards;
+	// This is necessary to know in order to be able to evenly distribute amongst all shards for a given counterName
+	private int numShards = 1;
 
 	private String counterDescription;
 
@@ -84,6 +85,7 @@ public class CounterData extends AbstractEntity
 	public CounterData()
 	{
 		// Implement for Objectify
+		this.setNumShards(1);
 	}
 
 	/**
@@ -97,7 +99,9 @@ public class CounterData extends AbstractEntity
 		super(counterName);
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
 			"CounterData Names may not be null, blank, or empty!");
-		this.numShards = numShards;
+
+		Preconditions.checkArgument(numShards > 0);
+		this.setNumShards(numShards);
 	}
 
 	// //////////////////////////////
@@ -114,6 +118,8 @@ public class CounterData extends AbstractEntity
 
 	public void setNumShards(final int numShards)
 	{
+		Preconditions.checkArgument(numShards > 0, "A Counter must have at least 1 CounterShard!");
+
 		this.numShards = numShards;
 		this.setUpdatedDateTime(new DateTime(DateTimeZone.UTC));
 	}
@@ -127,6 +133,7 @@ public class CounterData extends AbstractEntity
 	 */
 	public static Key<CounterData> key(final String counterName)
 	{
+		Preconditions.checkNotNull(counterName);
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
 			"CounterData Names may not be null, blank, or empty!");
 		return Key.create(CounterData.class, counterName);

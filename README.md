@@ -1,5 +1,6 @@
 appengine-counter (A Sharded Counter for Google Appengine)
 ===========================
+[![Circle CI](https://circleci.com/gh/theupswell/appengine-counter/tree/master.svg?style=svg)](https://circleci.com/gh/theupswell/appengine-counter/tree/master)
 [![Build Status](https://travis-ci.org/theupswell/appengine-counter.png)](https://travis-ci.org/theupswell/appengine-counter)
 [![Coverage Status](https://coveralls.io/repos/theupswell/appengine-counter/badge.png?branch=master)](https://coveralls.io/r/theupswell/appengine-counter?branch=master)
 
