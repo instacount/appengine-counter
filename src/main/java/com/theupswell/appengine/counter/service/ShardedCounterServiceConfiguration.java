@@ -36,7 +36,7 @@ import com.google.common.base.Preconditions;
 public class ShardedCounterServiceConfiguration
 {
 	// The number of shards to begin with for this counter.
-	static final int DEFAULT_NUM_COUNTER_SHARDS = 3;
+	public static final int DEFAULT_NUM_COUNTER_SHARDS = 3;
 
 	static final int SIXTY_MINUTES_IN_SECONDS = 60 * 60;
 
