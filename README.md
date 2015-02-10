@@ -279,7 +279,7 @@ Change Log
 + Remove dependency on objectify-utils
 
 **Version 1.0.2**
-+ Fix #17 Increments in an existing Transaction may populate Memcache incorrectly
++ Fix [Issue #17](https://github.com/theupswell/appengine-counter/issues/17) Increments in an existing Transaction may populate Memcache incorrectly
 + Improved unit test coverage
 + Improved Javadoc in CounterService and its descendants.
 
