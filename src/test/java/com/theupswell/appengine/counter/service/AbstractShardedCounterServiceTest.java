@@ -1,19 +1,21 @@
 /**
  * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.theupswell.appengine.counter.service;
+
+import static org.junit.Assert.*;
+
+import org.junit.After;
+import org.junit.Before;
 
 import com.google.appengine.api.capabilities.CapabilitiesService;
 import com.google.appengine.api.capabilities.CapabilitiesServiceFactory;
@@ -33,10 +35,6 @@ import com.sappenin.objectify.translate.UTCReadableInstantDateTranslatorFactory;
 import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterShardData;
-import org.junit.After;
-import org.junit.Before;
-
-import static org.junit.Assert.*;
 
 /**
  * An abstract base class for testing {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}
@@ -56,10 +54,10 @@ public abstract class AbstractShardedCounterServiceTest
 	protected LocalTaskQueueTestConfig.TaskCountDownLatch countdownLatch;
 
 	protected LocalServiceTestHelper helper = new LocalServiceTestHelper(
-			// Our tests assume strong consistency, but a bug in the appengine test
-			// harness forces us to set this value to at least 1.
-			new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
-			new LocalMemcacheServiceTestConfig(), new LocalTaskQueueTestConfig());
+		// Our tests assume strong consistency, but a bug in the appengine test
+		// harness forces us to set this value to at least 1.
+		new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
+		new LocalMemcacheServiceTestConfig(), new LocalTaskQueueTestConfig());
 
 	protected MemcacheService memcache;
 
@@ -99,13 +97,13 @@ public abstract class AbstractShardedCounterServiceTest
 		// below
 		// http://stackoverflow.com/questions/11197058/testing-non-default-app-engine-task-queues
 		final LocalTaskQueueTestConfig localTaskQueueConfig = new LocalTaskQueueTestConfig()
-				.setDisableAutoTaskExecution(false).setQueueXmlPath("src/test/resources/queue.xml")
-				.setTaskExecutionLatch(countdownLatch).setCallbackClass(DeleteShardedCounterDeferredCallback.class);
+			.setDisableAutoTaskExecution(false).setQueueXmlPath("src/test/resources/queue.xml")
+			.setTaskExecutionLatch(countdownLatch).setCallbackClass(DeleteShardedCounterDeferredCallback.class);
 
 		// Use a different queue.xml for testing purposes
 		helper = new LocalServiceTestHelper(
-				new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
-				new LocalMemcacheServiceTestConfig(), new LocalCapabilitiesServiceTestConfig(), localTaskQueueConfig);
+			new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
+			new LocalMemcacheServiceTestConfig(), new LocalCapabilitiesServiceTestConfig(), localTaskQueueConfig);
 		helper.setUp();
 
 		memcache = MemcacheServiceFactory.getMemcacheService();
@@ -158,10 +156,10 @@ public abstract class AbstractShardedCounterServiceTest
 	protected ShardedCounterService initialShardedCounterService(int numInitialShards)
 	{
 		ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
-				.withNumInitialShards(numInitialShards).build();
+			.withNumInitialShards(numInitialShards).build();
 
 		ShardedCounterService service = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(),
-				CapabilitiesServiceFactory.getCapabilitiesService(), config);
+			config);
 		return service;
 	}
 
@@ -182,19 +180,19 @@ public abstract class AbstractShardedCounterServiceTest
 		// below
 		// http://stackoverflow.com/questions/11197058/testing-non-default-app-engine-task-queues
 		final LocalTaskQueueTestConfig localTaskQueueConfig = new LocalTaskQueueTestConfig()
-				.setDisableAutoTaskExecution(false).setQueueXmlPath("src/test/resources/queue.xml")
-				.setTaskExecutionLatch(countdownLatch).setCallbackClass(DeleteShardedCounterDeferredCallback.class);
+			.setDisableAutoTaskExecution(false).setQueueXmlPath("src/test/resources/queue.xml")
+			.setTaskExecutionLatch(countdownLatch).setCallbackClass(DeleteShardedCounterDeferredCallback.class);
 
 		Capability testOne = new Capability("memcache");
 		CapabilityStatus testStatus = CapabilityStatus.DISABLED;
 		// Initialize
 		LocalCapabilitiesServiceTestConfig capabilityStatusConfig = new LocalCapabilitiesServiceTestConfig()
-				.setCapabilityStatus(testOne, testStatus);
+			.setCapabilityStatus(testOne, testStatus);
 
 		// Use a different queue.xml for testing purposes
 		helper = new LocalServiceTestHelper(
-				new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
-				new LocalMemcacheServiceTestConfig(), localTaskQueueConfig, capabilityStatusConfig);
+			new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
+			new LocalMemcacheServiceTestConfig(), localTaskQueueConfig, capabilityStatusConfig);
 		helper.setUp();
 	}
 

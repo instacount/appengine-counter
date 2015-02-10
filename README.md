@@ -61,8 +61,9 @@ Queue Configuration
 	</queue-entries>
 
 Don't forget to add a URL mapping for the default queue, or for the queue mapping you specify below!  By default, the ShardedCounterService uses the default queue URL.  See <a href="https://developers.google.com/appengine/docs/java/taskqueue/overview-push#URL_Endpoints">here</a> for how to configure your push queue URL endpoints.
+This project includes a default implementation of a servlet that can handle counter deletion, but you must wire it into your web framework in order for it to function properly.  See [here for an example](https://github.com/theupswell/appengine-counter/tree/master/src/main/java/com/theupswell/appengine/counter/ext/DefaultDeletionTaskHandler.java).
 
-<i><b>Note that this queue is not required if Counter deletion won't be utilized by your application</b></i>.
+<i><b>Note that this queue is not required to be defined if Counter deletion won't be utilized by your application.</b></i>.
 
 Objectify Entity Registration
 -----------
@@ -295,6 +296,13 @@ Finally, wire everything together in the configure() method of one of your Guice
 
 Change Log
 ----------
+**Version 1.1.0**
++ Fix #11 Default Delete Implementation (see [here](https://github.com/theupswell/appengine-counter/tree/master/src/main/java/com/theupswell/appengine/counter/ext/DefaultDeletionTaskHandler.java)).
++ Fix #16 Remove redundant counterShard datastore put in ShardedCounterServiceImpl#increment
++ Fix #17 Enhance the interface of CounterService to not return a count when incrementing/decrementing.
++ Fix #7 numRetries doesn't get decremented in ShardedCounterServiceImpl.incrementMemcacheAtomic
++ Improve unit tests for new functionality.
+
 **Version 1.0.2**
 + Fix #17 Increments in an existing Transaction may populate Memcache incorrectly
 + Improved unit test coverage
@@ -323,7 +331,7 @@ Authors
 Copyright and License
 ---------------------
 
-Copyright 2014 UpSwell LLC
+Copyright 2015 UpSwell LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

@@ -21,8 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.googlecode.objectify.ObjectifyService;
-import com.googlecode.objectify.Work;
-import com.theupswell.appengine.counter.Counter;
+import com.googlecode.objectify.VoidWork;
 import com.theupswell.appengine.counter.data.CounterShardData;
 
 /**
@@ -63,25 +62,20 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 	private static class ShardedCounterServiceTxWrapper extends ShardedCounterServiceImpl implements
 			ShardedCounterService
 	{
-		// Indicates that increment/decrement operations should not be isolated into their own Transaction. Put another
-		// way, if an existing Datastore TX exists in the current Objectify session, then that transaction will be used
-
-		private static final boolean NOT_ISOLATED = false;
-
 		/**
-		 * Overidden so that all calls to {@link #increment} occur inside of an existing TX.
+		 * Overidden so that all calls to {@link #increment} occur inside of an existing Transaction.
 		 *
 		 * @param counterName
 		 * @param amount
 		 * @return
 		 */
 		@Override
-		public Counter increment(final String counterName, final long amount, boolean isolatedTransactionContext)
+		public void increment(final String counterName, final long amount)
 		{
-			return ObjectifyService.ofy().transactNew(1, new Work<Counter>()
+			ObjectifyService.ofy().transactNew(1, new VoidWork()
 			{
 				@Override
-				public Counter run()
+				public void vrun()
 				{
 					// 1.) Create a random CounterShardData for simulation purposes. It doesn't do anything except
 					// to allow us to do something else in the Datastore in the same transactional context whilst
@@ -90,37 +84,7 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 					ObjectifyService.ofy().save().entity(counterShardData);
 
 					// 2.) Operate on the counter and return.
-					Counter counter = ShardedCounterServiceTxWrapper.super.increment(counterName, amount, NOT_ISOLATED);
-					assert (counter.getCount() == 0L);
-					return counter;
-				}
-			});
-		}
-
-		/**
-		 * Overidden so that all calls to {@link #increment} occur inside of an existing TX.
-		 *
-		 * @param counterName
-		 * @param amount
-		 * @return
-		 */
-		@Override
-		public Counter increment(final String counterName, final long amount)
-		{
-			return ObjectifyService.ofy().transactNew(1, new Work<Counter>()
-			{
-				@Override
-				public Counter run()
-				{
-					// 1.) Create a random CounterShardData for simulation purposes. It doesn't do anything except
-					// to allow us to do something else in the Datastore in the same transactional context whilst
-					// performing all unit tests.
-					final CounterShardData counterShardData = new CounterShardData(UUID.randomUUID().toString(), 1);
-					ObjectifyService.ofy().save().entity(counterShardData);
-
-					// 2.) Operate on the counter and return.
-					Counter counter = ShardedCounterServiceTxWrapper.super.increment(counterName, amount, NOT_ISOLATED);
-					return counter;
+					ShardedCounterServiceTxWrapper.super.increment(counterName, amount);
 				}
 			});
 		}
@@ -143,8 +107,8 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 		shardedCounterService.increment(TEST_COUNTER1, 1);
 		shardedCounterService.increment(TEST_COUNTER2, 1);
 
-		assertEquals(2, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(3, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(3, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(4, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 
 		shardedCounterService.increment(TEST_COUNTER1, 1);
 		shardedCounterService.increment(TEST_COUNTER2, 1);
@@ -154,27 +118,27 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 		shardedCounterService.increment(TEST_COUNTER1, 1);
 		shardedCounterService.increment(TEST_COUNTER2, 1);
 
-		assertEquals(5, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(7, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(6, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(8, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
 
-		assertEquals(2, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(3, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(3, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(4, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
 
 		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
