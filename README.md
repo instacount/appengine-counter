@@ -45,7 +45,7 @@ Appengine-counter can be found in maven-central.  To use it in your project, inc
     <dependency>
     	<groupId>com.theupswell.appengine.counter</groupId>
 		<artifactId>appengine-counter</artifactId>
-		<version>1.0.1</version>
+		<version>1.1.0</version>
     </dependency>
 
 Sharded counters can be accessed via an implementation of <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterService.java">ShardedCounterService</a>.  
@@ -119,16 +119,11 @@ Next, use the builder defined above to populate a <b>ShardedCounterServiceConfig
 
 	</bean>
 
-Finally, use the configuration defined above to create a <b>ShardedCounterService</b> bean.  Notice that you will also need to provide spring-bean configurations for the MemcacheService and CapabilitiesService:
+Finally, use the configuration defined above to create a <b>ShardedCounterService</b> bean.  Notice that you will also need to provide spring-bean configurations for the MemcacheService:
 
 	<bean id="memcacheService" 
 		class="com.google.appengine.api.memcache.MemcacheServiceFactory"
 		factory-method="getMemcacheService">
-	</bean>
-
-	<bean id="capabilitiesService" 
-		class="com.google.appengine.api.capabilities.CapabilitiesServiceFactory"
-		factory-method="getCapabilitiesService">
 	</bean>
 
 	<bean id="shardedCounterService"
@@ -136,10 +131,6 @@ Finally, use the configuration defined above to create a <b>ShardedCounterServic
 
 		<constructor-arg>
 			<ref bean="memcacheService" />
-		</constructor-arg>
-
-		<constructor-arg>
-			<ref bean="capabilitiesService" />
 		</constructor-arg>
 
 		<constructor-arg>
@@ -167,13 +158,6 @@ To utilize the a default configuration of the <b>ShardedCounterService</b> with 
 		return MemcacheServiceFactory.getMemcacheService();
 	}
 
-	@Provides
-	@RequestScoped
-	public CapabilitiesService provideCapabilitiesService()
-	{
-		return CapabilitiesServiceFactory.getCapabilitiesService();
-	}
-
 	// The entire app can have a single ShardedCounterServiceConfiguration, though making
 	// this request-scoped would allow the config to vary per-request
 	@Provides
@@ -188,9 +172,9 @@ To utilize the a default configuration of the <b>ShardedCounterService</b> with 
 	// thread-local internally.
 	@Provides
 	@RequestScoped
-	public ShardedCounterService provideShardedCounterService(MemcacheService memcacheService, CapabilitiesService capabilitiesService, ShardedCounterServiceConfiguration config)
+	public ShardedCounterService provideShardedCounterService(MemcacheService memcacheService, ShardedCounterServiceConfiguration config)
 	{
-		return new ShardedCounterService(memcacheService, capabilitiesService, config);
+		return new ShardedCounterService(memcacheService, config);
 	}
 
 Don't forget to wire Objectify into Guice:
@@ -225,7 +209,7 @@ For a more complete example of wiring Guice and Objectify, see the <a href="http
 
 Guice: Programmatic Configuring without Annotations
 -------
-To utilize the default configuration of <b>ShardedCounterService</b> with Guice (without using Guice Annotations), add the following classes to your project to create Providers for the ShardedCounterServiceConfiguration, MemcacheService, CapabilitiesService and ShardedCounterService:	
+To utilize the default configuration of <b>ShardedCounterService</b> with Guice (without using Guice Annotations), add the following classes to your project to create Providers for the ShardedCounterServiceConfiguration, MemcacheService, and ShardedCounterService:
 
 	public class MemcacheServiceProvider implements Provider<MemcacheService>
 	{
@@ -233,15 +217,6 @@ To utilize the default configuration of <b>ShardedCounterService</b> with Guice 
 		public MemcacheService get()
 		{
 			return MemcacheServiceFactory.getMemcacheService();
-		}
-	}
-
-	public class CapabilitiesServiceProvider implements Provider<CapabilitiesService>
-	{
-		@Override
-		public CapabilitiesService get()
-		{
-			return CapabilitiesServiceFactory.getCapabilitiesService();
 		}
 	}
 
@@ -259,35 +234,31 @@ To utilize the default configuration of <b>ShardedCounterService</b> with Guice 
 	{
 		private final ShardedCounterServiceConfiguration config;
 		private final MemcacheService memcacheService;
-		private final CapabilitiesService capabilitiesService;
 
 		/**
 		 * Required-args Constructor.
 		 * 
 		 * @param config
 		 * @param memcacheService
-		 * @param capabilitiesService
 		 */
 		@Inject
 		public ShardedCounterServiceProvider(final ShardedCounterServiceConfiguration config,
-				final MemcacheService memcacheService, CapabilitiesService capabilitiesService)
+				final MemcacheService memcacheService)
 		{
 			this.config = config;
 			this.memcacheService = memcacheService;
-			this.capabilitiesService = capabilitiesService;
 		}
 
 		@Override
 		public ShardedCounterService get()
 		{
-			return new ShardedCounterService(memcacheService, capabilitiesService, config);
+			return new ShardedCounterService(memcacheService, config);
 		}
 	}
 
 Finally, wire everything together in the configure() method of one of your Guice modules:
 
 	bind(MemcacheService.class).toProvider(MemcacheServiceProvider.class).in(RequestScoped.class);
-	bind(CapabilitiesService.class).toProvider(CapabilitiesServiceProvider.class).in(RequestScoped.class);
 	// The entire app can have a single ShardedCounterServiceConfiguration, though making
 	// this request-scoped would allow the config to vary per-request
 	bind(ShardedCounterServiceConfiguration.class).toProvider(ShardedCounterServiceConfigurationProvider.class);
