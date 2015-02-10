@@ -92,7 +92,7 @@ If you want to control the configuration of the ShardedCounterService, you will 
 			<value>3</value>
 		</property>
 
-		<!-- The default Memcache expiration for counter objects in milliseconds. -->
+		<!-- The default Memcache expiration for counter objects in seconds. -->
 		<property name="defaultExpiration">
 			<value>300</value>
 		</property>
@@ -268,10 +268,12 @@ Finally, wire everything together in the configure() method of one of your Guice
 Change Log
 ----------
 **Version 1.1.0**
-+ Fix #11 Default Delete Implementation (see [here](https://github.com/theupswell/appengine-counter/tree/master/src/main/java/com/theupswell/appengine/counter/ext/DefaultDeletionTaskHandler.java)).
-+ Fix #16 Remove redundant counterShard datastore put in ShardedCounterServiceImpl#increment
-+ Fix #17 Enhance the interface of CounterService to not return a count when incrementing/decrementing.
-+ Fix #7 numRetries doesn't get decremented in ShardedCounterServiceImpl.incrementMemcacheAtomic
++ Improve Transaction semantics for parent-transactions
++ Simplify CounterService interface (no longer returns Counter count; must specify increment/decrement amount)
++ Fix [Issue #7](https://github.com/theupswell/appengine-counter/issues/7) numRetries doesn't get decremented in ShardedCounterServiceImpl.incrementMemcacheAtomic
++ Fix [Issue #11](https://github.com/theupswell/appengine-counter/issues/11) Default Delete Implementation (see [here](https://github.com/theupswell/appengine-counter/tree/master/src/main/java/com/theupswell/appengine/counter/ext/DefaultDeletionTaskHandler.java)).
++ Fix [Issue #16](https://github.com/theupswell/appengine-counter/issues/16) Remove redundant counterShard datastore put in ShardedCounterServiceImpl#increment
++ Fix [Issue #17](https://github.com/theupswell/appengine-counter/issues/17) Enhance the interface of CounterService to not return a count when incrementing/decrementing.
 + Improve unit tests for new functionality.
 + Update default Objectify to 5.1.x.
 + Remove dependency on objectify-utils
