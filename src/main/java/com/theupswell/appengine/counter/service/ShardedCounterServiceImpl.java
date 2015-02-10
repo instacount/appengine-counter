@@ -381,14 +381,23 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// We use the "amountIncrementedInTx" to pause this thread until the work inside of "atomicIncrementShardWork"
 		// completes. This is because we don't want to increment memcache (below) until after that a transaction
 		// successfully commits.
-		final Long amountIncrementedInTx = ObjectifyService.ofy().transactNew(atomicIncrementShardWork);
+		final Long amountIncrementedInTx = ObjectifyService.ofy().transact(atomicIncrementShardWork);
 
 		// /////////////////
-		// Increment this counter in memcache atomically, with retry until it succeeds (with some governor). If this
-		// fails, it's ok because memcache is merely a cache of the actual count data, and will eventually become
-		// accurate when the cache is reloaded via a call to getCount.
-		// /////////////////
-		this.incrementMemcacheAtomic(counterName, amountIncrementedInTx.longValue());
+		// Increment this counter in memcache atomically, but only if we're not inside of an existing transaction.
+		// Otherwise, clear out memcache.
+		if (isParentTransactionActive())
+		{
+			// If we're in a transaction, then don't update memcache. Instead, clear it out since we can't know if the
+			// parent transaction will abort after our call to memcache.
+			this.memcacheSafeDelete(counterName);
+		}
+		else
+		{
+			// If this fails, it's ok because memcache is merely a cache of the actual count data, and will eventually
+			// become accurate when the cache is reloaded via a call to getCount.
+			this.incrementMemcacheAtomic(counterName, amountIncrementedInTx.longValue());
+		}
 	}
 
 	/**
@@ -882,7 +891,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// stomp on each other. If two threads conflict with each other, one
 		// will win and create the CounterData, and the other thread will retry
 		// and return the loaded CounterData.
-		return ObjectifyService.ofy().transactNew(new Work<CounterData>()
+		return ObjectifyService.ofy().transact(new Work<CounterData>()
 		{
 			@Override
 			public CounterData run()
@@ -1068,5 +1077,12 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 					counterName, counterStatus, CounterStatus.AVAILABLE, CounterStatus.READ_ONLY_COUNT);
 			throw new RuntimeException(msg);
 		}
+	}
+
+	@VisibleForTesting
+	protected boolean isParentTransactionActive()
+	{
+		return ObjectifyService.ofy().getTransaction() == null ? false : ObjectifyService.ofy().getTransaction()
+			.isActive();
 	}
 }
