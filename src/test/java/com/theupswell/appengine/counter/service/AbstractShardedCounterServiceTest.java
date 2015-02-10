@@ -14,6 +14,7 @@ package com.theupswell.appengine.counter.service;
 
 import static org.junit.Assert.*;
 
+import com.googlecode.objectify.impl.translate.opt.joda.JodaTimeTranslators;
 import org.junit.After;
 import org.junit.Before;
 
@@ -29,9 +30,8 @@ import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestC
 import com.google.appengine.tools.development.testing.LocalMemcacheServiceTestConfig;
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.google.appengine.tools.development.testing.LocalTaskQueueTestConfig;
-import com.googlecode.objectify.ObjectifyFilter;
 import com.googlecode.objectify.ObjectifyService;
-import com.sappenin.objectify.translate.UTCReadableInstantDateTranslatorFactory;
+import com.googlecode.objectify.util.Closeable;
 import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterShardData;
@@ -109,9 +109,11 @@ public abstract class AbstractShardedCounterServiceTest
 		memcache = MemcacheServiceFactory.getMemcacheService();
 		capabilitiesService = CapabilitiesServiceFactory.getCapabilitiesService();
 
-		ObjectifyService.ofy().clear();
-		// Must be added before registering entities...
-		ObjectifyService.factory().getTranslators().add(new UTCReadableInstantDateTranslatorFactory());
+		// New Objectify 5.1 Way. See https://groups.google.com/forum/#!topic/objectify-appengine/O4FHC_i7EGk
+		this.session = ObjectifyService.begin();
+
+		// Enable Joda Translators
+		JodaTimeTranslators.add(ObjectifyService.factory());
 
 		ObjectifyService.factory().register(CounterData.class);
 		ObjectifyService.factory().register(CounterShardData.class);
@@ -119,12 +121,14 @@ public abstract class AbstractShardedCounterServiceTest
 		shardedCounterService = new ShardedCounterServiceImpl();
 	}
 
+	// New Objectify 5.1 Way. See https://groups.google.com/forum/#!topic/objectify-appengine/O4FHC_i7EGk
+	protected Closeable session;
+
 	@After
 	public void tearDown()
 	{
-		// This is normally done in ObjectifyFilter but that doesn't exist for
-		// tests
-		ObjectifyFilter.complete();
+		// New Objectify 5.1 Way. See https://groups.google.com/forum/#!topic/objectify-appengine/O4FHC_i7EGk
+		this.session.close();
 
 		this.helper.tearDown();
 	}

@@ -273,6 +273,8 @@ Change Log
 + Fix #17 Enhance the interface of CounterService to not return a count when incrementing/decrementing.
 + Fix #7 numRetries doesn't get decremented in ShardedCounterServiceImpl.incrementMemcacheAtomic
 + Improve unit tests for new functionality.
++ Update default Objectify to 5.1.x.
++ Remove dependency on objectify-utils
 
 **Version 1.0.2**
 + Fix #17 Increments in an existing Transaction may populate Memcache incorrectly
