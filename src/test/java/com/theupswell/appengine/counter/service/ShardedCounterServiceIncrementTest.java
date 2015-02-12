@@ -60,7 +60,7 @@ public class ShardedCounterServiceIncrementTest extends AbstractShardedCounterSe
 		}
 		catch (RuntimeException e)
 		{
-			assertEquals("Can't mutate the amount of counter '" + TEST_COUNTER1
+			assertEquals("Can't mutate the incrementAmount of counter '" + TEST_COUNTER1
 				+ "' because it's currently in the DELETING state but must be in in the AVAILABLE state!",
 				e.getMessage());
 			throw e;
@@ -128,24 +128,24 @@ public class ShardedCounterServiceIncrementTest extends AbstractShardedCounterSe
 		assertEquals(6, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(8, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
+		shardedCounterService.decrement(TEST_COUNTER1,1);
+		shardedCounterService.decrement(TEST_COUNTER2,1);
+		shardedCounterService.decrement(TEST_COUNTER1,1);
+		shardedCounterService.decrement(TEST_COUNTER2,1);
+		shardedCounterService.decrement(TEST_COUNTER2,1);
+		shardedCounterService.decrement(TEST_COUNTER1,1);
+		shardedCounterService.decrement(TEST_COUNTER2,1);
 
 		assertEquals(3, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(4, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER2);
-		shardedCounterService.decrement(TEST_COUNTER1);
-		shardedCounterService.decrement(TEST_COUNTER2);
+		shardedCounterService.decrement(TEST_COUNTER1,1);
+		shardedCounterService.decrement(TEST_COUNTER2,1);
+		shardedCounterService.decrement(TEST_COUNTER1,1);
+		shardedCounterService.decrement(TEST_COUNTER2,1);
+		shardedCounterService.decrement(TEST_COUNTER2,1);
+		shardedCounterService.decrement(TEST_COUNTER1,1);
+		shardedCounterService.decrement(TEST_COUNTER2,1);
 
 		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER2).getCount());

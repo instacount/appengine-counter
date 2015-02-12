@@ -1,17 +1,14 @@
 /**
  * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.theupswell.appengine.counter.service;
 
@@ -28,8 +25,7 @@ import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 
 /**
- * Unit tests for decrementing counters via
- * {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}.
+ * Unit tests for decrementing counters via {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}.
  * 
  * @author David Fuelling
  */
@@ -62,7 +58,7 @@ public class ShardedCounterServiceDecrementTest extends
 		counterData.setCounterStatus(CounterStatus.DELETING);
 		ObjectifyService.ofy().save().entity(counterData).now();
 
-		shardedCounterService.decrement(TEST_COUNTER1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
 	}
 
 	@Test
@@ -105,9 +101,9 @@ public class ShardedCounterServiceDecrementTest extends
 		for (int i = 0; i < 10; i++)
 		{
 			logger.info("Decrement #" + i + " of 9 for counter 1");
-			shardedCounterService.decrement(TEST_COUNTER1);
+			shardedCounterService.decrement(TEST_COUNTER1, 1);
 			logger.info("Decrement #" + i + " of 9 for counter 2");
-			shardedCounterService.decrement(TEST_COUNTER2);
+			shardedCounterService.decrement(TEST_COUNTER2, 1);
 		}
 
 		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
@@ -126,8 +122,8 @@ public class ShardedCounterServiceDecrementTest extends
 		// Decrement 20
 		for (int i = 0; i < 20; i++)
 		{
-			shardedCounterService.decrement(TEST_COUNTER1);
-			shardedCounterService.decrement(TEST_COUNTER2);
+			shardedCounterService.decrement(TEST_COUNTER1, 1);
+			shardedCounterService.decrement(TEST_COUNTER2, 1);
 		}
 
 		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
@@ -156,7 +152,7 @@ public class ShardedCounterServiceDecrementTest extends
 		// ////////////////////////
 		for (int i = 1; i <= numIterations; i++)
 		{
-			shardedCounterService.decrement(counterName + "-1");
+			shardedCounterService.decrement(counterName + "-1", 1);
 			assertEquals(numIterations - i, shardedCounterService.getCounter(counterName + "-1").getCount());
 		}
 
@@ -175,7 +171,7 @@ public class ShardedCounterServiceDecrementTest extends
 			{
 				this.memcache.clearAll();
 			}
-			shardedCounterService.decrement(counterName + "-1");
+			shardedCounterService.decrement(counterName + "-1", 1);
 			if (this.isMemcacheAvailable())
 			{
 				this.memcache.clearAll();
@@ -198,7 +194,7 @@ public class ShardedCounterServiceDecrementTest extends
 			{
 				this.memcache.clearAll();
 			}
-			shardedCounterService.decrement(counterName + "-1");
+			shardedCounterService.decrement(counterName + "-1", 1);
 			assertEquals(numIterations - i, shardedCounterService.getCounter(counterName + "-1").getCount());
 		}
 
@@ -213,7 +209,7 @@ public class ShardedCounterServiceDecrementTest extends
 		// ////////////////////////
 		for (int i = 1; i <= numIterations; i++)
 		{
-			shardedCounterService.decrement(counterName + "-1");
+			shardedCounterService.decrement(counterName + "-1", 1);
 			if (this.isMemcacheAvailable())
 			{
 				this.memcache.clearAll();

@@ -197,7 +197,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		{
 			assertThat(
 				re.getMessage(),
-				is("Can't mutate the details of counter \"test-counter1\" because it's currently in the CONTRACTING_SHARDS state but must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+				is("Can't mutate the details of counter 'test-counter1' because it's currently in the CONTRACTING_SHARDS state but must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
 			throw re;
 		}
 	}
@@ -246,9 +246,9 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	}
 
 	@Test(expected = RuntimeException.class)
-	public void testOnTaskQueueCounterDeletion_() throws Exception
+	public void testOnTaskQueueCounterDeletion_WrongStatus() throws Exception
 	{
-		impl.increment(TEST_COUNTER1);
+		impl.increment(TEST_COUNTER1, 1);
 
 		try
 		{
@@ -318,31 +318,35 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	}
 
 	// /////////////////////////
-	// incrementMemcacheAtomic2
+	// incrementMemcacheAtomic
 	// /////////////////////////
 
 	@Test(expected = NullPointerException.class)
-	public void testIncrementMemcacheAtomic2_Null() throws Exception
+	public void testIncrementMemcacheAtomic_Null() throws Exception
 	{
-		this.impl.incrementMemcacheAtomic2(null, 10);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testIncrementMemcacheAtomic2_NegativeOne() throws Exception
-	{
-		this.impl.incrementMemcacheAtomic2(TEST_COUNTER1, -1);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testIncrementMemcacheAtomic2_Zero() throws Exception
-	{
-		this.impl.incrementMemcacheAtomic2(TEST_COUNTER1, 0);
+		this.impl.incrementMemcacheAtomic(null, 10);
 	}
 
 	@Test
-	public void testIncrementMemcacheAtomic2_NotInCache() throws Exception
+	public void testIncrementMemcacheAtomic_NegativeOne() throws Exception
 	{
-		Optional<Long> actual = this.impl.incrementMemcacheAtomic2(TEST_COUNTER1, 1);
+		Optional<Long> optActual = this.impl.incrementMemcacheAtomic(TEST_COUNTER1, -1);
+		assertThat(optActual.isPresent(), is(false));
+	}
+
+	@Test
+	public void testIncrementMemcacheAtomic_Zero() throws Exception
+	{
+		this.impl.incrementMemcacheAtomic(TEST_COUNTER1, 0);
+		Optional<Long> optActual = this.impl.incrementMemcacheAtomic(TEST_COUNTER1, 0);
+		assertThat(optActual.isPresent(), is(true));
+		assertThat(optActual.get(), is(0L));
+	}
+
+	@Test
+	public void testIncrementMemcacheAtomic_NotInCache() throws Exception
+	{
+		Optional<Long> actual = this.impl.incrementMemcacheAtomic(TEST_COUNTER1, 1);
 		assertThat(actual.isPresent(), is(false));
 	}
 
@@ -497,7 +501,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 
 		impl.increment(TEST_COUNTER1, 1);
 
-		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(2L));
+		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(3L));
 	}
 
 	// //////////////////////////////////
