@@ -36,8 +36,7 @@ import com.theupswell.appengine.counter.data.CounterShardData;
  *
  * @author David Fuelling
  */
-public class ShardedCounterServiceDeleteTest extends
-		com.theupswell.appengine.counter.service.AbstractShardedCounterServiceTest
+public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServiceTest
 {
 	@Before
 	public void setUp() throws Exception
@@ -280,15 +279,8 @@ public class ShardedCounterServiceDeleteTest extends
 	{
 		for (int i = 0; i < numCounterShardsToGet; i++)
 		{
-			// The following command does a query, which is only eventually
-			// consistent. This fails the unit-test occasionally because we
-			// can't yet set the HRD to always consistent. Thus, we do a get()
-			// for all 10 shards and ensure they're there.
-			// List<CounterShardData> allCounterShards =
-			// ObjectifyService.ofy().load().type(CounterShardData.class).list();
-
-			Key<CounterShardData> shardKey = Key.create(CounterShardData.class, counterName + "-" + i);
-			CounterShardData counterShardData = ObjectifyService.ofy().load().key(shardKey).now();
+			final Key<CounterShardData> shardKey = Key.create(CounterShardData.class, counterName + "-" + i);
+			final CounterShardData counterShardData = ObjectifyService.ofy().load().key(shardKey).now();
 			assertNotNull(counterShardData);
 		}
 

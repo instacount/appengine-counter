@@ -14,7 +14,6 @@ package com.theupswell.appengine.counter.service;
 
 import static org.junit.Assert.*;
 
-import com.googlecode.objectify.impl.translate.opt.joda.JodaTimeTranslators;
 import org.junit.After;
 import org.junit.Before;
 
@@ -31,6 +30,7 @@ import com.google.appengine.tools.development.testing.LocalMemcacheServiceTestCo
 import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
 import com.google.appengine.tools.development.testing.LocalTaskQueueTestConfig;
 import com.googlecode.objectify.ObjectifyService;
+import com.googlecode.objectify.impl.translate.opt.joda.JodaTimeTranslators;
 import com.googlecode.objectify.util.Closeable;
 import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
@@ -54,9 +54,8 @@ public abstract class AbstractShardedCounterServiceTest
 	protected LocalTaskQueueTestConfig.TaskCountDownLatch countdownLatch;
 
 	protected LocalServiceTestHelper helper = new LocalServiceTestHelper(
-		// Our tests assume strong consistency, but a bug in the appengine test
-		// harness forces us to set this value to at least 1.
-		new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
+		// No Eventual Consistency, by default
+		new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0f),
 		new LocalMemcacheServiceTestConfig(), new LocalTaskQueueTestConfig());
 
 	protected MemcacheService memcache;
