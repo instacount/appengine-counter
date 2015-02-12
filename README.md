@@ -36,7 +36,7 @@ By default, counter increment/decrement operations do not happen in an existing 
 + <b>Async Counter Deletion</b><br/>
 Because some counters may have a large number of counter shards, counter deletion is facilitated in an asynchronous manner using a TaskQueue.  Because of this, counter deletion is eventually consistent, although the counter-status will reflect the fact that it is being deleted, and this information is strongly-consistent.
 
-<b><i><u>Note: The current release of this library is not compatible with Objectify versions prior to version 5.0.3.  See the changelog for previous version support.</u></i></b>
+<b><i><u>Note: The current release of this library is not compatible with Objectify versions prior to version 5.0.3, and it works best with Objectify version 5.1.x.  See the changelog for previous version support.</u></i></b>
 
 Getting Started
 ----------
@@ -45,7 +45,7 @@ Appengine-counter can be found in maven-central.  To use it in your project, inc
     <dependency>
     	<groupId>com.theupswell.appengine.counter</groupId>
 		<artifactId>appengine-counter</artifactId>
-		<version>1.0.1</version>
+		<version>1.1.0</version>
     </dependency>
 
 Sharded counters can be accessed via an implementation of <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterService.java">ShardedCounterService</a>.  
@@ -61,8 +61,9 @@ Queue Configuration
 	</queue-entries>
 
 Don't forget to add a URL mapping for the default queue, or for the queue mapping you specify below!  By default, the ShardedCounterService uses the default queue URL.  See <a href="https://developers.google.com/appengine/docs/java/taskqueue/overview-push#URL_Endpoints">here</a> for how to configure your push queue URL endpoints.
+This project includes a default implementation of a servlet that can handle counter deletion, but you must wire it into your web framework in order for it to function properly.  See [here for an example](https://github.com/theupswell/appengine-counter/tree/master/src/main/java/com/theupswell/appengine/counter/ext/DefaultDeletionTaskHandler.java).
 
-<i><b>Note that this queue is not required if Counter deletion won't be utilized by your application</b></i>.
+<i><b>Note that this queue is not required to be defined if Counter deletion won't be utilized by your application.</b></i>.
 
 Objectify Entity Registration
 -----------
@@ -91,7 +92,7 @@ If you want to control the configuration of the ShardedCounterService, you will 
 			<value>3</value>
 		</property>
 
-		<!-- The default Memcache expiration for counter objects in milliseconds. -->
+		<!-- The default Memcache expiration for counter objects in seconds. -->
 		<property name="defaultExpiration">
 			<value>300</value>
 		</property>
@@ -118,16 +119,11 @@ Next, use the builder defined above to populate a <b>ShardedCounterServiceConfig
 
 	</bean>
 
-Finally, use the configuration defined above to create a <b>ShardedCounterService</b> bean.  Notice that you will also need to provide spring-bean configurations for the MemcacheService and CapabilitiesService:
+Finally, use the configuration defined above to create a <b>ShardedCounterService</b> bean.  Notice that you will also need to provide spring-bean configurations for the MemcacheService:
 
 	<bean id="memcacheService" 
 		class="com.google.appengine.api.memcache.MemcacheServiceFactory"
 		factory-method="getMemcacheService">
-	</bean>
-
-	<bean id="capabilitiesService" 
-		class="com.google.appengine.api.capabilities.CapabilitiesServiceFactory"
-		factory-method="getCapabilitiesService">
 	</bean>
 
 	<bean id="shardedCounterService"
@@ -135,10 +131,6 @@ Finally, use the configuration defined above to create a <b>ShardedCounterServic
 
 		<constructor-arg>
 			<ref bean="memcacheService" />
-		</constructor-arg>
-
-		<constructor-arg>
-			<ref bean="capabilitiesService" />
 		</constructor-arg>
 
 		<constructor-arg>
@@ -166,13 +158,6 @@ To utilize the a default configuration of the <b>ShardedCounterService</b> with 
 		return MemcacheServiceFactory.getMemcacheService();
 	}
 
-	@Provides
-	@RequestScoped
-	public CapabilitiesService provideCapabilitiesService()
-	{
-		return CapabilitiesServiceFactory.getCapabilitiesService();
-	}
-
 	// The entire app can have a single ShardedCounterServiceConfiguration, though making
 	// this request-scoped would allow the config to vary per-request
 	@Provides
@@ -187,9 +172,9 @@ To utilize the a default configuration of the <b>ShardedCounterService</b> with 
 	// thread-local internally.
 	@Provides
 	@RequestScoped
-	public ShardedCounterService provideShardedCounterService(MemcacheService memcacheService, CapabilitiesService capabilitiesService, ShardedCounterServiceConfiguration config)
+	public ShardedCounterService provideShardedCounterService(MemcacheService memcacheService, ShardedCounterServiceConfiguration config)
 	{
-		return new ShardedCounterService(memcacheService, capabilitiesService, config);
+		return new ShardedCounterService(memcacheService, config);
 	}
 
 Don't forget to wire Objectify into Guice:
@@ -224,7 +209,7 @@ For a more complete example of wiring Guice and Objectify, see the <a href="http
 
 Guice: Programmatic Configuring without Annotations
 -------
-To utilize the default configuration of <b>ShardedCounterService</b> with Guice (without using Guice Annotations), add the following classes to your project to create Providers for the ShardedCounterServiceConfiguration, MemcacheService, CapabilitiesService and ShardedCounterService:	
+To utilize the default configuration of <b>ShardedCounterService</b> with Guice (without using Guice Annotations), add the following classes to your project to create Providers for the ShardedCounterServiceConfiguration, MemcacheService, and ShardedCounterService:
 
 	public class MemcacheServiceProvider implements Provider<MemcacheService>
 	{
@@ -232,15 +217,6 @@ To utilize the default configuration of <b>ShardedCounterService</b> with Guice 
 		public MemcacheService get()
 		{
 			return MemcacheServiceFactory.getMemcacheService();
-		}
-	}
-
-	public class CapabilitiesServiceProvider implements Provider<CapabilitiesService>
-	{
-		@Override
-		public CapabilitiesService get()
-		{
-			return CapabilitiesServiceFactory.getCapabilitiesService();
 		}
 	}
 
@@ -258,35 +234,31 @@ To utilize the default configuration of <b>ShardedCounterService</b> with Guice 
 	{
 		private final ShardedCounterServiceConfiguration config;
 		private final MemcacheService memcacheService;
-		private final CapabilitiesService capabilitiesService;
 
 		/**
 		 * Required-args Constructor.
 		 * 
 		 * @param config
 		 * @param memcacheService
-		 * @param capabilitiesService
 		 */
 		@Inject
 		public ShardedCounterServiceProvider(final ShardedCounterServiceConfiguration config,
-				final MemcacheService memcacheService, CapabilitiesService capabilitiesService)
+				final MemcacheService memcacheService)
 		{
 			this.config = config;
 			this.memcacheService = memcacheService;
-			this.capabilitiesService = capabilitiesService;
 		}
 
 		@Override
 		public ShardedCounterService get()
 		{
-			return new ShardedCounterService(memcacheService, capabilitiesService, config);
+			return new ShardedCounterService(memcacheService, config);
 		}
 	}
 
 Finally, wire everything together in the configure() method of one of your Guice modules:
 
 	bind(MemcacheService.class).toProvider(MemcacheServiceProvider.class).in(RequestScoped.class);
-	bind(CapabilitiesService.class).toProvider(CapabilitiesServiceProvider.class).in(RequestScoped.class);
 	// The entire app can have a single ShardedCounterServiceConfiguration, though making
 	// this request-scoped would allow the config to vary per-request
 	bind(ShardedCounterServiceConfiguration.class).toProvider(ShardedCounterServiceConfigurationProvider.class);
@@ -295,8 +267,19 @@ Finally, wire everything together in the configure() method of one of your Guice
 
 Change Log
 ----------
+**Version 1.1.0**
++ Improve Transaction semantics for parent-transactions
++ Simplify CounterService interface (no longer returns Counter count; must specify increment/decrement amount)
++ Fix [Issue #7](https://github.com/theupswell/appengine-counter/issues/7) numRetries doesn't get decremented in ShardedCounterServiceImpl.incrementMemcacheAtomic
++ Fix [Issue #11](https://github.com/theupswell/appengine-counter/issues/11) Default Delete Implementation (see [here](https://github.com/theupswell/appengine-counter/tree/master/src/main/java/com/theupswell/appengine/counter/ext/DefaultDeletionTaskHandler.java)).
++ Fix [Issue #16](https://github.com/theupswell/appengine-counter/issues/16) Remove redundant counterShard datastore put in ShardedCounterServiceImpl#increment
++ Fix [Issue #17](https://github.com/theupswell/appengine-counter/issues/17) Enhance the interface of CounterService to not return a count when incrementing/decrementing.
++ Improve unit tests for new functionality.
++ Update default Objectify to 5.1.x.
++ Remove dependency on objectify-utils
+
 **Version 1.0.2**
-+ Fix #17 Increments in an existing Transaction may populate Memcache incorrectly
++ Fix [Issue #17](https://github.com/theupswell/appengine-counter/issues/17) Increments in an existing Transaction may populate Memcache incorrectly
 + Improved unit test coverage
 + Improved Javadoc in CounterService and its descendants.
 
@@ -323,7 +306,7 @@ Authors
 Copyright and License
 ---------------------
 
-Copyright 2014 UpSwell LLC
+Copyright 2015 UpSwell LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

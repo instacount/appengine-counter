@@ -1,17 +1,14 @@
 /**
  * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *         http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.theupswell.appengine.counter.service;
 
@@ -35,8 +32,7 @@ import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
 
 /**
- * Unit tests for deleting a counter via
- * {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}.
+ * Unit tests for deleting a counter via {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}.
  *
  * @author David Fuelling
  */
@@ -95,7 +91,7 @@ public class ShardedCounterServiceDeleteTest extends
 		ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
 			.withDeleteCounterShardQueueName(DELETE_COUNTER_SHARD_QUEUE_NAME).build();
 
-		shardedCounterService = new ShardedCounterServiceImpl(memcache, capabilitiesService, config);
+		shardedCounterService = new ShardedCounterServiceImpl(memcache, config);
 
 		shardedCounterService.getCounter(TEST_COUNTER1);
 		shardedCounterService.delete(TEST_COUNTER1);
@@ -108,9 +104,9 @@ public class ShardedCounterServiceDeleteTest extends
 		ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
 			.withDeleteCounterShardQueueName(DELETE_COUNTER_SHARD_QUEUE_NAME)
 			.withRelativeUrlPathForDeleteTaskQueue("/coolpath").build();
-		shardedCounterService = new ShardedCounterServiceImpl(memcache, capabilitiesService, config);
+		shardedCounterService = new ShardedCounterServiceImpl(memcache, config);
 
-		shardedCounterService.increment(TEST_COUNTER1);
+		shardedCounterService.increment(TEST_COUNTER1, 1);
 		shardedCounterService.delete(TEST_COUNTER1);
 		assertPostDeleteCallSuccess(TEST_COUNTER1);
 	}
@@ -118,13 +114,15 @@ public class ShardedCounterServiceDeleteTest extends
 	@Test
 	public void testDeleteWith1Shard() throws InterruptedException
 	{
-		Counter counter1 = shardedCounterService.increment(TEST_COUNTER1);
+		shardedCounterService.increment(TEST_COUNTER1, 1);
+		final Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1);
 		assertCounter(counter1, TEST_COUNTER1, 1L);
 
 		shardedCounterService.delete(TEST_COUNTER1);
 		assertPostDeleteCallSuccess(TEST_COUNTER1);
 
-		Counter counter2 = shardedCounterService.increment(TEST_COUNTER2);
+		shardedCounterService.increment(TEST_COUNTER2, 1);
+		final Counter counter2 = shardedCounterService.getCounter(TEST_COUNTER2);
 		assertCounter(counter2, TEST_COUNTER2, 1L);
 
 		shardedCounterService.delete(TEST_COUNTER2);
@@ -227,8 +225,7 @@ public class ShardedCounterServiceDeleteTest extends
 	}
 
 	/**
-	 * Asserts that the {@code numExpectedTasksInQueue} matches the actual
-	 * number of tasks in the queue.
+	 * Asserts that the {@code numExpectedTasksInQueue} matches the actual number of tasks in the queue.
 	 */
 	private void assertNumTasksInQueue(int numExpectedTasksInQueue)
 	{
@@ -239,10 +236,9 @@ public class ShardedCounterServiceDeleteTest extends
 	}
 
 	/**
-	 * After calling {@link ShardedCounterService#delete(String)}, the following
-	 * code asserts that a task was properly added to a task queue, and then
-	 * manually deletes the counterShards (simulating what would happen in a
-	 * real task queue).
+	 * After calling {@link ShardedCounterService#delete(String)}, the following code asserts that a task was properly
+	 * added to a task queue, and then manually deletes the counterShards (simulating what would happen in a real task
+	 * queue).
 	 * 
 	 * @throws InterruptedException
 	 */
@@ -278,8 +274,7 @@ public class ShardedCounterServiceDeleteTest extends
 	}
 
 	/**
-	 * Does a "consistent" lookup for all counterShards to ensure they exist in
-	 * the datastore.
+	 * Does a "consistent" lookup for all counterShards to ensure they exist in the datastore.
 	 */
 	private void assertAllCounterShardsExists(String counterName, int numCounterShardsToGet)
 	{
