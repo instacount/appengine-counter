@@ -61,12 +61,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <appengine.target.version>1.9.17</appengine.target.version>
+        <appengine.target.version>1.9.17a</appengine.target.version>
         <objectify.version>[5.1.0,5.2.0)</objectify.version>
 
-        <guava.version>18.0</guava.version>
         <joda-time.version>2.7</joda-time.version>
-        <lombok.version>1.14.8</lombok.version>
+        <lombok.version>1.16.2</lombok.version>
 
         <maven.compiler.plugin.version>3.1</maven.compiler.plugin.version>
     </properties>
@@ -164,12 +163,6 @@
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
             <version>${joda-time.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
         </dependency>
 
         <dependency>

@@ -267,6 +267,10 @@ Finally, wire everything together in the configure() method of one of your Guice
 
 Change Log
 ----------
+**Version 1.1.1**
++ Remove unused Guava dependency
++ Increment Appengine dependency
+
 **Version 1.1.0**
 + Improve Transaction semantics for parent-transactions
 + Simplify CounterService interface (no longer returns Counter count; must specify increment/decrement amount)
