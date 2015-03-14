@@ -12,9 +12,13 @@
  */
 package com.theupswell.appengine.counter.data;
 
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.experimental.Wither;
 
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
@@ -24,8 +28,10 @@ import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
+import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.Unindex;
 import com.theupswell.appengine.counter.data.base.AbstractEntity;
+import com.theupswell.appengine.counter.data.ofy.IfCounterDataIndexable;
 import com.theupswell.appengine.counter.service.ShardedCounterService;
 
 /**
@@ -63,17 +69,29 @@ public class CounterData extends AbstractEntity
 		DELETING
 	}
 
+	// Embedded class that holds information about which parts of a CounterData to index and which parts not to index.
+	@Unindex
+	private CounterIndexes indexes = CounterIndexes.none();
+
+	// Embedded class that allows for eventually consistent count querying as well as counter-groups for tagging. Null
+	// by default, set if counter group informaiton should be used.
+	@Index
+	private CounterGroupData counterGroupData;
+
 	// ////////////////
 	// @Id -- The counterName is the @Id of this entity, found in AbstractEntity
 	// ////////////////
 
 	// This is necessary to know in order to be able to evenly distribute amongst all shards for a given counterName
+	@Index(IfCounterDataIndexable.class)
 	private int numShards = 1;
 
+	@Index(IfCounterDataIndexable.class)
 	private String counterDescription;
 
 	// This is AVAILABLE by default, which means it can be incremented and
 	// decremented
+	@Index(IfCounterDataIndexable.class)
 	private CounterStatus counterStatus = CounterStatus.AVAILABLE;
 
 	/**
@@ -86,6 +104,8 @@ public class CounterData extends AbstractEntity
 	{
 		// Implement for Objectify
 		this.setNumShards(1);
+
+		this.indexes = CounterIndexes.none();
 	}
 
 	/**
@@ -102,6 +122,8 @@ public class CounterData extends AbstractEntity
 
 		Preconditions.checkArgument(numShards > 0);
 		this.setNumShards(numShards);
+
+		this.indexes = CounterIndexes.none();
 	}
 
 	// //////////////////////////////
@@ -116,12 +138,30 @@ public class CounterData extends AbstractEntity
 		return this.getId();
 	}
 
+	/**
+	 * Setter for {@code numShards}.
+	 * 
+	 * @param numShards
+	 * @throws IllegalArgumentException if {@code numShards} is less-than or equals to zero.
+	 */
 	public void setNumShards(final int numShards)
 	{
 		Preconditions.checkArgument(numShards > 0, "A Counter must have at least 1 CounterShard!");
 
 		this.numShards = numShards;
 		this.setUpdatedDateTime(new DateTime(DateTimeZone.UTC));
+	}
+
+	/**
+	 * Setter for {@code indexes}.
+	 * 
+	 * @param indexes
+	 * @throws NullPointerException if {@code indexes} is null.
+	 */
+	public void setIndexes(final CounterIndexes indexes)
+	{
+		Preconditions.checkNotNull(indexes);
+		this.indexes = indexes;
 	}
 
 	/**
@@ -137,6 +177,57 @@ public class CounterData extends AbstractEntity
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
 			"CounterData Names may not be null, blank, or empty!");
 		return Key.create(CounterData.class, counterName);
+	}
+
+	/**
+	 * A container class that holds true/false values for each property of a {@link CounterData} to indicate if the
+	 * property should be indexed or not.
+	 */
+	@Getter
+	@Wither
+	@NoArgsConstructor
+	@AllArgsConstructor
+	@ToString
+	@EqualsAndHashCode
+	public static class CounterIndexes
+	{
+		private boolean numShardsIndexable;
+		private boolean counterStatusIndexable;
+		private boolean countIndexable;
+		private boolean descriptionIndexable;
+
+		/**
+		 * Helper method to return an instance of {@link CounterIndexes} that have all property indexes enabled.
+		 * 
+		 * @return
+		 */
+		public static CounterIndexes all()
+		{
+			return new CounterIndexes(true, true, true, true);
+		}
+
+		/**
+		 * Helper method to return an instance of {@link CounterIndexes} that have no property indexes enabled.
+		 *
+		 * @return
+		 */
+		public static CounterIndexes none()
+		{
+			return new CounterIndexes(false, false, false, false);
+		}
+
+		/**
+		 * Helper method to return an instance of {@link CounterIndexes} that has sensible default valuse chosen.
+		 * This indexes all Counter information except for the Description, which is probably better off indexed via the
+		 * Search service.
+		 *
+		 * @return
+		 */
+		public static CounterIndexes sensibleDefaults()
+		{
+			return new CounterIndexes(true, true, true, false);
+		}
+
 	}
 
 }

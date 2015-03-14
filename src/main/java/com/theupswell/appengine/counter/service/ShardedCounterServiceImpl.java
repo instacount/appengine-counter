@@ -42,6 +42,7 @@ import com.googlecode.objectify.Work;
 import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.CounterBuilder;
 import com.theupswell.appengine.counter.data.CounterData;
+import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
 
@@ -337,6 +338,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 				// The Exception above disallows any invalid states.
 				counterDataInDatastore.setCounterStatus(incomingCounter.getCounterStatus());
+
+				// Update the CounterDataIndexes
+				counterDataInDatastore.setIndexes(incomingCounter.getIndexes() == null ? CounterIndexes.none()
+					: incomingCounter.getIndexes());
 
 				// Update the counter in the datastore.
 				ObjectifyService.ofy().save().entity(counterDataInDatastore).now();

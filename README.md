@@ -267,6 +267,11 @@ Finally, wire everything together in the configure() method of one of your Guice
 
 Change Log
 ----------
+**Version 1.1.1**
++ Fix [Issue #18](https://github.com/theupswell/appengine-counter/issues/18) Add ability to specify indexing in CounterData Entity class
++ Remove unused Guava dependency
++ Increment Appengine dependency
+
 **Version 1.1.0**
 + Improve Transaction semantics for parent-transactions
 + Simplify CounterService interface (no longer returns Counter count; must specify increment/decrement amount)
