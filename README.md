@@ -76,7 +76,7 @@ Indexing Counter Data
 -----------
 Counter data may optionally be indexed by supplying an instance of CounterIndexes.  Any of the fields on a Counter may optionally be indexed or non-indexed via this mechanism.  If not specified on a particular counter, the default is to not index any fields of a counter.
 
-In a future release, the CounterService interface will be enhanced to allow for retrieve a pagable list of Counters, as well as allowing for sorting and filtering.  This enhancement lays the groundwork for this.  See issue #19 for more details.
+In a future release, the CounterService interface will be enhanced to allow for retrieving a pagable list of Counters, as well as allowing for sorting and filtering.  This enhancement lays the groundwork for this.  See issue #19 for more details.
 
 Spring: Default Setup
 -------
