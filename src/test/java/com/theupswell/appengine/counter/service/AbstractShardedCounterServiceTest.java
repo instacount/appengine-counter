@@ -100,8 +100,7 @@ public abstract class AbstractShardedCounterServiceTest
 			.setTaskExecutionLatch(countdownLatch).setCallbackClass(DeleteShardedCounterDeferredCallback.class);
 
 		// Use a different queue.xml for testing purposes
-		helper = new LocalServiceTestHelper(
-			new LocalDatastoreServiceTestConfig().setDefaultHighRepJobPolicyUnappliedJobPercentage(0.01f),
+		helper = new LocalServiceTestHelper(new LocalDatastoreServiceTestConfig().setApplyAllHighRepJobPolicy(),
 			new LocalMemcacheServiceTestConfig(), new LocalCapabilitiesServiceTestConfig(), localTaskQueueConfig);
 		helper.setUp();
 

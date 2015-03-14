@@ -17,6 +17,7 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
 import com.theupswell.appengine.counter.data.CounterData;
+import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 
 @Data
 @RequiredArgsConstructor
@@ -28,6 +29,7 @@ public class CounterBuilder
 	private int numShards;
 	private CounterData.CounterStatus counterStatus = CounterData.CounterStatus.AVAILABLE;
 	private long count;
+	private CounterIndexes indexes;
 
 	/**
 	 * Build method for constructing a new Counter.
@@ -41,6 +43,7 @@ public class CounterBuilder
 		this.counterDescription = counterData.getCounterDescription();
 		this.numShards = counterData.getNumShards();
 		this.counterStatus = counterData.getCounterStatus();
+		this.indexes = counterData.getIndexes();
 	}
 
 	/**
@@ -56,6 +59,7 @@ public class CounterBuilder
 		this.numShards = counter.getNumShards();
 		this.counterStatus = counter.getCounterStatus();
 		this.count = counter.getCount();
+		this.indexes = counter.getIndexes();
 	}
 
 	/**
@@ -66,7 +70,7 @@ public class CounterBuilder
 	public Counter build()
 	{
 		return new Counter(this.getCounterName(), this.getCounterDescription(), this.getNumShards(),
-			this.getCounterStatus(), this.getCount());
+			this.getCounterStatus(), this.getCount(), this.getIndexes());
 	}
 
 	/**

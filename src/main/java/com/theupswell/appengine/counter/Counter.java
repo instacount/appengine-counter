@@ -20,6 +20,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.google.common.base.Preconditions;
 import com.theupswell.appengine.counter.data.CounterData;
+import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
+import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration;
 
 /**
@@ -38,6 +40,7 @@ public class Counter
 	private final int numShards;
 	private final CounterData.CounterStatus counterStatus;
 	private final long count;
+	private final CounterIndexes indexes;
 
 	/**
 	 * Required-args Constructor. Sets the {@code counterStatus} to
@@ -60,7 +63,7 @@ public class Counter
 	public Counter(final String counterName, final String counterDescription)
 	{
 		this(counterName, counterDescription, ShardedCounterServiceConfiguration.DEFAULT_NUM_COUNTER_SHARDS,
-			CounterData.CounterStatus.AVAILABLE);
+			CounterData.CounterStatus.AVAILABLE, CounterIndexes.none());
 	}
 
 	/**
@@ -72,9 +75,9 @@ public class Counter
 	 * @param counterStatus
 	 */
 	public Counter(final String counterName, final String counterDescription, final int numShards,
-			final CounterData.CounterStatus counterStatus)
+			final CounterData.CounterStatus counterStatus, final CounterIndexes indexes)
 	{
-		this(counterName, counterDescription, numShards, counterStatus, 0);
+		this(counterName, counterDescription, numShards, counterStatus, 0, indexes);
 	}
 
 	/**
@@ -84,9 +87,10 @@ public class Counter
 	 * @param counterDescription
 	 * @param counterStatus
 	 * @param count
+	 * @param indexes
 	 */
 	public Counter(final String counterName, final String counterDescription, final int numShards,
-			final CounterData.CounterStatus counterStatus, final long count)
+			final CounterStatus counterStatus, final long count, final CounterIndexes indexes)
 	{
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName), "CounterName may not be empty, blank, or null!");
 		Preconditions.checkNotNull(counterStatus);
@@ -96,5 +100,8 @@ public class Counter
 		this.numShards = numShards;
 		this.counterStatus = counterStatus;
 		this.count = count;
+
+		// Set to none if not specified
+		this.indexes = indexes == null ? CounterIndexes.none() : indexes;
 	}
 }
