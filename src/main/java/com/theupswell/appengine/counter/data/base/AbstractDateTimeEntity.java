@@ -14,17 +14,12 @@ package com.theupswell.appengine.counter.data.base;
 
 import java.util.UUID;
 
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
-
-import com.googlecode.objectify.Key;
-import com.googlecode.objectify.ObjectifyService;
-import com.googlecode.objectify.annotation.Id;
 
 /**
  * An abstract base class for appengine-counter entities (data stored to the datastore).
@@ -33,13 +28,10 @@ import com.googlecode.objectify.annotation.Id;
  */
 @Getter
 @Setter
-@ToString
-@EqualsAndHashCode(of = "id")
-public abstract class AbstractDateTimeEntity
+@ToString(callSuper = true)
+// No @EqualsAndHashCode since we identify by Id in the super-class
+public abstract class AbstractDateTimeEntity extends AbstractEntity
 {
-	@Id
-	private String id;
-
 	private DateTime creationDateTime;
 	private DateTime updatedDateTime;
 
@@ -48,7 +40,6 @@ public abstract class AbstractDateTimeEntity
 	 */
 	public AbstractDateTimeEntity()
 	{
-		this(UUID.randomUUID().toString());
 	}
 
 	/**
@@ -58,46 +49,9 @@ public abstract class AbstractDateTimeEntity
 	 */
 	public AbstractDateTimeEntity(String id)
 	{
-		this.id = id;
+		super(id);
 		this.creationDateTime = DateTime.now(DateTimeZone.UTC);
 		this.updatedDateTime = DateTime.now(DateTimeZone.UTC);
 	}
 
-	/**
-	 * By default, Entities have a null parent Key. This is overridden by implementations if a Parent key exists.
-	 */
-	public Key<?> getParentKey()
-	{
-		return null;
-	}
-
-	/**
-	 * Assembles the Key for this entity. If an Entity has a Parent Key, that key will be included in the returned Key
-	 * heirarchy.
-	 * 
-	 * @return
-	 */
-	public <T> Key<T> getTypedKey()
-	{
-		if (this.getId() == null)
-		{
-			return null;
-		}
-		else
-		{
-			com.google.appengine.api.datastore.Key rawKey = ObjectifyService.factory().getMetadataForEntity(this)
-				.getKeyMetadata().getRawKey(this);
-			return Key.create(rawKey);
-		}
-	}
-
-	/**
-	 * Assembles the Key for this entity. If an Entity has a Parent Key, that key will be included in the returned Key
-	 * heirarchy.
-	 */
-	public com.google.appengine.api.datastore.Key getKey()
-	{
-		Key<?> typedKey = this.getTypedKey();
-		return typedKey == null ? null : typedKey.getRaw();
-	}
 }
