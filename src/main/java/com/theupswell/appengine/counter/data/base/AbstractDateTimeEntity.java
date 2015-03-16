@@ -19,6 +19,9 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.annotation.Id;
@@ -32,27 +35,32 @@ import com.googlecode.objectify.annotation.Id;
 @Setter
 @ToString
 @EqualsAndHashCode(of = "id")
-public abstract class AbstractEntity
+public abstract class AbstractDateTimeEntity
 {
 	@Id
 	private String id;
 
+	private DateTime creationDateTime;
+	private DateTime updatedDateTime;
+
 	/**
 	 * Default Constructor
 	 */
-	public AbstractEntity()
+	public AbstractDateTimeEntity()
 	{
 		this(UUID.randomUUID().toString());
 	}
 
 	/**
 	 * Required Params constructor
-	 * 
+	 *
 	 * @param id A globally unique identifier (i.e., a {@link UUID} as a String).
 	 */
-	public AbstractEntity(String id)
+	public AbstractDateTimeEntity(String id)
 	{
 		this.id = id;
+		this.creationDateTime = DateTime.now(DateTimeZone.UTC);
+		this.updatedDateTime = DateTime.now(DateTimeZone.UTC);
 	}
 
 	/**

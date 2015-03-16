@@ -20,6 +20,9 @@ public class CounterDataIndexTest
 		assertThat(counterIndexes.isCounterStatusIndexable(), is(true));
 		assertThat(counterIndexes.isNumShardsIndexable(), is(true));
 		assertThat(counterIndexes.isDescriptionIndexable(), is(true));
+		assertThat(counterIndexes.isCounterStatusIndexable(), is(true));
+		assertThat(counterIndexes.isCreationDateTimeIndexable(), is(true));
+		assertThat(counterIndexes.isUpdateDateTimeIndexable(), is(true));
 	}
 
 	@Test
@@ -29,6 +32,9 @@ public class CounterDataIndexTest
 		assertThat(counterIndexes.isCounterStatusIndexable(), is(false));
 		assertThat(counterIndexes.isNumShardsIndexable(), is(false));
 		assertThat(counterIndexes.isDescriptionIndexable(), is(false));
+		assertThat(counterIndexes.isCounterStatusIndexable(), is(false));
+		assertThat(counterIndexes.isCreationDateTimeIndexable(), is(false));
+		assertThat(counterIndexes.isUpdateDateTimeIndexable(), is(false));
 	}
 
 	@Test
@@ -38,6 +44,9 @@ public class CounterDataIndexTest
 		assertThat(counterIndexes.isCounterStatusIndexable(), is(true));
 		assertThat(counterIndexes.isNumShardsIndexable(), is(true));
 		assertThat(counterIndexes.isDescriptionIndexable(), is(false));
+		assertThat(counterIndexes.isCounterStatusIndexable(), is(true));
+		assertThat(counterIndexes.isCreationDateTimeIndexable(), is(true));
+		assertThat(counterIndexes.isUpdateDateTimeIndexable(), is(false));
 	}
 
 }

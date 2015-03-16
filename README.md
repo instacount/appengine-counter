@@ -273,6 +273,11 @@ Finally, wire everything together in the configure() method of one of your Guice
 
 Change Log
 ----------
+**Version 1.1.2**
++ Separate Creation/Update DateTime attributes out of AbstractEntity and into AbstractDateTimeEntity.
++ Added Indexability to CounterData for creation/update date-times.
++ Improved unit test coverage.
+
 **Version 1.1.1**
 + Fix [Issue #18](https://github.com/theupswell/appengine-counter/issues/18) Add ability to specify indexing in CounterData Entity class
 + Remove unused Guava dependency

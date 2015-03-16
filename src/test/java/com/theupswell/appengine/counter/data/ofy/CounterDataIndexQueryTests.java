@@ -5,7 +5,6 @@ import static org.hamcrest.core.Is.is;
 
 import java.util.List;
 
-import com.theupswell.appengine.counter.data.CounterGroupData;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -13,6 +12,7 @@ import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
+import com.theupswell.appengine.counter.data.CounterGroupData;
 import com.theupswell.appengine.counter.service.AbstractShardedCounterServiceTest;
 
 /**
@@ -52,9 +52,6 @@ public class CounterDataIndexQueryTests extends AbstractShardedCounterServiceTes
 		counterData3.setCounterGroupData(new CounterGroupData());
 		counterData3.getCounterGroupData().setEventuallyConsistentCount(3);
 		ObjectifyService.ofy().save().entity(counterData3).now();
-
-
-
 	}
 
 	// //////////////////////
@@ -62,7 +59,7 @@ public class CounterDataIndexQueryTests extends AbstractShardedCounterServiceTes
 	// //////////////////////
 
 	@Test
-	public void testQueryByNumShardsAsc()
+	public void testQueryByEachProperty()
 	{
 		// NumShards Ascending
 		List<CounterData> countersList = ObjectifyService.ofy().load().type(CounterData.class).order("numShards")
@@ -127,6 +124,40 @@ public class CounterDataIndexQueryTests extends AbstractShardedCounterServiceTes
 		// Count Ascending
 		countersList = ObjectifyService.ofy().load().type(CounterData.class)
 			.order("-counterGroupData.eventuallyConsistentCount").list();
+		assertThat(countersList.size(), is(3));
+		assertThat(countersList.get(0), is(counterData3));
+		assertThat(countersList.get(1), is(counterData2));
+		assertThat(countersList.get(2), is(counterData1));
+
+		// ///////////////////////
+		// ///////////////////////
+
+		// CreationDateTime Descending
+		countersList = ObjectifyService.ofy().load().type(CounterData.class).order("creationDateTime").list();
+		assertThat(countersList.size(), is(3));
+		assertThat(countersList.get(0), is(counterData1));
+		assertThat(countersList.get(1), is(counterData2));
+		assertThat(countersList.get(2), is(counterData3));
+
+		// CreationDateTime Ascending
+		countersList = ObjectifyService.ofy().load().type(CounterData.class).order("-creationDateTime").list();
+		assertThat(countersList.size(), is(3));
+		assertThat(countersList.get(0), is(counterData3));
+		assertThat(countersList.get(1), is(counterData2));
+		assertThat(countersList.get(2), is(counterData1	));
+
+		// ///////////////////////
+		// ///////////////////////
+
+		// UpdatedDateTime Descending
+		countersList = ObjectifyService.ofy().load().type(CounterData.class).order("updatedDateTime").list();
+		assertThat(countersList.size(), is(3));
+		assertThat(countersList.get(0), is(counterData1));
+		assertThat(countersList.get(1), is(counterData2));
+		assertThat(countersList.get(2), is(counterData3));
+
+		// UpdatedDateTime Ascending
+		countersList = ObjectifyService.ofy().load().type(CounterData.class).order("-updatedDateTime").list();
 		assertThat(countersList.size(), is(3));
 		assertThat(countersList.get(0), is(counterData3));
 		assertThat(countersList.get(1), is(counterData2));

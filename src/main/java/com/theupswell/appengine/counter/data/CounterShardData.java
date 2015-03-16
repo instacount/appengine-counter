@@ -26,7 +26,7 @@ import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Unindex;
-import com.theupswell.appengine.counter.data.base.AbstractEntity;
+import com.theupswell.appengine.counter.data.base.AbstractDateTimeEntity;
 
 /**
  * Represents a discrete shard belonging to a named counter.<br/>
@@ -41,7 +41,8 @@ import com.theupswell.appengine.counter.data.base.AbstractEntity;
 @Setter
 @Unindex
 @ToString(callSuper = true)
-public class CounterShardData extends AbstractEntity
+// No @EqualsAndHashCode since we identify by Id in the super-class
+public class CounterShardData extends AbstractDateTimeEntity
 {
 	static final String COUNTER_SHARD_KEY_SEPARATOR = "-";
 
@@ -56,7 +57,7 @@ public class CounterShardData extends AbstractEntity
 	/**
 	 * Default Constructor for Objectify
 	 * 
-	 * @deprecated Use the param-based constructors instead.
+	 * @deprecated Exists only for Objectify. Use the param-based constructors instead.
 	 */
 	@Deprecated
 	public CounterShardData()

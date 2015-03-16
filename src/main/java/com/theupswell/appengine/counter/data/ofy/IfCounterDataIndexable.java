@@ -64,6 +64,14 @@ public class IfCounterDataIndexable extends PojoIf<CounterData> implements Initi
 				{
 					return counterData.getIndexes().isCountIndexable();
 				}
+				else if (StringUtils.equals(fieldName, "creationDateTime"))
+				{
+					return counterData.getIndexes().isCreationDateTimeIndexable();
+				}
+				else if (StringUtils.equals(fieldName, "updatedDateTime"))
+				{
+					return counterData.getIndexes().isUpdateDateTimeIndexable();
+				}
 			}
 
 			return false;
