@@ -273,6 +273,9 @@ Finally, wire everything together in the configure() method of one of your Guice
 
 Change Log
 ----------
+**Version 1.2.0**
++ Remove AbstractEntity, and more tightly enforce that CounterData may not have null ids.
+
 **Version 1.1.2**
 + Separate Creation/Update DateTime attributes out of AbstractEntity and into AbstractDateTimeEntity.
 + Added Indexability to CounterData for creation/update date-times.

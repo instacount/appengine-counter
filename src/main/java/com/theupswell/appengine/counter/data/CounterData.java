@@ -12,6 +12,9 @@
  */
 package com.theupswell.appengine.counter.data;
 
+import java.util.UUID;
+
+import com.googlecode.objectify.ObjectifyService;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -28,9 +31,9 @@ import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
+import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.Unindex;
-import com.theupswell.appengine.counter.data.base.AbstractEntity;
 import com.theupswell.appengine.counter.data.ofy.IfCounterDataIndexable;
 import com.theupswell.appengine.counter.service.ShardedCounterService;
 
@@ -46,29 +49,12 @@ import com.theupswell.appengine.counter.service.ShardedCounterService;
 @Getter
 @Setter
 @Unindex
-@ToString(callSuper = true)
-// No @EqualsAndHashCode since we identify by Id in the super-class
-public class CounterData extends AbstractEntity
+@ToString
+@EqualsAndHashCode(of = "id")
+public class CounterData
 {
-
-	// Used by the Get methods to indicate the state of a CounterData while it
-	// is deleting.
-	public static enum CounterStatus
-	{
-		// This Counter is available to be incremented, decremented, or deleted.
-		AVAILABLE,
-		// This Counter is not available to be incremented or decremented, though its details can be updated.
-		READ_ONLY_COUNT,
-		// This Counter is expanding the number of shards it holds internally, and may not be incremented, decremented,
-		// or deleted, or mutated.
-		EXPANDING_SHARDS,
-		// This Counter is contracting the number of shards it holds internally, and may not be incremented,
-		// decremented, or deleted, or mutated.
-		CONTRACTING_SHARDS,
-		// This Counter is in the process of being deleted, and may not be incremented or decremented and its details
-		// may not be changed.
-		DELETING
-	}
+	@Id
+	private String id;
 
 	@Index(IfCounterDataIndexable.class)
 	private DateTime creationDateTime;
@@ -109,13 +95,7 @@ public class CounterData extends AbstractEntity
 	@Deprecated
 	public CounterData()
 	{
-		// Empty constructor called by default...
-
-		// Implement for Objectify
-		this.creationDateTime = DateTime.now(DateTimeZone.UTC);
-		this.updatedDateTime = DateTime.now(DateTimeZone.UTC);
-		this.setNumShards(1);
-		this.indexes = CounterIndexes.none();
+		this(UUID.randomUUID().toString(), 1);
 	}
 
 	/**
@@ -126,9 +106,9 @@ public class CounterData extends AbstractEntity
 	 */
 	public CounterData(final String counterName, final int numShards)
 	{
-		super(counterName);
-		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
-			"CounterData Names may not be null, blank, or empty!");
+		Preconditions.checkNotNull(counterName, "CounterData Names may not be null!");
+		Preconditions.checkArgument(!StringUtils.isBlank(counterName), "CounterData Names may not be blank or empty!");
+		this.id = counterName;
 
 		Preconditions.checkArgument(numShards > 0);
 		this.setNumShards(numShards);
@@ -174,6 +154,26 @@ public class CounterData extends AbstractEntity
 	{
 		Preconditions.checkNotNull(indexes);
 		this.indexes = indexes;
+	}
+
+	/**
+	 * Assembles the Key for this entity. If an Entity has a Parent Key, that key will be included in the returned Key
+	 * heirarchy.
+	 *
+	 * @return
+	 */
+	public Key<CounterData> getTypedKey()
+	{
+		return Key.create(CounterData.class, this.getCounterName());
+	}
+
+	/**
+	 * Assembles the Key for this entity. If an Entity has a Parent Key, that key will be included in the returned Key
+	 * heirarchy.
+	 */
+	public com.google.appengine.api.datastore.Key getKey()
+	{
+		return this.getTypedKey().getRaw();
 	}
 
 	/**
@@ -247,6 +247,25 @@ public class CounterData extends AbstractEntity
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
 			"CounterData Names may not be null, blank, or empty!");
 		return Key.create(CounterData.class, counterName);
+	}
+
+	// Used by the Get methods to indicate the state of a CounterData while it
+	// is deleting.
+	public static enum CounterStatus
+	{
+		// This Counter is available to be incremented, decremented, or deleted.
+		AVAILABLE,
+		// This Counter is not available to be incremented or decremented, though its details can be updated.
+		READ_ONLY_COUNT,
+		// This Counter is expanding the number of shards it holds internally, and may not be incremented, decremented,
+		// or deleted, or mutated.
+		EXPANDING_SHARDS,
+		// This Counter is contracting the number of shards it holds internally, and may not be incremented,
+		// decremented, or deleted, or mutated.
+		CONTRACTING_SHARDS,
+		// This Counter is in the process of being deleted, and may not be incremented or decremented and its details
+		// may not be changed.
+		DELETING
 	}
 
 }

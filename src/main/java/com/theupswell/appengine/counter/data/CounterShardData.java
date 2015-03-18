@@ -12,6 +12,7 @@
  */
 package com.theupswell.appengine.counter.data;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -25,8 +26,8 @@ import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
+import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Unindex;
-import com.theupswell.appengine.counter.data.base.AbstractDateTimeEntity;
 
 /**
  * Represents a discrete shard belonging to a named counter.<br/>
@@ -40,9 +41,9 @@ import com.theupswell.appengine.counter.data.base.AbstractDateTimeEntity;
 @Getter
 @Setter
 @Unindex
-@ToString(callSuper = true)
-// No @EqualsAndHashCode since we identify by Id in the super-class
-public class CounterShardData extends AbstractDateTimeEntity
+@ToString
+@EqualsAndHashCode(of = "id")
+public class CounterShardData
 {
 	static final String COUNTER_SHARD_KEY_SEPARATOR = "-";
 
@@ -50,9 +51,18 @@ public class CounterShardData extends AbstractDateTimeEntity
 	// via a starts-with query) combined with the shardNumber. E.g.,
 	// "CounterName-2" would be the counter with name "CounterName" and Shard
 	// number 2.
+	@Id
+	private String id;
 
-	// The total of this shard's counter (not the total counter count)
+	// The total of this shard's count (not the total counter count)
+	@Unindex
 	private long count;
+
+	@Unindex
+	private DateTime creationDateTime;
+
+	@Unindex
+	private DateTime updatedDateTime;
 
 	/**
 	 * Default Constructor for Objectify
@@ -74,7 +84,10 @@ public class CounterShardData extends AbstractDateTimeEntity
 	public CounterShardData(final String counterName, final int shardNumber)
 	{
 		// Preconditions checked by #constructCounterShardIdentifier
-		setId(constructCounterShardIdentifier(counterName, shardNumber));
+		this.setId(constructCounterShardIdentifier(counterName, shardNumber));
+
+		this.creationDateTime = DateTime.now(DateTimeZone.UTC);
+		this.updatedDateTime = DateTime.now(DateTimeZone.UTC);
 	}
 
 	/**
@@ -112,6 +125,26 @@ public class CounterShardData extends AbstractDateTimeEntity
 	}
 
 	/**
+	 * Assembles the Key for this entity. If an Entity has a Parent Key, that key will be included in the returned Key
+	 * heirarchy.
+	 *
+	 * @return
+	 */
+	public Key<CounterShardData> getTypedKey()
+	{
+		return Key.create(CounterShardData.class, this.getId());
+	}
+
+	/**
+	 * Assembles the Key for this entity. If an Entity has a Parent Key, that key will be included in the returned Key
+	 * heirarchy.
+	 */
+	public com.google.appengine.api.datastore.Key getKey()
+	{
+		return this.getTypedKey().getRaw();
+	}
+
+	/**
 	 * Helper method to set the internal identifier for this entity.
 	 * 
 	 * @param counterName
@@ -131,15 +164,16 @@ public class CounterShardData extends AbstractDateTimeEntity
 	/**
 	 * Create a {@link Key Key<CounterShardData>}. Keys for this entity are not "parented" so that they can be added
 	 * under high volume load in a given application. Note that CounterData will be in a namespace specific.
-	 * 
-	 * @param counterName
+	 *
+	 * @param counterDataKey
 	 * @param shardNumber
 	 * @return
 	 */
-	public static Key<CounterShardData> key(final String counterName, final int shardNumber)
+	public static Key<CounterShardData> key(final Key<CounterData> counterDataKey, final int shardNumber)
 	{
 		// Preconditions checked by #constructCounterShardIdentifier
-		return Key.create(CounterShardData.class, constructCounterShardIdentifier(counterName, shardNumber));
+		return Key.create(CounterShardData.class,
+			constructCounterShardIdentifier(counterDataKey.getName(), shardNumber));
 	}
 
 }

@@ -27,6 +27,7 @@ import com.google.appengine.api.memcache.MemcacheService;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
+import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterShardData;
 import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration.Builder;
 
@@ -245,7 +246,8 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 			public void vrun()
 			{
 				// Do something else as part of the TX.
-				final Key<CounterShardData> counterShardDataKey = CounterShardData.key(UUID.randomUUID().toString(), 0);
+				final Key<CounterShardData> counterShardDataKey = CounterShardData.key(
+					CounterData.key(UUID.randomUUID().toString()), 0);
 				final CounterShardData counterShardData = new CounterShardData(counterShardDataKey);
 				ObjectifyService.ofy().save().entity(counterShardData);
 
@@ -278,7 +280,8 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 			public void vrun()
 			{
 				// Do something else as part of the TX.
-				final Key<CounterShardData> counterShardDataKey = CounterShardData.key(UUID.randomUUID().toString(), 0);
+				final Key<CounterShardData> counterShardDataKey = CounterShardData.key(
+					CounterData.key(UUID.randomUUID().toString()), 0);
 				final CounterShardData counterShardData = new CounterShardData(counterShardDataKey);
 				ObjectifyService.ofy().save().entity(counterShardData);
 
@@ -314,7 +317,8 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 			public void vrun()
 			{
 				// Do something else as part of the TX.
-				final Key<CounterShardData> counterShardDataKey = CounterShardData.key(UUID.randomUUID().toString(), 0);
+				final Key<CounterShardData> counterShardDataKey = CounterShardData.key(
+					CounterData.key(UUID.randomUUID().toString()), 0);
 				final CounterShardData counterShardData = new CounterShardData(counterShardDataKey);
 				ObjectifyService.ofy().save().entity(counterShardData);
 
@@ -351,7 +355,7 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 				{
 					// Do something else as part of the TX.
 					final Key<CounterShardData> counterShardDataKey = CounterShardData.key(
-						UUID.randomUUID().toString(), 0);
+						CounterData.key(UUID.randomUUID().toString()), 0);
 					ObjectifyService.ofy().save().entity(counterShardDataKey);
 
 					// The actual test.
@@ -392,7 +396,7 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 				{
 					// Do something else as part of the TX.
 					final Key<CounterShardData> counterShardDataKey = CounterShardData.key(
-						UUID.randomUUID().toString(), 0);
+						CounterData.key(UUID.randomUUID().toString()), 0);
 					ObjectifyService.ofy().save().entity(counterShardDataKey);
 
 					// The actual test.
@@ -436,7 +440,7 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 				{
 					// Do something else as part of the TX.
 					final Key<CounterShardData> counterShardDataKey = CounterShardData.key(
-						UUID.randomUUID().toString(), 0);
+						CounterData.key(UUID.randomUUID().toString()), 0);
 					ObjectifyService.ofy().save().entity(counterShardDataKey);
 
 					// The actual test.
@@ -470,7 +474,7 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 		this.singleShardShardedCounterService.increment(TEST_COUNTER1, 1);
 		assertThat(this.singleShardShardedCounterService.getCounter(TEST_COUNTER1).getCount(), is(1L));
 
-		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(TEST_COUNTER1, 0);
+		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(CounterData.key(TEST_COUNTER1), 0);
 		CounterShardData counterShard = ObjectifyService.ofy().load().key(counterShardDataKey).now();
 		assertThat(counterShard, is(not(nullValue())));
 		assertThat(counterShard.getCount(), is(1L));
@@ -588,7 +592,8 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 			public void vrun()
 			{
 				// Do something else as part of the TX.
-				final Key<CounterShardData> counterShardDataKey = CounterShardData.key(UUID.randomUUID().toString(), 0);
+				final Key<CounterShardData> counterShardDataKey = CounterShardData.key(
+					CounterData.key(UUID.randomUUID().toString()), 0);
 				final CounterShardData counterShardData = new CounterShardData(counterShardDataKey);
 				ObjectifyService.ofy().save().entity(counterShardData);
 
@@ -724,7 +729,7 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 				{
 					// Do something else as part of the TX.
 					final Key<CounterShardData> counterShardDataKey = CounterShardData.key(
-						UUID.randomUUID().toString(), 0);
+						CounterData.key(UUID.randomUUID().toString()), 0);
 					ObjectifyService.ofy().save().entity(counterShardDataKey);
 
 					// The actual test.
@@ -768,7 +773,7 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 				{
 					// Do something else as part of the TX.
 					final Key<CounterShardData> counterShardDataKey = CounterShardData.key(
-						UUID.randomUUID().toString(), 0);
+						CounterData.key(UUID.randomUUID().toString()), 0);
 					ObjectifyService.ofy().save().entity(counterShardDataKey);
 
 					// The actual test.
@@ -804,7 +809,7 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 	 */
 	private void assertCounterShardValue(final String counterName, final Long expectedValue)
 	{
-		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterName, 0);
+		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(CounterData.key(counterName), 0);
 		final CounterShardData counterShard = ObjectifyService.ofy().load().key(counterShardDataKey).now();
 
 		if (expectedValue == null)

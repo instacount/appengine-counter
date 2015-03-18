@@ -240,7 +240,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			final List<Key<CounterShardData>> keysToLoad = Lists.newArrayList();
 			for (int i = 0; i < counterData.getNumShards(); i++)
 			{
-				final Key<CounterShardData> counterShardKey = CounterShardData.key(counterData.getCounterName(), i);
+				final Key<CounterShardData> counterShardKey = CounterShardData.key(counterData.getTypedKey(), i);
 				keysToLoad.add(counterShardKey);
 			}
 
@@ -449,15 +449,14 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			// Increments/Decrements can only occur on Counters with a counterStatus of AVAIALBLE.
 			assertCounterAmountMutatable(counterData.getCounterName(), counterData.getCounterStatus());
 
-			final String counterName = counterData.getCounterName();
-
 			// Find how many shards are in this counter.
 			final int currentNumShards = counterData.getNumShards();
 
 			// Choose the shard randomly from the available shards.
 			final int shardNumber = generator.nextInt(currentNumShards);
 
-			final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterName, shardNumber);
+			final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterData.getTypedKey(),
+				shardNumber);
 
 			// Load the Shard from the DS.
 			CounterShardData counterShardData = ObjectifyService.ofy().load().key(counterShardDataKey).now();
@@ -508,6 +507,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// ///////////
 		// CounterData Status Checks
 		final CounterData counterData = getOrCreateCounterData(counterName);
+		final Key<CounterData> counterDataKey = counterData.getTypedKey();
 
 		// Increments/Decrements can only occur on Counters with a counterStatus of AVAIALBLE. This will work as a
 		// governor most of the time, but we need to do it again inside of the decrement to be certain.
@@ -525,7 +525,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 		// Choose the shard randomly from the available shards.
 		final int randomShardNum = generator.nextInt(currentNumShards);
-		final Key<CounterShardData> randomCounterShardDataKey = CounterShardData.key(counterName, randomShardNum);
+		final Key<CounterShardData> randomCounterShardDataKey = CounterShardData.key(counterDataKey, randomShardNum);
 		DecrementShardWork decrementShardTask = new DecrementShardWork(counterName, randomCounterShardDataKey, amount);
 
 		Long lAmountDecrementedInTx = ObjectifyService.ofy().transactNew(decrementShardTask);
@@ -539,7 +539,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			// decremented at the same time.
 			for (int i = 0; i < counterData.getNumShards(); i++)
 			{
-				final Key<CounterShardData> sequentialCounterShardDataKey = CounterShardData.key(counterName, i);
+				final Key<CounterShardData> sequentialCounterShardDataKey = CounterShardData.key(counterDataKey, i);
 				if (sequentialCounterShardDataKey.equals(randomCounterShardDataKey))
 				{
 					// This shard has already been decremented, so don't try again, but keep trying other shards.
@@ -810,7 +810,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			final Collection<Key<CounterShardData>> counterShardDataKeys = Lists.newArrayList();
 			for (int i = 0; i < counterData.getNumShards(); i++)
 			{
-				final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterName, i);
+				final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, i);
 				counterShardDataKeys.add(counterShardDataKey);
 			}
 

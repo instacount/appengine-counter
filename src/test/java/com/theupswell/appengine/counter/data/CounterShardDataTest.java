@@ -51,25 +51,25 @@ public class CounterShardDataTest extends AbstractShardedCounterServiceTest
 	@Test(expected = IllegalArgumentException.class)
 	public void testGetKey_EmptyCounterName()
 	{
-		CounterShardData.key("", 0);
+		CounterShardData.key(CounterData.key(""), 0);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testGetKey_BlankCounterName()
 	{
-		CounterShardData.key(" ", 0);
+		CounterShardData.key(CounterData.key(" "), 0);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testGetKey_NegativeShard()
 	{
-		CounterShardData.key(TEST_COUNTER_NAME, -1);
+		CounterShardData.key(CounterData.key(TEST_COUNTER_NAME), -1);
 	}
 
 	@Test
 	public void testGetKey()
 	{
-		final Key<CounterShardData> actual = CounterShardData.key(TEST_COUNTER_NAME, 1);
+		final Key<CounterShardData> actual = CounterShardData.key(CounterData.key(TEST_COUNTER_NAME), 1);
 		assertThat(actual, is(Key.create(CounterShardData.class, TEST_COUNTER_NAME + "-1")));
 	}
 
