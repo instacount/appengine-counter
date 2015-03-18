@@ -12,7 +12,7 @@ public class CounterDataTest extends AbstractShardedCounterServiceTest
 {
 	private static final String TEST_COUNTER_NAME = "test-counter1";
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = NullPointerException.class)
 	public void testConstructor_NullCounterName()
 	{
 		new CounterData(null, 1);
