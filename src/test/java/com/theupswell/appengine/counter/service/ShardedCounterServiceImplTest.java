@@ -5,12 +5,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.appengine.api.memcache.MemcacheServiceFactory;
+import com.google.appengine.repackaged.com.google.common.collect.ImmutableSet;
 import com.google.common.base.Optional;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
@@ -19,6 +22,11 @@ import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.DecrementShardResult;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.DecrementShardResultCollection;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.IncrementShardResult;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.NoOpDecrementShardResult;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.PositiveDecrementShardResult;
 
 public class ShardedCounterServiceImplTest extends AbstractShardedCounterServiceTest
 {
@@ -27,6 +35,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	private static final CounterIndexes NO_INDEXES = CounterIndexes.none();
 	private static final CounterIndexes ALL_INDEXES = CounterIndexes.all();
 
+	private Key<CounterShardData> testCounter1CounterShard0Key;
+
 	private ShardedCounterServiceImpl impl;
 
 	@Before
@@ -34,7 +44,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	{
 		super.setUp();
 
-		this.counterShardKey = Key.create(CounterShardData.class, "123");
+		Key<CounterData> testCounter1Key = CounterData.key(TEST_COUNTER1);
+		this.testCounter1CounterShard0Key = CounterShardData.key(testCounter1Key, 0);
 		this.impl = (ShardedCounterServiceImpl) shardedCounterService;
 	}
 
@@ -503,8 +514,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test
 	public void testIncrementShardWork_NoPreExistingCounter() throws Exception
 	{
-		final Long actual = impl.new IncrementShardWork(TEST_COUNTER1, 1).run();
-		assertThat(actual, is(1L));
+		final IncrementShardResult actual = impl.new IncrementShardWork(TEST_COUNTER1, 1).run();
+		assertThat(actual.getAmount(), is(1L));
 
 		impl.increment(TEST_COUNTER1, 1);
 
@@ -516,8 +527,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	{
 		impl.increment(TEST_COUNTER1, 1);
 
-		final Long actual = impl.new IncrementShardWork(TEST_COUNTER1, 1).run();
-		assertThat(actual, is(1L));
+		final IncrementShardResult actual = impl.new IncrementShardWork(TEST_COUNTER1, 1).run();
+		assertThat(actual.getAmount(), is(1L));
 
 		impl.increment(TEST_COUNTER1, 1);
 
@@ -528,12 +539,10 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	// testDecrementShardWork
 	// //////////////////////////////////
 
-	private Key<CounterShardData> counterShardKey;
-
 	@Test(expected = NullPointerException.class)
 	public void testDecrementShardWork_NullCounterName() throws Exception
 	{
-		impl.new DecrementShardWork(null, counterShardKey, 1);
+		impl.new DecrementShardWork(null, testCounter1CounterShard0Key, 1);
 	}
 
 	@Test(expected = NullPointerException.class)
@@ -545,42 +554,195 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test(expected = IllegalArgumentException.class)
 	public void testDecrementShardWork_EmptyCounterName() throws Exception
 	{
-		impl.new DecrementShardWork("", counterShardKey, 1);
+		impl.new DecrementShardWork("", testCounter1CounterShard0Key, 1);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testDecrementShardWork_BlankCounterName() throws Exception
 	{
-		impl.new DecrementShardWork(" ", counterShardKey, 1);
+		impl.new DecrementShardWork(" ", testCounter1CounterShard0Key, 1);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testDecrementShardWork_NegativeCount() throws Exception
 	{
-		impl.new DecrementShardWork(TEST_COUNTER1, counterShardKey, -1);
+		impl.new DecrementShardWork(TEST_COUNTER1, testCounter1CounterShard0Key, -1);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testDecrementShardWork_ZeroCount() throws Exception
 	{
-		impl.new DecrementShardWork(TEST_COUNTER1, counterShardKey, 0);
+		impl.new DecrementShardWork(TEST_COUNTER1, testCounter1CounterShard0Key, 0);
 	}
 
 	@Test
 	public void testDecrementShardWork_NoPreExistingCounter() throws Exception
 	{
-		final Long actual = impl.new DecrementShardWork(TEST_COUNTER1, counterShardKey, 1).run();
-		assertThat(actual, is(0L));
+		final DecrementShardResult actual = impl.new DecrementShardWork(TEST_COUNTER1, testCounter1CounterShard0Key, 1)
+			.run();
+		assertThat(actual.getAmount(), is(0L));
 		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(0L));
 	}
 
 	@Test
 	public void testDecrementShardWork_PreExistingCounter() throws Exception
 	{
-		impl.increment(TEST_COUNTER1, 1);
+		// Make sure there's only 1 shard in the counter so we don't have unpredictable results.
+		final ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
+			.withNumInitialShards(1).build();
+		impl = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(), config);
 
-		final Long actual = impl.new DecrementShardWork(TEST_COUNTER1, counterShardKey, 1).run();
-		assertThat(actual, is(0L));
+		impl.increment(TEST_COUNTER1, 1);
 		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(1L));
+
+		final DecrementShardResult decrementShardResult = impl.new DecrementShardWork(TEST_COUNTER1,
+			testCounter1CounterShard0Key, 1).run();
+		assertThat(decrementShardResult.getAmount(), is(1L));
+
+		// The counter indicates a count of 1 still due to cache.
+		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(1L));
+		MemcacheServiceFactory.getMemcacheService().clearAll();
+		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(0L));
 	}
+
+	// //////////////////////////////////
+	// testIncrementShardResult
+	// //////////////////////////////////
+
+	@Test(expected = NullPointerException.class)
+	public void testIncrementShardResult_NullCounterShardDataKey()
+	{
+		new IncrementShardResult(null, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testIncrementShardResult_NegativeAmount()
+	{
+		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
+		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 0);
+		new IncrementShardResult(counterShardDataKey, -1);
+	}
+
+	@Test
+	public void testIncrementShardResult_ValidAmounts()
+	{
+		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
+		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 1);
+		IncrementShardResult result = new IncrementShardResult(counterShardDataKey, 1);
+
+		assertThat(result.getAmount(), is(1L));
+		assertThat(result.getCounterShardDataKey(), is(counterShardDataKey));
+	}
+
+	// //////////////////////////////////
+	// test DecrementShardResult (PositiveDecrementShardResult)
+	// //////////////////////////////////
+
+	@Test(expected = NullPointerException.class)
+	public void testDecrementShardResult_NullCounterShardDataKey()
+	{
+		new PositiveDecrementShardResult(null, 0);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testDecrementShardResult_NegativeAmount()
+	{
+		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
+		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 0);
+		new PositiveDecrementShardResult(counterShardDataKey, -1);
+	}
+
+	@Test
+	public void testDecrementShardResult_ValidAmounts()
+	{
+		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
+		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 1);
+		DecrementShardResult result = new PositiveDecrementShardResult(counterShardDataKey, 1);
+
+		assertThat(result.getAmount(), is(1L));
+		assertThat(result.getOptCounterShardDataKey().isPresent(), is(true));
+		assertThat(result.getOptCounterShardDataKey().get(), is(counterShardDataKey));
+	}
+
+	// //////////////////////////////////
+	// test DecrementShardResult (NoOpDecrementShardResult)
+	// //////////////////////////////////
+
+	@Test
+	public void testNoOpDecrementShardResult_ValidAmounts_NoCounterShardKey()
+	{
+		final DecrementShardResult result = new NoOpDecrementShardResult(Optional.<Key<CounterShardData>> absent());
+
+		assertThat(result.getAmount(), is(0L));
+		assertThat(result.getOptCounterShardDataKey().isPresent(), is(false));
+	}
+
+	@Test
+	public void testNoOpDecrementShardResult_ValidAmounts_WithCounterShardKey()
+	{
+		final Key<CounterData> counterDataKey1 = CounterData.key(TEST_COUNTER1);
+		final Key<CounterShardData> counterShardDataKey1 = CounterShardData.key(counterDataKey1, 0);
+		final DecrementShardResult result = new NoOpDecrementShardResult(Optional.of(counterShardDataKey1));
+
+		assertThat(result.getAmount(), is(0L));
+		assertThat(result.getOptCounterShardDataKey().isPresent(), is(true));
+		assertThat(result.getOptCounterShardDataKey().get(), is(counterShardDataKey1));
+	}
+
+	// //////////////////////////////////
+	// test DecrementShardResult (PositiveDecrementShardResult)
+	// //////////////////////////////////
+
+	@Test(expected = NullPointerException.class)
+	public void testDecrementShardResultCollection_NullSet()
+	{
+		new DecrementShardResultCollection(null);
+	}
+
+	@Test
+	public void testDecrementShardResultCollection_EmptySet()
+	{
+		DecrementShardResultCollection actual = new DecrementShardResultCollection(
+			ImmutableSet.<DecrementShardResult> of());
+
+		assertThat(actual.getTotalDecrementAmount(), is(0L));
+		assertThat(actual.getDecrements().size(), is(0));
+
+	}
+
+	@Test
+	public void testDecrementShardResultCollection_NonEmptySet()
+	{
+		final Key<CounterData> counterDataKey1 = CounterData.key(TEST_COUNTER1);
+		final Key<CounterShardData> counterShardDataKey1 = CounterShardData.key(counterDataKey1, 0);
+		final DecrementShardResult documentShardResult1 = new PositiveDecrementShardResult(counterShardDataKey1, 1);
+
+		final Key<CounterData> counterDataKey2 = CounterData.key(TEST_COUNTER2);
+		final Key<CounterShardData> counterShardDataKey2 = CounterShardData.key(counterDataKey2, 0);
+		final DecrementShardResult documentShardResult2 = new PositiveDecrementShardResult(counterShardDataKey2, 1);
+
+		Set<DecrementShardResult> resultSet = ImmutableSet.of(documentShardResult1);
+		DecrementShardResultCollection actual = new DecrementShardResultCollection(resultSet);
+
+		assertThat(actual.getTotalDecrementAmount(), is(1L));
+		assertThat(actual.getDecrements().size(), is(1));
+		assertThat(actual.getDecrements(), is(resultSet));
+
+		// Same DecrementShardResult twice
+		resultSet = ImmutableSet.of(documentShardResult1, documentShardResult1);
+		actual = new DecrementShardResultCollection(resultSet);
+
+		assertThat(actual.getTotalDecrementAmount(), is(1L));
+		assertThat(actual.getDecrements().size(), is(1));
+		assertThat(actual.getDecrements(), is(resultSet));
+
+		// Two DecrementShardResult
+		resultSet = ImmutableSet.of(documentShardResult1, documentShardResult2);
+		actual = new DecrementShardResultCollection(resultSet);
+
+		assertThat(actual.getTotalDecrementAmount(), is(2L));
+		assertThat(actual.getDecrements().size(), is(2));
+		assertThat(actual.getDecrements(), is(resultSet));
+	}
+
 }

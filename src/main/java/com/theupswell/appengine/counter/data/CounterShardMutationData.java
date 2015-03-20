@@ -30,8 +30,7 @@ import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Unindex;
 
 /**
- * Represents a discrete increment or decrement for a particular counter shard.  This object is necessary to indicate of a particular
- * counter increment/decrement succeeded.  <br/>
+ * Represents a discrete shard belonging to a named counter.<br/>
  * <br/>
  * An individual shard is written to infrequently to allow the counter in aggregate to be incremented rapidly.
  * 
@@ -44,7 +43,7 @@ import com.googlecode.objectify.annotation.Unindex;
 @Unindex
 @ToString
 @EqualsAndHashCode(of = "id")
-public class CounterShardData
+public class CounterShardMutationData
 {
 	static final String COUNTER_SHARD_KEY_SEPARATOR = "-";
 
@@ -67,22 +66,22 @@ public class CounterShardData
 
 	/**
 	 * Default Constructor for Objectify
-	 * 
+	 *
 	 * @deprecated Exists only for Objectify. Use the param-based constructors instead.
 	 */
 	@Deprecated
-	public CounterShardData()
+	public CounterShardMutationData()
 	{
 		// Implemented for Objectify
 	}
 
 	/**
 	 * Param-based Constructor
-	 * 
+	 *
 	 * @param counterName
 	 * @param shardNumber
 	 */
-	public CounterShardData(final String counterName, final int shardNumber)
+	public CounterShardMutationData(final String counterName, final int shardNumber)
 	{
 		// Preconditions checked by #constructCounterShardIdentifier
 		this.setId(constructCounterShardIdentifier(counterName, shardNumber));
@@ -96,7 +95,7 @@ public class CounterShardData
 	 *
 	 * @param counterShardDataKey
 	 */
-	public CounterShardData(final Key<CounterShardData> counterShardDataKey)
+	public CounterShardMutationData(final Key<CounterShardMutationData> counterShardDataKey)
 	{
 		Preconditions.checkNotNull(counterShardDataKey);
 		setId(counterShardDataKey.getName());
@@ -131,9 +130,9 @@ public class CounterShardData
 	 *
 	 * @return
 	 */
-	public Key<CounterShardData> getTypedKey()
+	public Key<CounterShardMutationData> getTypedKey()
 	{
-		return Key.create(CounterShardData.class, this.getId());
+		return Key.create(CounterShardMutationData.class, this.getId());
 	}
 
 	/**
@@ -170,10 +169,10 @@ public class CounterShardData
 	 * @param shardNumber
 	 * @return
 	 */
-	public static Key<CounterShardData> key(final Key<CounterData> counterDataKey, final int shardNumber)
+	public static Key<CounterShardMutationData> key(final Key<CounterData> counterDataKey, final int shardNumber)
 	{
 		// Preconditions checked by #constructCounterShardIdentifier
-		return Key.create(CounterShardData.class,
+		return Key.create(CounterShardMutationData.class,
 			constructCounterShardIdentifier(counterDataKey.getName(), shardNumber));
 	}
 

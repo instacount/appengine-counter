@@ -19,6 +19,9 @@ import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.DecrementShardResult;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.DecrementShardResultCollection;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.IncrementShardResult;
 
 /**
  * A Counter Service that can retrieve, increment, decrement, and delete a named {@link Counter}.
@@ -89,7 +92,7 @@ public interface CounterService
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
 	 */
-	public void increment(final String counterName, final long amount);
+	public IncrementShardResult increment(final String counterName, final long requestedIncrementAmount);
 
 	/**
 	 * <p>
@@ -124,7 +127,7 @@ public interface CounterService
 	 *             mutated (e.g., Fa {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
 	 *             counterStatus of {@link CounterStatus#AVAILABLE} may be mutated, incremented or decremented.
 	 */
-	public long decrement(final String counterName, final long amount);
+	public DecrementShardResultCollection decrement(final String counterName, final long amount);
 
 	/**
 	 * Removes a {@link CounterData} from the Datastore and attempts to remove it's corresponding

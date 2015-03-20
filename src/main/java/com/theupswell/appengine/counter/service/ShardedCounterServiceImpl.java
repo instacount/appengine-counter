@@ -16,8 +16,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -31,6 +37,8 @@ import com.google.appengine.api.memcache.MemcacheServiceFactory;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.TaskOptions;
+import com.google.appengine.repackaged.com.google.common.collect.ImmutableSet;
+import com.google.appengine.repackaged.com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -357,7 +365,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// /////////////////////////////
 
 	@Override
-	public void increment(final String counterName, final long requestedIncrementAmount)
+	public IncrementShardResult increment(final String counterName, final long requestedIncrementAmount)
 	{
 		// ///////////
 		// Precondition Checks
@@ -366,7 +374,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 		// Create the Work to be done for this increment, which will be done inside of a TX. See
 		// "https://developers.google.com/appengine/docs/java/datastore/transactions#Java_Isolation_and_consistency"
-		final Work<Long> atomicIncrementShardWork = new IncrementShardWork(counterName, requestedIncrementAmount);
+		final Work<IncrementShardResult> atomicIncrementShardWork = new IncrementShardWork(counterName,
+			requestedIncrementAmount);
 
 		// Note that this operation is idempotent from the perspective of a ConcurrentModificationException. In that
 		// case, the increment operation will fail and will not have been applied. An Objectify retry of the increment
@@ -386,7 +395,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// We use the "amountIncrementedInTx" to pause this thread until the work inside of "atomicIncrementShardWork"
 		// completes. This is because we don't want to increment memcache (below) until after that a transaction
 		// successfully commits.
-		final Long amountIncrementedInTx = ObjectifyService.ofy().transact(atomicIncrementShardWork);
+		final IncrementShardResult incrementedShardInTxResult = ObjectifyService.ofy().transact(
+			atomicIncrementShardWork);
 
 		// /////////////////
 		// Increment this counter in memcache atomically, but only if we're not inside of an existing transaction.
@@ -401,8 +411,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		{
 			// If this fails, it's ok because memcache is merely a cache of the actual count data, and will eventually
 			// become accurate when the cache is reloaded via a call to getCount.
-			this.incrementMemcacheAtomic(counterName, amountIncrementedInTx.longValue());
+			this.incrementMemcacheAtomic(counterName, incrementedShardInTxResult.getAmount());
 		}
+
+		return incrementedShardInTxResult;
 	}
 
 	/**
@@ -410,7 +422,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 * specified non-negative {@code incrementAmount}.
 	 */
 	@VisibleForTesting
-	final class IncrementShardWork implements Work<Long>
+	final class IncrementShardWork implements Work<IncrementShardResult>
 	{
 		// We begin this transactional unit of work with just the counter name so we can guarantee all data in question
 		// is consistent, and allow a counter shard key to vary based upon the number of shards indicated in
@@ -441,7 +453,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		 * @return
 		 */
 		@Override
-		public Long run()
+		public IncrementShardResult run()
 		{
 			// Do this inside of the TX so that we guarantee no other thread has changed the counterData in question.
 			final CounterData counterData = getOrCreateCounterData(counterName);
@@ -482,7 +494,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 			// Persist the updated value.
 			ObjectifyService.ofy().save().entity(counterShardData).now();
-			return new Long(incrementAmount);
+			return new IncrementShardResult(counterShardData.getTypedKey(), incrementAmount);
 		}
 	}
 
@@ -491,7 +503,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// /////////////////////////////
 
 	@Override
-	public long decrement(final String counterName, final long amount)
+	public DecrementShardResultCollection decrement(final String counterName, final long amount)
 	{
 		// ///////////
 		// Precondition Checks
@@ -528,15 +540,20 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		final Key<CounterShardData> randomCounterShardDataKey = CounterShardData.key(counterDataKey, randomShardNum);
 		DecrementShardWork decrementShardTask = new DecrementShardWork(counterName, randomCounterShardDataKey, amount);
 
-		Long lAmountDecrementedInTx = ObjectifyService.ofy().transactNew(decrementShardTask);
-		long amountDecrementedInTx = lAmountDecrementedInTx == null ? 0L : lAmountDecrementedInTx.longValue();
+		// The eventually returned values
+		final Builder<DecrementShardResult> resultBuilder = ImmutableSet.builder();
+
+		DecrementShardResult decrementShardInTxResult = ObjectifyService.ofy().transactNew(decrementShardTask);
+		resultBuilder.add(decrementShardInTxResult);
+
+		long amountDecrementedInTx = decrementShardInTxResult.getAmount();
 		totalAmountDecremented = amountDecrementedInTx;
 		long amountLeftToDecrement = amount - amountDecrementedInTx;
+
 		if (amountLeftToDecrement > 0)
 		{
 			// Try to decrement an incrementAmount from one shard at a time in a serial fashion so that two shards
-			// aren't
-			// decremented at the same time.
+			// aren't decremented at the same time.
 			for (int i = 0; i < counterData.getNumShards(); i++)
 			{
 				final Key<CounterShardData> sequentialCounterShardDataKey = CounterShardData.key(counterDataKey, i);
@@ -551,8 +568,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				{
 					decrementShardTask = new DecrementShardWork(counterName, sequentialCounterShardDataKey,
 						amountLeftToDecrement);
-					lAmountDecrementedInTx = ObjectifyService.ofy().transactNew(decrementShardTask);
-					amountDecrementedInTx = lAmountDecrementedInTx == null ? 0L : lAmountDecrementedInTx.longValue();
+					decrementShardInTxResult = ObjectifyService.ofy().transactNew(decrementShardTask);
+					resultBuilder.add(decrementShardInTxResult);
+
+					amountDecrementedInTx = decrementShardInTxResult.getAmount();
 					totalAmountDecremented += amountDecrementedInTx;
 					amountLeftToDecrement -= amountDecrementedInTx;
 				}
@@ -572,7 +591,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		incrementMemcacheAtomic(counterName, (totalAmountDecremented * -1L));
 
 		// Don't return #getCount because it should be accessed outside of the decrement context.
-		return totalAmountDecremented;
+		return new DecrementShardResultCollection(resultBuilder.build());
 	}
 
 	/**
@@ -581,7 +600,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 * callable may be less than the requested incrementAmount.
 	 */
 	@VisibleForTesting
-	final class DecrementShardWork implements Work<Long>
+	final class DecrementShardWork implements Work<DecrementShardResult>
 	{
 		private final String counterName;
 		// This is tolerable to pass into this Work object because we don't create shards inside of this unit of
@@ -624,7 +643,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		 * are not permitted to go negative!
 		 */
 		@Override
-		public Long run()
+		public DecrementShardResult run()
 		{
 			// This must be done in each decrement to ensure the status of the CounterData has not changed from
 			// underneath us.
@@ -640,7 +659,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			{
 				// Nothing was decremented! We don't create shards on a
 				// decrement operation!
-				return new Long(0L);
+				return new NoOpDecrementShardResult(Optional.<Key<CounterShardData>> absent());
 			}
 
 			// This is the incrementAmount to decrement by. It may be reduced if the shard doesn't have enough count!
@@ -662,7 +681,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 							+ requestedDecrementAmount);
 				}
 
-				return new Long(0);
+				return new NoOpDecrementShardResult(Optional.fromNullable(counterShardData.getTypedKey()));
 			}
 			else
 			{
@@ -678,7 +697,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// Persist the updated value, but wait for it to
 				// complete!
 				ObjectifyService.ofy().save().entity(counterShardData).now();
-				return new Long(decrementAmount);
+				return new PositiveDecrementShardResult(counterShardData.getTypedKey(), decrementAmount);
 			}
 
 		}
@@ -1090,4 +1109,187 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		return ObjectifyService.ofy().getTransaction() == null ? false : ObjectifyService.ofy().getTransaction()
 			.isActive();
 	}
+
+	private static final String DASH = "-";
+
+	/**
+	 * A container class that is used to identify a discrete increment for later identification.
+	 */
+	@Getter
+	@ToString(callSuper = true)
+	@EqualsAndHashCode(callSuper = true)
+	public static class IncrementShardResult extends AbstractShardMutationResult
+	{
+		/**
+		 * Required-args Constructor.
+		 *
+		 * @param counterShardDataKey
+		 * @param amount
+		 */
+		public IncrementShardResult(final Key<CounterShardData> counterShardDataKey, final long amount)
+		{
+			super(counterShardDataKey, amount);
+		}
+	}
+
+	/**
+	 * A container class that is used to identify a discrete decrement for later identification.
+	 */
+	@Getter
+	@ToString(callSuper = true)
+	@EqualsAndHashCode(callSuper = true)
+	public static class PositiveDecrementShardResult extends AbstractShardMutationResult implements
+			DecrementShardResult
+	{
+		/**
+		 * Required-args Constructor.
+		 *
+		 * @param counterShardDataKey The {@link Key} for the {@link CounterShardData} for which this decrement was
+		 *            effected upon.
+		 * @param amount The amount of the decrement.
+		 */
+		public PositiveDecrementShardResult(final Key<CounterShardData> counterShardDataKey, final long amount)
+		{
+			super(counterShardDataKey, amount);
+		}
+
+		@Override
+		public Optional<Key<CounterShardData>> getOptCounterShardDataKey()
+		{
+			return Optional.of(this.getCounterShardDataKey());
+		}
+	}
+
+	/**
+	 * A container class that is used to identify a discrete decrement for later identification.
+	 */
+	@Getter
+	@ToString
+	@EqualsAndHashCode
+	public static class NoOpDecrementShardResult implements DecrementShardResult
+	{
+		private final Optional<Key<CounterShardData>> optCounterShardDataKey;
+
+		/**
+		 * Required-args Constructor.
+		 * 
+		 * @param optCounterShardDataKey
+		 */
+		public NoOpDecrementShardResult(final Optional<Key<CounterShardData>> optCounterShardDataKey)
+		{
+			Preconditions.checkNotNull(optCounterShardDataKey);
+			this.optCounterShardDataKey = optCounterShardDataKey;
+		}
+
+		@Override
+		public long getAmount()
+		{
+			return 0L;
+		}
+	}
+
+	/**
+	 * A container class that is used to identify a discrete decrement for later identification.
+	 */
+	@Getter
+	@ToString
+	@EqualsAndHashCode(of = "id")
+	public static abstract class AbstractShardMutationResult
+	{
+		// A unique identifier for this mutation.
+		private final String id;
+		private final Key<CounterShardData> counterShardDataKey;
+		private final long amount;
+
+		/**
+		 * Required-args Constructor.
+		 * 
+		 * @param counterShardDataKey A unique identifier that consists of a
+		 */
+		protected AbstractShardMutationResult(final Key<CounterShardData> counterShardDataKey, final long amount)
+		{
+			this.id = this.constructIdentifier(counterShardDataKey);
+
+			Preconditions.checkNotNull(counterShardDataKey);
+			this.counterShardDataKey = counterShardDataKey;
+
+			Preconditions.checkArgument(amount > 0);
+			this.amount = amount;
+		}
+
+		/**
+		 * Helper method to set the internal identifier for this entity.
+		 *
+		 * @param counterShardDataKey
+		 */
+		private String constructIdentifier(final Key<CounterShardData> counterShardDataKey)
+		{
+			Preconditions.checkNotNull(counterShardDataKey);
+			return counterShardDataKey.getName() + DASH + UUID.randomUUID().toString();
+		}
+	}
+
+	/**
+	 * A container class that is used to identify a discrete decrement for later identification.
+	 */
+	@Getter
+	@ToString
+	@EqualsAndHashCode(of = "id")
+	public static class DecrementShardResultCollection
+	{
+		// A unique identifier for this mutation. The identifier starts with the Key of a CounterShard, followed by a
+		// dash, followed by a UUID.
+		private final String id;
+		private final Set<DecrementShardResult> decrements;
+
+		/**
+		 * Required-args Constructor.
+		 *
+		 * @param decrements
+		 */
+		public DecrementShardResultCollection(final Set<DecrementShardResult> decrements)
+		{
+			this.id = UUID.randomUUID().toString();
+
+			Preconditions.checkNotNull(decrements);
+			this.decrements = decrements;
+		}
+
+		/**
+		 * Get the total amount of all decrements.
+		 * 
+		 * @return
+		 */
+		public long getTotalDecrementAmount()
+		{
+			long amount = 0;
+			for (DecrementShardResult decrement : decrements)
+			{
+				amount += decrement.getAmount();
+			}
+			return amount;
+		}
+	}
+
+	/**
+	 * An interface for modeling the result of a mutation (increment or decrement) of a {@link CounterShardData} entity
+	 * in the Datastore.
+	 */
+	public static interface DecrementShardResult
+	{
+		/**
+		 * Return the optionally present {@link Key} for the {@link CounterShardData} that a mutation was effected upon.
+		 * 
+		 * @return
+		 */
+		public Optional<Key<CounterShardData>> getOptCounterShardDataKey();
+
+		/**
+		 * Return the amount of this mutation result, as a long.
+		 * 
+		 * @return
+		 */
+		public long getAmount();
+	}
+
 }
