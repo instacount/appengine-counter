@@ -1,7 +1,5 @@
 package com.theupswell.appengine.counter.model;
 
-import java.util.UUID;
-
 import com.googlecode.objectify.Key;
 import com.theupswell.appengine.counter.data.CounterShardData;
 
@@ -16,7 +14,7 @@ public interface CounterOperationResult
 	 * 
 	 * @return
 	 */
-	public UUID getOperationUuid();
+	public String getOperationId();
 
 	/**
 	 * Return the {@link Key} for the {@link CounterShardData} that a counter operation was effected upon.

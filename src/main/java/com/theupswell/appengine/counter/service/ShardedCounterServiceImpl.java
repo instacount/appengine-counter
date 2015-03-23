@@ -386,7 +386,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// Create the Work to be done for this increment, which will be done inside of a TX. See
 		// "https://developers.google.com/appengine/docs/java/datastore/transactions#Java_Isolation_and_consistency"
 		final Work<IncrementResult> atomicIncrementShardWork = new IncrementShardWork(counterName,
-			requestedIncrementAmount, UUID.randomUUID());
+			requestedIncrementAmount, UUID.randomUUID().toString());
 
 		// Note that this operation is idempotent from the perspective of a ConcurrentModificationException. In that
 		// case, the increment operation will fail and will not have been applied. An Objectify retry of the increment
@@ -406,8 +406,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// We use the "amountIncrementedInTx" to pause this thread until the work inside of "atomicIncrementShardWork"
 		// completes. This is because we don't want to increment memcache (below) until after that a transaction
 		// successfully commits.
-		final IncrementResult incrementedShardInTxResult = ObjectifyService.ofy().transact(
-			atomicIncrementShardWork);
+		final IncrementResult incrementedShardInTxResult = ObjectifyService.ofy().transact(atomicIncrementShardWork);
 
 		// /////////////////
 		// Increment this counter in memcache atomically, but only if we're not inside of an existing transaction.
@@ -425,8 +424,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			this.incrementMemcacheAtomic(counterName, incrementedShardInTxResult.getAmount());
 		}
 
-		return new IncrementResultSet.Builder(incrementUuid).withCounterOperationResult(
-			incrementedShardInTxResult).build();
+		return new IncrementResultSet.Builder(incrementUuid).withCounterOperationResult(incrementedShardInTxResult)
+			.build();
 	}
 
 	/**
@@ -441,18 +440,18 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// CounterData, which won't be available in a consistent manner until we enter the transaction.
 		private final String counterName;
 		private final long incrementAmount;
-		private final UUID incrementUuid;
+		private final String incrementId;
 
 		/**
 		 * Required-Args Constructor.
 		 * 
 		 * @param counterName
 		 * @param incrementAmount
-		 * @param incrementUuid The unique identifier of the increment (this value will be stored as the identifier for
+		 * @param incrementId The unique identifier of the increment (this value will be stored as the identifier for
 		 *            the associated {@link CounterShardOperationData} object that is stored when the increment is
 		 *            applied.
 		 */
-		IncrementShardWork(final String counterName, final long incrementAmount, final UUID incrementUuid)
+		IncrementShardWork(final String counterName, final long incrementAmount, final String incrementId)
 		{
 			Preconditions.checkNotNull(counterName);
 			Preconditions.checkArgument(!StringUtils.isBlank(counterName));
@@ -461,8 +460,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			Preconditions.checkArgument(incrementAmount > 0, "Counter increment amounts must be positive numbers!");
 			this.incrementAmount = incrementAmount;
 
-			Preconditions.checkNotNull(incrementUuid);
-			this.incrementUuid = incrementUuid;
+			Preconditions.checkNotNull(incrementId);
+			this.incrementId = incrementId;
 		}
 
 		/**
@@ -514,12 +513,12 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 			// Persist the updated value alongside a new CounterShardAmountMutation tracking entity.
 			final CounterShardOperationData counterShardOperationData = new CounterShardOperationData(
-				counterShardDataKey, incrementUuid, Type.INCREMENT, incrementAmount);
+				counterShardDataKey, incrementId, Type.INCREMENT, incrementAmount);
 
 			ObjectifyService.ofy().save().entities(counterShardData, counterShardOperationData).now();
 
-			return new IncrementResult(incrementUuid,
-				counterShardOperationData.getCounterShardDataKey(), counterShardOperationData.getAmount());
+			return new IncrementResult(incrementId, counterShardOperationData.getCounterShardDataKey(),
+				counterShardOperationData.getAmount(), counterShardOperationData.getCreationDateTime());
 		}
 	}
 
@@ -534,8 +533,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	}
 
 	@Override
-	public DecrementResultSet decrement(final String counterName, final long amount,
-			final UUID decrementUuid)
+	public DecrementResultSet decrement(final String counterName, final long amount, final UUID decrementUuid)
 	{
 		// ///////////
 		// Precondition Checks
@@ -573,13 +571,12 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		final int randomShardNum = generator.nextInt(currentNumShards);
 		final Key<CounterShardData> randomCounterShardDataKey = CounterShardData.key(counterDataKey, randomShardNum);
 		DecrementShardWork decrementShardTask = new DecrementShardWork(counterName, randomCounterShardDataKey, amount,
-			UUID.randomUUID());
+			UUID.randomUUID().toString());
 
 		// The eventually returned values
 		final Builder<DecrementResult> resultBuilder = ImmutableSet.builder();
 
-		Optional<DecrementResult> optDecrementShardInTxResult = ObjectifyService.ofy().transactNew(
-			decrementShardTask);
+		Optional<DecrementResult> optDecrementShardInTxResult = ObjectifyService.ofy().transactNew(decrementShardTask);
 		if (optDecrementShardInTxResult.isPresent())
 		{
 			resultBuilder.add(optDecrementShardInTxResult.get());
@@ -607,7 +604,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				if (amountLeftToDecrement > 0)
 				{
 					decrementShardTask = new DecrementShardWork(counterName, sequentialCounterShardDataKey,
-						amountLeftToDecrement, UUID.randomUUID());
+						amountLeftToDecrement, UUID.randomUUID().toString());
 					optDecrementShardInTxResult = ObjectifyService.ofy().transactNew(decrementShardTask);
 					if (optDecrementShardInTxResult.isPresent())
 					{
@@ -635,8 +632,52 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		incrementMemcacheAtomic(counterName, (totalAmountDecremented * -1L));
 
 		// Don't return #getCount because it should be accessed outside of the decrement context.
-		return new DecrementResultSet.Builder(decrementUuid).withCounterOperationResults(
-			resultBuilder.build()).build();
+		return new DecrementResultSet.Builder(decrementUuid).withCounterOperationResults(resultBuilder.build()).build();
+	}
+
+	// /////////////////////////////
+	// Accessor Functions
+	// /////////////////////////////
+
+	// We only store an increment/decrement per-shard.
+	@Override
+	public Optional<IncrementResult> getIncrement(final String incrementWebsafeStringKey)
+	{
+		try
+		{
+			final Key<CounterShardOperationData> incrementKey = Key.valueOf(incrementWebsafeStringKey);
+			final CounterShardOperationData counterShardIncrement = ObjectifyService.ofy().load().key(incrementKey)
+				.now();
+			final IncrementResult incrementResult = new IncrementResult(counterShardIncrement.getOperationId(),
+				counterShardIncrement.getCounterShardDataKey(), counterShardIncrement.getAmount(),
+				counterShardIncrement.getCreationDateTime());
+			return Optional.of(incrementResult);
+		}
+		catch (Exception e)
+		{
+			logger.log(Level.SEVERE, e.getMessage(), e);
+			return Optional.absent();
+		}
+	}
+
+	@Override
+	public Optional<DecrementResult> getDecrement(final String decrementWebsafeStringKey)
+	{
+		try
+		{
+			final Key<CounterShardOperationData> incrementKey = Key.valueOf(decrementWebsafeStringKey);
+			final CounterShardOperationData counterShardIncrement = ObjectifyService.ofy().load().key(incrementKey)
+				.now();
+			final DecrementResult decrementResult = new DecrementResult(counterShardIncrement.getOperationId(),
+				counterShardIncrement.getCounterShardDataKey(), counterShardIncrement.getAmount(),
+				counterShardIncrement.getCreationDateTime());
+			return Optional.of(decrementResult);
+		}
+		catch (Exception e)
+		{
+
+			return Optional.absent();
+		}
 	}
 
 	/**
@@ -654,7 +695,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// number-of-shards-per-counter).
 		private final Key<CounterShardData> counterShardKey;
 		private final long requestedDecrementAmount;
-		private final UUID decrementUuid;
+		private final String decrementId;
 
 		/**
 		 * Required args Constructor
@@ -662,11 +703,11 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		 * @param counterName
 		 * @param counterShardKey
 		 * @param requestedDecrementAmount
-		 * @param decrementUuid
+		 * @param decrementId
 		 */
 		@VisibleForTesting
 		DecrementShardWork(final String counterName, final Key<CounterShardData> counterShardKey,
-				final long requestedDecrementAmount, final UUID decrementUuid)
+				final long requestedDecrementAmount, final String decrementId)
 		{
 			Preconditions.checkNotNull(counterName, "CounterName may not be null!");
 			Preconditions.checkArgument(!StringUtils.isBlank(counterName), "CounterName may not be blank or empty!");
@@ -680,8 +721,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				"Counter decrement amounts must be positive numbers!");
 			this.requestedDecrementAmount = requestedDecrementAmount;
 
-			Preconditions.checkNotNull(decrementUuid);
-			this.decrementUuid = decrementUuid;
+			Preconditions.checkNotNull(decrementId);
+			this.decrementId = decrementId;
 		}
 
 		/*
@@ -744,12 +785,12 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// Persist the updated value with a CounterShardAmountMutationData, but wait for it to complete!
 				final Key<CounterShardData> counterShardDataKey = counterShardData.getTypedKey();
 				final CounterShardOperationData counterShardOperationData = new CounterShardOperationData(
-					counterShardDataKey, decrementUuid, Type.DECREMENT, decrementAmount);
+					counterShardDataKey, decrementId, Type.DECREMENT, decrementAmount);
 
 				ObjectifyService.ofy().save().entities(counterShardData, counterShardOperationData).now();
 
-				return Optional.of(new DecrementResult(decrementUuid, counterShardOperationData
-					.getCounterShardDataKey(), counterShardOperationData.getAmount()));
+				return Optional.of(new DecrementResult(decrementId, counterShardOperationData.getCounterShardDataKey(),
+					counterShardOperationData.getAmount(), counterShardOperationData.getCreationDateTime()));
 			}
 
 		}
@@ -1175,14 +1216,14 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// /**
 	// * Required-args Constructor.
 	// *
-	// * @param incrementUuid A {@link UUID} that uniquely identifies this decrement operation.
+	// * @param incrementId A {@link UUID} that uniquely identifies this decrement operation.
 	// * @param counterShardDataKey A {@link Key} for the associated {@link CounterShardData} operated upon.
 	// * @param amount The amount of this increment.
 	// */
-	// public IncrementShardResult(final UUID incrementUuid, final Key<CounterShardData> counterShardDataKey,
+	// public IncrementShardResult(final UUID incrementId, final Key<CounterShardData> counterShardDataKey,
 	// final long amount)
 	// {
-	// super(incrementUuid, counterShardDataKey, amount);
+	// super(incrementId, counterShardDataKey, amount);
 	// }
 	// }
 	//
@@ -1198,14 +1239,14 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// /**
 	// * Required-args Constructor.
 	// *
-	// * @param decrementUuid A {@link UUID} that uniquely identifies this decrement operation.
+	// * @param decrementId A {@link UUID} that uniquely identifies this decrement operation.
 	// * @param counterShardDataKey A {@link Key} for the associated {@link CounterShardData} operated upon.
 	// * @param amount The amount of this decrement.
 	// */
-	// public PositiveDecrementShardResult(final UUID decrementUuid, final Key<CounterShardData> counterShardDataKey,
+	// public PositiveDecrementShardResult(final UUID decrementId, final Key<CounterShardData> counterShardDataKey,
 	// final long amount)
 	// {
-	// super(decrementUuid, counterShardDataKey, amount);
+	// super(decrementId, counterShardDataKey, amount);
 	// }
 	//
 	// @Override
@@ -1302,20 +1343,20 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// {
 	// // A unique identifier for this mutation. The identifier starts with the Key of a CounterShard, followed by a
 	// // dash, followed by a UUID.
-	// private final UUID decrementUuid;
+	// private final UUID decrementId;
 	// private final Set<DecrementShardResult> decrements;
 	//
 	// /**
 	// * Required-args Constructor.
 	// *
-	// * @param decrementUuid A {@link UUID} that uniquely identifies this decrement operation(s).
+	// * @param decrementId A {@link UUID} that uniquely identifies this decrement operation(s).
 	// * @param decrements A {@link Set} of instances of {@link DecrementShardResult} that represent the decremented
 	// * shards that were reduced as part of this decrement operation.
 	// */
-	// public DecrementShardResultCollection(final UUID decrementUuid, final Set<DecrementShardResult> decrements)
+	// public DecrementShardResultCollection(final UUID decrementId, final Set<DecrementShardResult> decrements)
 	// {
-	// Preconditions.checkNotNull(decrementUuid);
-	// this.decrementUuid = decrementUuid;
+	// Preconditions.checkNotNull(decrementId);
+	// this.decrementId = decrementId;
 	//
 	// Preconditions.checkNotNull(decrements);
 	// this.decrements = decrements;

@@ -31,7 +31,7 @@ public class CounterShardOperationDataTest extends AbstractShardedCounterService
 		assertThat(counterShardOperationData.getAmount(), is(1L));
 		assertThat(counterShardOperationData.getCounterShardDataKey(), is(counterShardDataKey));
 		assertThat(counterShardOperationData.getId(), is(uuid.toString()));
-		assertThat(counterShardOperationData.getUuid(), is(uuid.toString()));
+		assertThat(counterShardOperationData.getOperationId(), is(uuid.toString()));
 		assertThat(
 			counterShardOperationData.getCreationDateTime().isBefore(
 				DateTime.now(DateTimeZone.UTC).plusSeconds(10)), is(true));

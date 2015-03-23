@@ -219,8 +219,8 @@ public class ShardedCounterServiceIncrementTest extends AbstractShardedCounterSe
 		assertThat(results[0], is(not(nullValue())));
 		assertThat(results[0].getAmount(), is(1L));
 		assertThat(results[0].getCounterShardDataKey(), is(not(nullValue())));
-		assertThat(results[0].getOperationUuid(), is(not(nullValue())));
-		assertThat(results[0].getOperationUuid(), is(not(uuid)));
+		assertThat(results[0].getOperationId(), is(not(nullValue())));
+		assertThat(results[0].getOperationId(), is(not(uuid)));
 
 	}
 

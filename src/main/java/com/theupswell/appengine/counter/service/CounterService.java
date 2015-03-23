@@ -16,12 +16,15 @@ import java.util.UUID;
 
 import com.google.appengine.api.datastore.DatastoreFailureException;
 import com.google.appengine.api.datastore.DatastoreTimeoutException;
+import com.google.common.base.Optional;
 import com.googlecode.objectify.Work;
 import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.model.impl.DecrementResult;
 import com.theupswell.appengine.counter.model.impl.DecrementResultSet;
+import com.theupswell.appengine.counter.model.impl.IncrementResult;
 import com.theupswell.appengine.counter.model.impl.IncrementResultSet;
 
 /**
@@ -215,6 +218,22 @@ public interface CounterService
 	 */
 	public DecrementResultSet decrement(final String counterName, final long requestedDecrementAmount,
 			final UUID decrementUuid);
+
+	/**
+	 * Get the optionally present {@link IncrementResultSet} based upon the supplied {@code decrementUuid}.
+	 *
+	 * @param incrementWebsafeStringKey A {@link String} that uniquely identifies the decrement being requested.
+	 * @return
+	 */
+	public Optional<IncrementResult> getIncrement(final String incrementWebsafeStringKey);
+
+	/**
+	 * Get the optionally present {@link IncrementResultSet} based upon the supplied {@code decrementUuid}.
+	 *
+	 * @param decrementWebsafeStringKey A {@link String} that uniquely identifies the decrement being requested.
+	 * @return
+	 */
+	public Optional<DecrementResult> getDecrement(final String decrementWebsafeStringKey);
 
 	/**
 	 * Removes a {@link CounterData} from the Datastore and attempts to remove it's corresponding

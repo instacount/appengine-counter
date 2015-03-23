@@ -41,12 +41,12 @@ import com.googlecode.objectify.annotation.Unindex;
 @Getter
 @Unindex
 @ToString
-@EqualsAndHashCode(of = "uuid")
+@EqualsAndHashCode(of = "operationId")
 public class CounterShardOperationData
 {
 	// It's ok if two shards share the same UUID since they will have different @Parent's.
 	@Id
-	private String uuid;
+	private String operationId;
 
 	@Parent
 	private Key<CounterShardData> counterShardDataKey;
@@ -77,18 +77,18 @@ public class CounterShardOperationData
 	/**
 	 * Param-based Constructor
 	 *
-	 * @param counterShardDataKey
-	 * @param uuid
-	 * @param amount
+	 * @param counterShardDataKey The parent Key for this entity.
+	 * @param operationId A unique identifier for this operation.
+	 * @param amount The amount of this operation.
 	 */
-	public CounterShardOperationData(final Key<CounterShardData> counterShardDataKey, final UUID uuid, final Type type,
-			final long amount)
+	public CounterShardOperationData(final Key<CounterShardData> counterShardDataKey, final String operationId,
+			final Type type, final long amount)
 	{
 		Preconditions.checkNotNull(counterShardDataKey);
 		this.counterShardDataKey = counterShardDataKey;
 
-		Preconditions.checkNotNull(uuid);
-		this.uuid = uuid.toString();
+		Preconditions.checkNotNull(operationId);
+		this.operationId = operationId;
 
 		Preconditions.checkNotNull(type);
 		this.type = type;
@@ -109,7 +109,7 @@ public class CounterShardOperationData
 	 */
 	public String getId()
 	{
-		return this.uuid;
+		return this.operationId;
 	}
 
 	/**

@@ -1,10 +1,10 @@
 package com.theupswell.appengine.counter.model.impl;
 
-import java.util.UUID;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+
+import org.joda.time.DateTime;
 
 import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
@@ -16,34 +16,40 @@ import com.theupswell.appengine.counter.model.CounterOperationResult;
  */
 @Getter
 @ToString
-@EqualsAndHashCode(of = "operationUuid")
+@EqualsAndHashCode(of = "operationId")
 public abstract class AbstractCounterOperationResult implements CounterOperationResult
 {
 	// A unique identifier for this counter operation collection.
-	private final UUID operationUuid;
+	private final String operationId;
 
 	// The Key of the CounterShardData that this mutation occurred on.
 	private final Key<CounterShardData> counterShardDataKey;
 
 	private final long amount;
 
+	private DateTime creationDateTime;
+
 	/**
 	 * Required-args Constructor.
 	 *
-	 * @param operationUuid A {@link UUID} that uniquely identifies this operation.
+	 * @param operationId A {@link String} that uniquely identifies this operation.
 	 * @param counterShardDataKey A unique identifier that consists of a
 	 * @param amount The amount of the applied increment or decrement.
+	 * @param creationDateTime The {@link DateTime} that this operation was created.
 	 */
-	protected AbstractCounterOperationResult(final UUID operationUuid, final Key<CounterShardData> counterShardDataKey,
-			final long amount)
+	protected AbstractCounterOperationResult(final String operationId, final Key<CounterShardData> counterShardDataKey,
+			final long amount, final DateTime creationDateTime)
 	{
-		Preconditions.checkNotNull(operationUuid);
-		this.operationUuid = operationUuid;
+		Preconditions.checkNotNull(operationId);
+		this.operationId = operationId;
 
 		Preconditions.checkNotNull(counterShardDataKey);
 		this.counterShardDataKey = counterShardDataKey;
 
 		Preconditions.checkArgument(amount > 0);
 		this.amount = amount;
+
+		Preconditions.checkNotNull(creationDateTime);
+		this.creationDateTime = creationDateTime;
 	}
 }

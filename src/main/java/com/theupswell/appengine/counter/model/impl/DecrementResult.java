@@ -2,6 +2,8 @@ package com.theupswell.appengine.counter.model.impl;
 
 import java.util.UUID;
 
+import org.joda.time.DateTime;
+
 import com.googlecode.objectify.Key;
 import com.theupswell.appengine.counter.data.CounterShardData;
 import com.theupswell.appengine.counter.model.CounterOperationResult;
@@ -15,14 +17,15 @@ public class DecrementResult extends AbstractCounterOperationResult implements C
 	/**
 	 * Required-args Constructor.
 	 *
-	 * @param operationUuid A {@link UUID} that uniquely identifies this operation.
+	 * @param operationId A {@link UUID} that uniquely identifies this operation.
 	 * @param counterShardDataKey A {@link Key} for the associated {@link CounterShardData} operated upon.
 	 * @param amount The amount of this operation.
+	 * @param creationDateTime The {@link DateTime} that this operation was created.
 	 */
-	public DecrementResult(final UUID operationUuid, final Key<CounterShardData> counterShardDataKey,
-			final long amount)
+	public DecrementResult(final String operationId, final Key<CounterShardData> counterShardDataKey,
+			final long amount, final DateTime creationDateTime)
 	{
-		super(operationUuid, counterShardDataKey, amount);
+		super(operationId, counterShardDataKey, amount, creationDateTime);
 	}
 
 }

@@ -1,6 +1,6 @@
 package com.theupswell.appengine.counter.model.impl;
 
-import java.util.UUID;
+import org.joda.time.DateTime;
 
 import com.googlecode.objectify.Key;
 import com.theupswell.appengine.counter.data.CounterShardData;
@@ -15,12 +15,14 @@ public class IncrementResult extends AbstractCounterOperationResult implements C
 	/**
 	 * Required-args Constructor.
 	 *
+	 * @param operationId A {@link String} that uniquely identifies this operation.
 	 * @param counterShardDataKey A {@link Key} for the associated {@link CounterShardData} operated upon.
 	 * @param amount The amount of this operation.
+	 * @param creationDateTime The {@link DateTime} that this operation was created.
 	 */
-	public IncrementResult(final UUID operationUuid, final Key<CounterShardData> counterShardDataKey,
-			final long amount)
+	public IncrementResult(final String operationId, final Key<CounterShardData> counterShardDataKey,
+			final long amount, final DateTime creationDateTime)
 	{
-		super(operationUuid, counterShardDataKey, amount);
+		super(operationId, counterShardDataKey, amount, creationDateTime);
 	}
 }
