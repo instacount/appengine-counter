@@ -12,6 +12,8 @@
  */
 package com.theupswell.appengine.counter.service;
 
+import java.util.UUID;
+
 import com.google.appengine.api.datastore.DatastoreFailureException;
 import com.google.appengine.api.datastore.DatastoreTimeoutException;
 import com.googlecode.objectify.Work;
@@ -19,9 +21,8 @@ import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.DecrementShardResult;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.DecrementShardResultCollection;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.IncrementShardResult;
+import com.theupswell.appengine.counter.model.impl.DecrementResultSet;
+import com.theupswell.appengine.counter.model.impl.IncrementResultSet;
 
 /**
  * A Counter Service that can retrieve, increment, decrement, and delete a named {@link Counter}.
@@ -60,9 +61,10 @@ public interface CounterService
 	public void updateCounterDetails(final Counter counter);
 
 	/**
-	 * Increment the value of a sharded counter by {@code amount} using an isolated TransactionContext. If you need to
-	 * execute this operation in an existing parent transaction, then wrap this call in an Objectify {@link Work}
-	 * anonymous class, like this:
+	 * Increment the value of a sharded counter by {@code amount} using an isolated TransactionContext and a random
+	 * increment UUID, which is used to uniquely identify each increment operation. If you need to execute this
+	 * operation in an existing parent transaction, then wrap this call in an Objectify {@link Work} anonymous class,
+	 * like this:
 	 *
 	 * <pre>
 	 * return ObjectifyService.ofy().transactNew(1, new Work&lt;Void&gt;()
@@ -75,6 +77,8 @@ public interface CounterService
 	 * });
 	 * </pre>
 	 * 
+	 * @param counterName The name of the counter to increment.
+	 * @param requestedIncrementAmount The amount to increment the counter with.
 	 * @throws NullPointerException if the {@code counterName} is null.
 	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
 	 * @throws IllegalArgumentException if the {@code amount} to decrement is negative (decrement amounts must always be
@@ -92,11 +96,52 @@ public interface CounterService
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
 	 */
-	public IncrementShardResult increment(final String counterName, final long requestedIncrementAmount);
+	public IncrementResultSet increment(final String counterName, final long requestedIncrementAmount);
+
+	/**
+	 * Increment the value of a sharded counter by {@code amount} using an isolated TransactionContext and a specified
+	 * increment UUID, which is used to uniquely identify each increment operation. If you need to execute this
+	 * operation in an existing parent transaction, then wrap this call in an Objectify {@link Work} anonymous class,
+	 * like this:
+	 *
+	 * <pre>
+	 * return ObjectifyService.ofy().transactNew(1, new Work&lt;Void&gt;()
+	 * {
+	 * 	&#064;Override
+	 * 	public Void run()
+	 * 	{
+	 * 		counterService.increment(&quot;foo&quot;, 1);
+	 * 	}
+	 * });
+	 * </pre>
+	 *
+	 * @param counterName The name of the counter to increment.
+	 * @param requestedIncrementAmount The amount to increment the counter with.
+	 * @param incrementUuid A {@link UUID} for the increment that will be performed.
+	 * @throws NullPointerException if the {@code counterName} is null.
+	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
+	 * @throws IllegalArgumentException if the {@code amount} to decrement is negative (decrement amounts must always be
+	 *             positive).
+	 * @throws RuntimeException if the counter exists in the Datastore but has a status that prevents it from being
+	 *             mutated (e.g., Fa {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
+	 *             counterStatus of {@link CounterStatus#AVAILABLE} may be mutated, incremented or decremented.
+	 * @throws DatastoreFailureException Thrown when any unknown error occurs while communicating with the data store.
+	 *             Note that despite receiving this exception, it's possible that the datastore actually committed data
+	 *             properly. Thus, clients should not attempt to retry after receiving this exception without checking
+	 *             the state of the counter first.
+	 * @throws DatastoreTimeoutException Thrown when a datastore operation times out. This can happen when you attempt
+	 *             to put, get, or delete too many entities or an entity with too many properties, or if the datastore
+	 *             is overloaded or having trouble. Note that despite receiving this exception, it's possible that the
+	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
+	 *             this exception without checking the state of the counter first.
+	 */
+	public IncrementResultSet increment(final String counterName, final long requestedIncrementAmount,
+			final UUID incrementUuid);
 
 	/**
 	 * <p>
-	 * Decrement the value of a sharded counter by {@code amount}.
+	 * Decrement the value of a sharded counter by {@code amount} and a random decrement {@link UUID}, which is used to
+	 * uniquely identify each decrement operation.
 	 * </p>
 	 * <p>
 	 * Note that this operation will always be performed with no transactional context. This is because a sharded
@@ -105,6 +150,8 @@ public interface CounterService
 	 * should be considered eventually consistent.
 	 * </p>
 	 *
+	 * @param counterName The name of the counter to decrement.
+	 * @param requestedDecrementAmount The amount to decrement the counter with.
 	 * @return The amount that was actually decremented from this counter. Depending on counter configuration, requests
 	 *         to decrement a counter by more than its available count will succeed with a decrement amount that is
 	 *         smaller than the requested decrement amount (e.g., if a counter may not decrement below zero). This
@@ -127,7 +174,47 @@ public interface CounterService
 	 *             mutated (e.g., Fa {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
 	 *             counterStatus of {@link CounterStatus#AVAILABLE} may be mutated, incremented or decremented.
 	 */
-	public DecrementShardResultCollection decrement(final String counterName, final long amount);
+	public DecrementResultSet decrement(final String counterName, final long requestedDecrementAmount);
+
+	/**
+	 * <p>
+	 * Decrement the value of a sharded counter by {@code amount} and a specified decrement {@link UUID}, which is used
+	 * to uniquely identify each decrement operation.
+	 * </p>
+	 * <p>
+	 * Note that this operation will always be performed with no transactional context. This is because a sharded
+	 * counter will typically have at least 3 shards, and may have many more. Thus, in general, decrementing in a
+	 * transaction would likely exceed exceed the limit of 5 entity groups in a single TX. As such, this operation
+	 * should be considered eventually consistent.
+	 * </p>
+	 *
+	 * @param counterName The name of the counter to decrement.
+	 * @param requestedDecrementAmount The amount to decrement the counter with.
+	 * @param decrementUuid A {@link UUID} for the increment that will be performed.
+	 * @return The amount that was actually decremented from this counter. Depending on counter configuration, requests
+	 *         to decrement a counter by more than its available count will succeed with a decrement amount that is
+	 *         smaller than the requested decrement amount (e.g., if a counter may not decrement below zero). This
+	 *         return value can be used to discern any difference between the requested and actual decrement amounts.
+	 * @throws NullPointerException if the {@code counterName} is null.
+	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
+	 * @throws IllegalArgumentException if the {@code amount} to decrement is negative (decrement amounts must always be
+	 *             positive).
+	 * @throws DatastoreFailureException Thrown when any unknown error occurs while communicating with the data store.
+	 *             Note that despite receiving this exception, it's possible that the datastore actually committed data
+	 *             properly. Thus, clients should not attempt to retry after receiving this exception without checking
+	 *             the state of the counter first.
+	 * @throws DatastoreTimeoutException Thrown when a datastore operation times out. This can happen when you attempt
+	 *             to put, get, or delete too many entities or an entity with too many properties, or if the datastore
+	 *             is overloaded or having trouble. Note that despite receiving this exception, it's possible that the
+	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
+	 *             this exception without checking the state of the counter first.
+	 *
+	 * @throws RuntimeException if the counter exists in the Datastore but has a status that prevents it from being
+	 *             mutated (e.g., Fa {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
+	 *             counterStatus of {@link CounterStatus#AVAILABLE} may be mutated, incremented or decremented.
+	 */
+	public DecrementResultSet decrement(final String counterName, final long requestedDecrementAmount,
+			final UUID decrementUuid);
 
 	/**
 	 * Removes a {@link CounterData} from the Datastore and attempts to remove it's corresponding

@@ -12,8 +12,11 @@
  */
 package com.theupswell.appengine.counter.service;
 
+import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.junit.After;
@@ -23,6 +26,9 @@ import org.junit.Test;
 import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
+import com.theupswell.appengine.counter.model.CounterOperationResult;
+import com.theupswell.appengine.counter.model.CounterOperationType;
+import com.theupswell.appengine.counter.model.impl.DecrementResultSet;
 
 /**
  * Unit tests for decrementing counters via {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}.
@@ -49,6 +55,36 @@ public class ShardedCounterServiceDecrementTest extends
 	// /////////////////////////
 	// Unit Tests
 	// /////////////////////////
+
+	@Test(expected = NullPointerException.class)
+	public void testIncrement_NullName() throws InterruptedException
+	{
+		shardedCounterService.decrement(null, 1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testIncrement_BlankName() throws InterruptedException
+	{
+		shardedCounterService.decrement("", 1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testIncrement_EmptyName() throws InterruptedException
+	{
+		shardedCounterService.decrement("  ", 1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testIncrement_NegativeIncrement() throws InterruptedException
+	{
+		shardedCounterService.decrement(TEST_COUNTER1, -1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testIncrement_ZeroIncrement() throws InterruptedException
+	{
+		shardedCounterService.decrement(TEST_COUNTER1, 0);
+	}
 
 	@Test(expected = RuntimeException.class)
 	public void testDecrement_CounterIsBeingDeleted() throws InterruptedException
@@ -141,6 +177,29 @@ public class ShardedCounterServiceDecrementTest extends
 
 			doCounterDecrementAssertions(TEST_COUNTER1 + "-" + i, 15);
 		}
+	}
+
+	@Test
+	public void testDecrementResult()
+	{
+		final UUID uuid = UUID.randomUUID();
+
+		this.shardedCounterService.increment(TEST_COUNTER1, 1, uuid);
+		final DecrementResultSet result = this.shardedCounterService.decrement(TEST_COUNTER1, 1, uuid);
+
+		assertThat(result.getTotalAmount(), is(1L));
+		assertThat(result.getOperationUuid(), is(uuid));
+		assertThat(result.getCounterOperationType(), is(CounterOperationType.DECREMENT));
+		assertThat(result.getCounterOperationResults(), is(not(nullValue())));
+		assertThat(result.getCounterOperationResults().size(), is(1));
+
+		CounterOperationResult[] results = result.getCounterOperationResults().toArray(new CounterOperationResult[0]);
+
+		assertThat(results[0], is(not(nullValue())));
+		assertThat(results[0].getAmount(), is(1L));
+		assertThat(results[0].getCounterShardDataKey(), is(not(nullValue())));
+		assertThat(results[0].getOperationUuid(), is(not(nullValue())));
+		assertThat(results[0].getOperationUuid(), is(not(uuid)));
 	}
 
 	private void doCounterDecrementAssertions(String counterName, int numIterations) throws InterruptedException

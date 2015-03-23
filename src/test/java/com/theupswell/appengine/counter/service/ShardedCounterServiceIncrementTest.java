@@ -12,7 +12,11 @@
  */
 package com.theupswell.appengine.counter.service;
 
+import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
+
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -21,6 +25,9 @@ import org.junit.Test;
 import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
+import com.theupswell.appengine.counter.model.CounterOperationResult;
+import com.theupswell.appengine.counter.model.CounterOperationType;
+import com.theupswell.appengine.counter.model.impl.IncrementResultSet;
 
 /**
  * Unit tests for incrementing a counter via {@link ShardedCounterServiceImpl}.
@@ -45,6 +52,36 @@ public class ShardedCounterServiceIncrementTest extends AbstractShardedCounterSe
 	// /////////////////////////
 	// Unit Tests
 	// /////////////////////////
+
+	@Test(expected = NullPointerException.class)
+	public void testIncrement_NullName() throws InterruptedException
+	{
+		shardedCounterService.increment(null, 1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testIncrement_BlankName() throws InterruptedException
+	{
+		shardedCounterService.increment("", 1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testIncrement_EmptyName() throws InterruptedException
+	{
+		shardedCounterService.increment("  ", 1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testIncrement_NegativeIncrement() throws InterruptedException
+	{
+		shardedCounterService.increment(TEST_COUNTER1, -1);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testIncrement_ZeroIncrement() throws InterruptedException
+	{
+		shardedCounterService.increment(TEST_COUNTER1, 0);
+	}
 
 	@Test(expected = RuntimeException.class)
 	public void testIncrement_CounterIsBeingDeleted() throws InterruptedException
@@ -128,24 +165,24 @@ public class ShardedCounterServiceIncrementTest extends AbstractShardedCounterSe
 		assertEquals(6, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(8, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 
-		shardedCounterService.decrement(TEST_COUNTER1,1);
-		shardedCounterService.decrement(TEST_COUNTER2,1);
-		shardedCounterService.decrement(TEST_COUNTER1,1);
-		shardedCounterService.decrement(TEST_COUNTER2,1);
-		shardedCounterService.decrement(TEST_COUNTER2,1);
-		shardedCounterService.decrement(TEST_COUNTER1,1);
-		shardedCounterService.decrement(TEST_COUNTER2,1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
 
 		assertEquals(3, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(4, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 
-		shardedCounterService.decrement(TEST_COUNTER1,1);
-		shardedCounterService.decrement(TEST_COUNTER2,1);
-		shardedCounterService.decrement(TEST_COUNTER1,1);
-		shardedCounterService.decrement(TEST_COUNTER2,1);
-		shardedCounterService.decrement(TEST_COUNTER2,1);
-		shardedCounterService.decrement(TEST_COUNTER1,1);
-		shardedCounterService.decrement(TEST_COUNTER2,1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
+		shardedCounterService.decrement(TEST_COUNTER1, 1);
+		shardedCounterService.decrement(TEST_COUNTER2, 1);
 
 		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
@@ -162,6 +199,29 @@ public class ShardedCounterServiceIncrementTest extends AbstractShardedCounterSe
 
 			doCounterIncrementAssertions(TEST_COUNTER1 + "-" + i, 15);
 		}
+	}
+
+	@Test
+	public void testIncrementResult()
+	{
+		final UUID uuid = UUID.randomUUID();
+
+		final IncrementResultSet result = this.shardedCounterService.increment(TEST_COUNTER1, 1, uuid);
+
+		assertThat(result.getTotalAmount(), is(1L));
+		assertThat(result.getOperationUuid(), is(uuid));
+		assertThat(result.getCounterOperationType(), is(CounterOperationType.INCREMENT));
+		assertThat(result.getCounterOperationResults(), is(not(nullValue())));
+		assertThat(result.getCounterOperationResults().size(), is(1));
+
+		CounterOperationResult[] results = result.getCounterOperationResults().toArray(new CounterOperationResult[0]);
+
+		assertThat(results[0], is(not(nullValue())));
+		assertThat(results[0].getAmount(), is(1L));
+		assertThat(results[0].getCounterShardDataKey(), is(not(nullValue())));
+		assertThat(results[0].getOperationUuid(), is(not(nullValue())));
+		assertThat(results[0].getOperationUuid(), is(not(uuid)));
+
 	}
 
 	// /////////////////////////

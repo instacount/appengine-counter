@@ -25,16 +25,19 @@ import org.junit.Test;
 
 import com.google.appengine.api.memcache.MemcacheService;
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
+import com.google.common.base.Optional;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
 import com.googlecode.objectify.Work;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.model.CounterOperationResultSet;
+import com.theupswell.appengine.counter.model.impl.DecrementResult;
+import com.theupswell.appengine.counter.model.impl.DecrementResultSet;
+import com.theupswell.appengine.counter.model.impl.IncrementResult;
+import com.theupswell.appengine.counter.model.impl.IncrementResultSet;
 import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration.Builder;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.DecrementShardResult;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.DecrementShardResultCollection;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.IncrementShardResult;
 
 /**
  * Unit tests for incrementing a counter via {@link ShardedCounterServiceImpl}.
@@ -105,12 +108,13 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 		 * @return
 		 */
 		@Override
-		public IncrementShardResult increment(final String counterName, final long requestedIncrementAmount)
+		public IncrementResultSet increment(final String counterName,
+				final long requestedIncrementAmount)
 		{
-			return ObjectifyService.ofy().transact(new Work<IncrementShardResult>()
+			return ObjectifyService.ofy().transact(new Work<IncrementResultSet>()
 			{
 				@Override
-				public IncrementShardResult run()
+				public IncrementResultSet run()
 				{
 					// 1.) Create a random CounterShardData for simulation purposes. It doesn't do anything except
 					// to allow us to do something else in the Datastore in the same transactional context whilst
@@ -135,210 +139,231 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 	@Override
 	public void testIncrementDecrementInterleaving()
 	{
-		IncrementShardResult incrementResult;
+		// Use "impl" to ensure that only 1 shard-per-counter exists.
 
-		// Use impl to ensure that only 1 shard-per-counter exists.
+		IncrementResultSet incrementResultSet = impl.increment(TEST_COUNTER1, 1);
+		Optional<IncrementResult> optIncrementResult = incrementResultSet
+			.getFirstCounterOperationResult();
 
-		incrementResult = impl.increment(TEST_COUNTER1, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
+		assertThat(optIncrementResult.isPresent(), is(true));
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.isPresent(), is(true));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER2, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER2, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER1, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER1, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER2, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER2, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER2, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER2, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER1, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER1, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER2, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER2, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
 		assertEquals(3, impl.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(4, impl.getCounter(TEST_COUNTER2).getCount());
 
-		incrementResult = impl.increment(TEST_COUNTER1, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER1, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER2, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER2, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER1, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER1, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER2, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER2, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER2, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER2, 1);
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER1, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER1, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		incrementResult = impl.increment(TEST_COUNTER2, 1);
-		assertThat(incrementResult.getAmount(), is(1L));
-		assertThat(incrementResult.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
+		incrementResultSet = impl.increment(TEST_COUNTER2, 1);
+		assertThat(incrementResultSet.getTotalAmount(), is(1L));
+		assertThat(incrementResultSet.getCounterOperationResults().size(), is(1));
+		optIncrementResult = incrementResultSet.getFirstCounterOperationResult();
+		assertThat(optIncrementResult.get().getAmount(), is(1L));
+		assertThat(optIncrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
 		assertEquals(6, impl.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(8, impl.getCounter(TEST_COUNTER2).getCount());
 
-		DecrementShardResultCollection decrementResult;
-		decrementResult = impl.decrement(TEST_COUNTER1, 1);
+		DecrementResultSet decrementResultSet = impl.decrement(TEST_COUNTER1, 1);
+		Optional<DecrementResult> optDecrementResult = decrementResultSet
+			.getFirstCounterOperationResult();
 
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData1.getTypedKey()));
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER2, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData2.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER2, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER1, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData1.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER1, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER2, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData2.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER2, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER2, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData2.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER2, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER1, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData1.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER1, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER2, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData2.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER2, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
 		assertEquals(3, impl.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(4, impl.getCounter(TEST_COUNTER2).getCount());
 
-		decrementResult = impl.decrement(TEST_COUNTER1, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData1.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER1, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER2, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData2.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER2, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER1, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData1.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER1, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER2, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData2.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER1, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData1.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER2, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData2.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER2, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER1, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData1.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER2, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		decrementResult = impl.decrement(TEST_COUNTER2, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(1L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData2.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER2, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(1L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(1));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(true));
+		assertThat(optDecrementResult.get().getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
 		MemcacheServiceFactory.getMemcacheService().clearAll();
 
 		assertEquals(0, impl.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(0, impl.getCounter(TEST_COUNTER2).getCount());
 
-		decrementResult = impl.decrement(TEST_COUNTER1, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(0L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData1.getTypedKey()));
+		decrementResultSet = impl.decrement(TEST_COUNTER1, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(0L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(0));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(false));
 
-		decrementResult = impl.decrement(TEST_COUNTER2, 1);
-		assertThat(decrementResult.getTotalDecrementAmount(), is(0L));
-		assertThat(decrementResult.getDecrements().size(), is(1));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.isPresent(), is(true));
-		assertThat(decrementResult.getDecrements().toArray(new DecrementShardResult[0])[0].getOptCounterShardDataKey()
-			.get(), is(this.testCounterShardData2.getTypedKey()));
-
+		decrementResultSet = impl.decrement(TEST_COUNTER2, 1);
+		assertThat(decrementResultSet.getTotalAmount(), is(0L));
+		assertThat(decrementResultSet.getCounterOperationResults().size(), is(0));
+		optDecrementResult = decrementResultSet.getFirstCounterOperationResult();
+		assertThat(optDecrementResult.isPresent(), is(false));
 	}
 
 	// /////////////////////////
@@ -801,9 +826,8 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 			public void vrun()
 			{
 				// The actual test.
-				DecrementShardResultCollection amountDecrement = singleShardShardedCounterService.decrement(
-					counterName, 1L);
-				assertThat(amountDecrement.getTotalDecrementAmount(), is(1L));
+				CounterOperationResultSet amountDecrement = singleShardShardedCounterService.decrement(counterName, 1L);
+				assertThat(amountDecrement.getTotalAmount(), is(1L));
 			}
 		});
 
@@ -866,9 +890,9 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 				public void vrun()
 				{
 					// The actual test.
-					DecrementShardResultCollection decrementAmount = singleShardShardedCounterService.decrement(
-						counterName, 10L);
-					assertThat(decrementAmount.getTotalDecrementAmount(), is(0L));
+					CounterOperationResultSet decrementAmount = singleShardShardedCounterService.decrement(counterName,
+						10L);
+					assertThat(decrementAmount.getTotalAmount(), is(0L));
 					throw new RuntimeException("Abort the Transaction!");
 				}
 			});
@@ -908,9 +932,9 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 					ObjectifyService.ofy().save().entity(counterShardDataKey);
 
 					// The actual test.
-					DecrementShardResultCollection decrementAmount = singleShardShardedCounterService.decrement(
-						counterName, 10L);
-					assertThat(decrementAmount.getTotalDecrementAmount(), is(1L));
+					CounterOperationResultSet decrementAmount = singleShardShardedCounterService.decrement(counterName,
+						10L);
+					assertThat(decrementAmount.getTotalAmount(), is(1L));
 					throw new RuntimeException("Abort the Transaction!");
 				}
 			});
@@ -953,9 +977,9 @@ public class ShardedCounterServiceIncrementInExistingTXTest extends ShardedCount
 					ObjectifyService.ofy().save().entity(counterShardDataKey);
 
 					// The actual test.
-					DecrementShardResultCollection decrementAmount = singleShardShardedCounterService.decrement(
+					final CounterOperationResultSet decrementAmount = singleShardShardedCounterService.decrement(
 						counterName, 10L);
-					assertThat(decrementAmount.getTotalDecrementAmount(), is(1L));
+					assertThat(decrementAmount.getTotalAmount(), is(1L));
 					throw new RuntimeException("Abort the Transaction!");
 				}
 			});
