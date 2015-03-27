@@ -10,7 +10,7 @@ import com.theupswell.appengine.counter.data.CounterShardData;
  * An interface for modeling the result of a mutation (increment or decrement) of a {@link CounterShardData} entity in
  * the Datastore.
  */
-public interface CounterOperationResultSet<T extends CounterOperationResult>
+public interface CounterOperation<T extends CounterShardOperation>
 {
 	/**
 	 * A {@link UUID} that uniquely identifies this decrement operation.
@@ -31,16 +31,7 @@ public interface CounterOperationResultSet<T extends CounterOperationResult>
 	 *
 	 * @return
 	 */
-	public Set<T> getCounterOperationResults();
-
-	/**
-	 * Helper method to retrieve the first {@link CounterOperationResult} in the Set of results accessed via
-	 * {@link #getCounterOperationResults()}.
-	 * 
-	 * @return
-	 */
-	// This is probably not appropriate for the interface, but is instead a helper method in the abstract class.
-	// public Optional<T> getFirstCounterOperationResult();
+	public Set<T> getCounterShardOperations();
 
 	/**
 	 * Return the total amount of this counter operation result across sub-operations, if any.
@@ -49,4 +40,11 @@ public interface CounterOperationResultSet<T extends CounterOperationResult>
 	 */
 	public long getTotalAmount();
 
+	/**
+	 * An enumeration that identifies the type of a {@link CounterShardOperation}.
+	 */
+	public static enum CounterOperationType
+	{
+		INCREMENT, DECREMENT
+	}
 }

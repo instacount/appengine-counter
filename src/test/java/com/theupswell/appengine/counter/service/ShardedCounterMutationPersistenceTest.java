@@ -10,23 +10,23 @@ import org.junit.Test;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.data.CounterData;
-import com.theupswell.appengine.counter.data.CounterShardOperationData;
-import com.theupswell.appengine.counter.data.CounterShardOperationData.Type;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.data.CounterShardOperationData;
+import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
 
 /**
  * 
  */
-public class ShardedCounterMutationPersistenceTest extends ShardedCounterServiceIncrementTest
+public class ShardedCounterMutationPersistenceTest extends ShardedCounterServiceShardIncrementTest
 {
 	@Test
 	public void testSaveAndLoadShardedCounterMutationData()
 	{
 		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
 		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 0);
-		final UUID uuid = UUID.randomUUID();
-		final CounterShardOperationData counterShardOperationData = new CounterShardOperationData(
-			counterShardDataKey, uuid, Type.INCREMENT, 1L);
+		final UUID parentCounterOperationUuid = UUID.randomUUID();
+		final CounterShardOperationData counterShardOperationData = new CounterShardOperationData(counterShardDataKey,
+			parentCounterOperationUuid, CounterOperationType.INCREMENT, 1L);
 
 		ObjectifyService.ofy().save().entity(counterShardOperationData).now();
 

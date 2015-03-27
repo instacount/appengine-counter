@@ -26,9 +26,9 @@ import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
-import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.Parent;
 import com.googlecode.objectify.annotation.Unindex;
+import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
 
 /**
  * Represents a mutation to the amount field of a {@link CounterShardData}. This entity is the child of a
@@ -44,23 +44,31 @@ import com.googlecode.objectify.annotation.Unindex;
 @EqualsAndHashCode(of = "operationId")
 public class CounterShardOperationData
 {
-	// It's ok if two shards share the same UUID since they will have different @Parent's.
+	// It's ok if two shards share the same identifier since they will have different @Parent's.
+	// We prefer an id over a String so we don't have to @Index the creationDateTime (the index will order things for
+	// us for later data processing).
 	@Id
-	private String operationId;
+	private Long operationId;
 
 	@Parent
 	private Key<CounterShardData> counterShardDataKey;
+
+	// Increments and Decrements occur in a "counter operation" which holds one or more CounterShard operations
+	// (increment/decrement) so that multiple shard increments/decrements can be associated
+	// under a single counter one operation. This key identifies that overarching operation.
+	@Unindex
+	private UUID parentCounterOperationUuid;
 
 	// The total of this shard's count (not the total counter count)
 	@Unindex
 	private long amount;
 
 	@Unindex
-	private Type type;
+	private CounterOperationType type;
 
 	// Indexed to allow for loading increment/decrement by creation date/time since the index on @Id will not be ordered
 	// properly for this type of query.
-	@Index
+	@Unindex
 	private DateTime creationDateTime;
 
 	/**
@@ -78,22 +86,23 @@ public class CounterShardOperationData
 	 * Param-based Constructor
 	 *
 	 * @param counterShardDataKey The parent Key for this entity.
-	 * @param operationId A unique identifier for this operation.
+	 * @param parentCounterOperationUuid A unique identifier for the parent Counter operation that this counter shard
+	 *            operation is a part of.
 	 * @param amount The amount of this operation.
 	 */
-	public CounterShardOperationData(final Key<CounterShardData> counterShardDataKey, final String operationId,
-			final Type type, final long amount)
+	public CounterShardOperationData(final Key<CounterShardData> counterShardDataKey,
+			final UUID parentCounterOperationUuid, final CounterOperationType counterOperationType, final long amount)
 	{
 		Preconditions.checkNotNull(counterShardDataKey);
 		this.counterShardDataKey = counterShardDataKey;
 
-		Preconditions.checkNotNull(operationId);
-		this.operationId = operationId;
+		Preconditions.checkNotNull(parentCounterOperationUuid);
+		this.parentCounterOperationUuid = parentCounterOperationUuid;
 
-		Preconditions.checkNotNull(type);
-		this.type = type;
+		Preconditions.checkNotNull(counterOperationType);
+		this.type = counterOperationType;
 
-		// In-general, increments/decrements will not be 0, but sometimes they may be (e.g., with a no-op decrement).
+		// In-general, increments/decrements will not be 0, but sometimes they may be.
 		// Preconditions.checkNotNull(amount);
 		this.amount = amount;
 
@@ -107,7 +116,7 @@ public class CounterShardOperationData
 	/**
 	 * @return The last dateTime that an increment occurred.
 	 */
-	public String getId()
+	public long getId()
 	{
 		return this.operationId;
 	}
@@ -121,7 +130,7 @@ public class CounterShardOperationData
 	public Key<CounterShardOperationData> getTypedKey()
 	{
 		// CounterShardMutationData is parented by CounterShardData
-		return Key.create(this.counterShardDataKey, CounterShardOperationData.class, this.getId());
+		return Key.create(this.getCounterShardDataKey(), CounterShardOperationData.class, this.getId());
 	}
 
 	/**
@@ -138,21 +147,14 @@ public class CounterShardOperationData
 	 * {@link Key} of type {@link CounterShardOperationData}.
 	 *
 	 * @param counterShardDataKey
-	 * @param uuid
+	 * @param operationId
 	 * @return
 	 */
-	public static Key<CounterShardOperationData> key(final Key<CounterShardData> counterShardDataKey, final UUID uuid)
+	public static Key<CounterShardOperationData> key(final Key<CounterShardData> counterShardDataKey,
+			final long operationId)
 	{
 		// Preconditions checked by #constructCounterShardIdentifier
-		return Key.create(counterShardDataKey, CounterShardOperationData.class, uuid.toString());
-	}
-
-	/**
-	 * The type of mutation performed.
-	 */
-	public static enum Type
-	{
-		INCREMENT, DECREMENT
+		return Key.create(counterShardDataKey, CounterShardOperationData.class, operationId);
 	}
 
 }

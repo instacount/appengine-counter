@@ -9,27 +9,27 @@ import lombok.ToString;
 
 import com.google.appengine.repackaged.com.google.common.collect.ImmutableSet;
 import com.google.common.base.Preconditions;
-import com.theupswell.appengine.counter.model.CounterOperationResultSet;
-import com.theupswell.appengine.counter.model.CounterOperationType;
+import com.theupswell.appengine.counter.model.CounterOperation;
 
 /**
- * An implementation of {@link CounterOperationResultSet} to model a counter operation that consists of 0 or more
- * operations upon counter shards.
+ * An implementation of {@link CounterOperation} to model a counter operation that consists of 0 or more operations upon
+ * counter shards.
  */
 @Getter
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class IncrementResultSet extends
-		AbstractCounterOperationResultSet<IncrementResult>
+public class Increment extends AbstractCounterOperation<CounterShardIncrement> implements
+		CounterOperation<CounterShardIncrement>
 {
 	/**
 	 * Required-args Constructor.
 	 *
 	 * @param builder An instance of {@link Builder} to construct this instance from.
 	 */
-	private IncrementResultSet(final Builder builder)
+	private Increment(final Builder builder)
 	{
-		super(builder.getOperationUuid(), CounterOperationType.INCREMENT, builder.getCounterOperationResults());
+		super(builder.getOperationUuid(), CounterOperationType.INCREMENT, ImmutableSet.copyOf(builder
+			.getCounterOperationResults()));
 	}
 
 	/**
@@ -42,7 +42,7 @@ public class IncrementResultSet extends
 	{
 		// A unique identifier for this counter operation collection.
 		private final UUID operationUuid;
-		private Set<IncrementResult> counterOperationResults;
+		private Set<CounterShardIncrement> counterOperationResults;
 
 		/**
 		 * Required-args Constructor.
@@ -58,37 +58,36 @@ public class IncrementResultSet extends
 		}
 
 		/**
-		 * Builder method for constructing instances of {@link IncrementResultSet}.
+		 * Builder method for constructing instances of {@link Increment}.
 		 * 
 		 * @return
 		 */
-		public IncrementResultSet build()
+		public Increment build()
 		{
-			return new IncrementResultSet(this);
+			return new Increment(this);
 		}
 
 		/**
 		 * Wither...
 		 * 
-		 * @param incrementResults
+		 * @param shardIncrementResults
 		 * @return
 		 */
-		public Builder withCounterOperationResults(
-				final Set<IncrementResult> incrementResults)
+		public Builder withCounterOperationResults(final Set<CounterShardIncrement> shardIncrementResults)
 		{
-			this.counterOperationResults = incrementResults;
+			this.counterOperationResults = shardIncrementResults;
 			return this;
 		}
 
 		/**
 		 * Wither...
 		 *
-		 * @param incrementResult An instance of {@link IncrementResult}.
+		 * @param shardIncrementResult An instance of {@link CounterShardIncrement}.
 		 * @return
 		 */
-		public Builder withCounterOperationResult(final IncrementResult incrementResult)
+		public Builder withCounterOperationResult(final CounterShardIncrement shardIncrementResult)
 		{
-			this.counterOperationResults = ImmutableSet.of(incrementResult);
+			this.counterOperationResults = ImmutableSet.of(shardIncrementResult);
 			return this;
 		}
 	}

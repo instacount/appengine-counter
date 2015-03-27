@@ -25,16 +25,16 @@ import org.junit.Test;
 import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
-import com.theupswell.appengine.counter.model.CounterOperationResult;
-import com.theupswell.appengine.counter.model.CounterOperationType;
-import com.theupswell.appengine.counter.model.impl.IncrementResultSet;
+import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
+import com.theupswell.appengine.counter.model.CounterShardOperation;
+import com.theupswell.appengine.counter.model.impl.Increment;
 
 /**
  * Unit tests for incrementing a counter via {@link ShardedCounterServiceImpl}.
  * 
  * @author David Fuelling
  */
-public class ShardedCounterServiceIncrementTest extends AbstractShardedCounterServiceTest
+public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCounterServiceTest
 {
 
 	@Before
@@ -204,23 +204,23 @@ public class ShardedCounterServiceIncrementTest extends AbstractShardedCounterSe
 	@Test
 	public void testIncrementResult()
 	{
-		final UUID uuid = UUID.randomUUID();
+		final UUID operationUuid = UUID.randomUUID();
 
-		final IncrementResultSet result = this.shardedCounterService.increment(TEST_COUNTER1, 1, uuid);
+		final Increment result = this.shardedCounterService.increment(TEST_COUNTER1, 1, operationUuid);
 
 		assertThat(result.getTotalAmount(), is(1L));
-		assertThat(result.getOperationUuid(), is(uuid));
+		assertThat(result.getOperationUuid(), is(operationUuid));
 		assertThat(result.getCounterOperationType(), is(CounterOperationType.INCREMENT));
-		assertThat(result.getCounterOperationResults(), is(not(nullValue())));
-		assertThat(result.getCounterOperationResults().size(), is(1));
+		assertThat(result.getCounterShardOperations(), is(not(nullValue())));
+		assertThat(result.getCounterShardOperations().size(), is(1));
 
-		CounterOperationResult[] results = result.getCounterOperationResults().toArray(new CounterOperationResult[0]);
+		CounterShardOperation[] results = result.getCounterShardOperations().toArray(new CounterShardOperation[0]);
 
 		assertThat(results[0], is(not(nullValue())));
 		assertThat(results[0].getAmount(), is(1L));
-		assertThat(results[0].getCounterShardDataKey(), is(not(nullValue())));
-		assertThat(results[0].getOperationId(), is(not(nullValue())));
-		assertThat(results[0].getOperationId(), is(not(uuid)));
+		assertThat(results[0].getCounterShardOperationDataKey(), is(not(nullValue())));
+		assertThat(results[0].getId(), is(not(nullValue())));
+		assertThat(results[0].getCreationDateTime(), is(not(nullValue())));
 
 	}
 

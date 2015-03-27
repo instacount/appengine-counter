@@ -26,19 +26,20 @@ import org.junit.Test;
 import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
-import com.theupswell.appengine.counter.model.CounterOperationResult;
-import com.theupswell.appengine.counter.model.CounterOperationType;
-import com.theupswell.appengine.counter.model.impl.DecrementResultSet;
+import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
+import com.theupswell.appengine.counter.model.CounterShardOperation;
+import com.theupswell.appengine.counter.model.impl.Decrement;
 
 /**
  * Unit tests for decrementing counters via {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}.
  * 
  * @author David Fuelling
  */
-public class ShardedCounterServiceDecrementTest extends
+public class ShardedCounterServiceCounterShardDecrementTest extends
 		com.theupswell.appengine.counter.service.AbstractShardedCounterServiceTest
 {
-	private static final Logger logger = Logger.getLogger(ShardedCounterServiceDecrementTest.class.getName());
+	private static final Logger logger = Logger.getLogger(ShardedCounterServiceCounterShardDecrementTest.class
+		.getName());
 
 	@Before
 	public void setUp() throws Exception
@@ -182,24 +183,24 @@ public class ShardedCounterServiceDecrementTest extends
 	@Test
 	public void testDecrementResult()
 	{
-		final UUID uuid = UUID.randomUUID();
+		final UUID operationUuid = UUID.randomUUID();
 
-		this.shardedCounterService.increment(TEST_COUNTER1, 1, uuid);
-		final DecrementResultSet result = this.shardedCounterService.decrement(TEST_COUNTER1, 1, uuid);
+		this.shardedCounterService.increment(TEST_COUNTER1, 1, operationUuid);
+		final Decrement result = this.shardedCounterService.decrement(TEST_COUNTER1, 1, operationUuid);
 
 		assertThat(result.getTotalAmount(), is(1L));
-		assertThat(result.getOperationUuid(), is(uuid));
+		assertThat(result.getOperationUuid(), is(operationUuid));
 		assertThat(result.getCounterOperationType(), is(CounterOperationType.DECREMENT));
-		assertThat(result.getCounterOperationResults(), is(not(nullValue())));
-		assertThat(result.getCounterOperationResults().size(), is(1));
+		assertThat(result.getCounterShardOperations(), is(not(nullValue())));
+		assertThat(result.getCounterShardOperations().size(), is(1));
 
-		CounterOperationResult[] results = result.getCounterOperationResults().toArray(new CounterOperationResult[0]);
+		CounterShardOperation[] results = result.getCounterShardOperations().toArray(new CounterShardOperation[0]);
 
 		assertThat(results[0], is(not(nullValue())));
 		assertThat(results[0].getAmount(), is(1L));
-		assertThat(results[0].getCounterShardDataKey(), is(not(nullValue())));
-		assertThat(results[0].getOperationId(), is(not(nullValue())));
-		assertThat(results[0].getOperationId(), is(not(uuid)));
+		assertThat(results[0].getCounterShardOperationDataKey(), is(not(nullValue())));
+		assertThat(results[0].getId() > 0, is(true));
+		assertThat(results[0].getCreationDateTime(), is(not(nullValue())));
 	}
 
 	private void doCounterDecrementAssertions(String counterName, int numIterations) throws InterruptedException

@@ -8,6 +8,8 @@ import static org.junit.Assert.fail;
 import java.util.Set;
 import java.util.UUID;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,13 +25,13 @@ import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
 import com.theupswell.appengine.counter.data.CounterShardOperationData;
-import com.theupswell.appengine.counter.data.CounterShardOperationData.Type;
-import com.theupswell.appengine.counter.model.CounterOperationResult;
-import com.theupswell.appengine.counter.model.CounterOperationResultSet;
-import com.theupswell.appengine.counter.model.impl.DecrementResult;
-import com.theupswell.appengine.counter.model.impl.DecrementResultSet;
-import com.theupswell.appengine.counter.model.impl.IncrementResult;
-import com.theupswell.appengine.counter.model.impl.IncrementResultSet;
+import com.theupswell.appengine.counter.model.CounterOperation;
+import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
+import com.theupswell.appengine.counter.model.CounterShardOperation;
+import com.theupswell.appengine.counter.model.impl.CounterShardDecrement;
+import com.theupswell.appengine.counter.model.impl.CounterShardIncrement;
+import com.theupswell.appengine.counter.model.impl.Decrement;
+import com.theupswell.appengine.counter.model.impl.Increment;
 
 public class ShardedCounterServiceImplTest extends AbstractShardedCounterServiceTest
 {
@@ -523,7 +525,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test
 	public void testIncrementShardWork_NoPreExistingCounter() throws Exception
 	{
-		IncrementResult actual = impl.new IncrementShardWork(TEST_COUNTER1, 1, UUID.randomUUID()).run();
+		CounterShardIncrement actual = impl.new IncrementShardWork(TEST_COUNTER1, 1, UUID.randomUUID()).run();
 		assertThat(actual.getAmount(), is(1L));
 
 		impl.increment(TEST_COUNTER1, 1);
@@ -536,8 +538,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	{
 		impl.increment(TEST_COUNTER1, 1);
 
-		final IncrementResult actual = impl.new IncrementShardWork(TEST_COUNTER1, 1, UUID.randomUUID())
-			.run();
+		final CounterShardIncrement actual = impl.new IncrementShardWork(TEST_COUNTER1, 1, UUID.randomUUID()).run();
 		assertThat(actual.getAmount(), is(1L));
 
 		impl.increment(TEST_COUNTER1, 1);
@@ -554,37 +555,41 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		final ShardedCounterServiceImpl shardedCounterServiceImpl1 = new ShardedCounterServiceImpl(memcache, config);
 
 		// Counter will exist, and be 1.
-		final IncrementResultSet result = shardedCounterServiceImpl1.increment(TEST_COUNTER1, 1);
+		final Increment result = shardedCounterServiceImpl1.increment(TEST_COUNTER1, 1);
 
-		final Key<CounterShardData> counterShardDataKey = result.getCounterOperationResults().toArray(
-			new CounterOperationResult[0])[0].getCounterShardDataKey();
-		final UUID uuid = UUID.randomUUID();
+		final Key<CounterShardOperationData> counterShardOperationDataKey = result.getCounterShardOperations().toArray(
+			new CounterShardOperation[0])[0].getCounterShardOperationDataKey();
+
+		final UUID parentOperationUuid = UUID.randomUUID();
+		final long counterShardId = 1L;
 
 		// Create and save the counterShard mutation data...
-		final CounterShardOperationData counterShardOperationData = new CounterShardOperationData(counterShardDataKey,
-			uuid, Type.INCREMENT, 1L);
+		final CounterShardOperationData counterShardOperationData = new CounterShardOperationData(
+			counterShardOperationDataKey.<CounterShardData> getParent(), parentOperationUuid,
+			CounterOperationType.INCREMENT, 1L);
 		ObjectifyService.ofy().save().entity(counterShardOperationData).now();
 
 		// This will increment the same counter shard, and try to persist the same counter mutation object.
-		final IncrementResult actual = shardedCounterServiceImpl1.new IncrementShardWork(TEST_COUNTER1,
-			1, uuid).run();
+		final CounterShardIncrement actual = shardedCounterServiceImpl1.new IncrementShardWork(TEST_COUNTER1, 1,
+			parentOperationUuid).run();
 		assertThat(actual.getAmount(), is(1L));
 
 		// Load the mutation for the increment
 		final CounterShardOperationData dsCounterShardOperationData = ObjectifyService.ofy().load()
-			.key(CounterShardOperationData.key(counterShardDataKey, uuid)).now();
+			.key(counterShardOperationDataKey).now();
 
 		// Even though we're updating the same CounterShardMutationData object, we're merely "saving" it, which will
 		// overwrite the existing one in the datastore. This won't cause an error, but we don't expect the dates to
-		// match. In reality, we don't check for this scenario because our UUIDs are expected to be unique, so we
+		// match. In reality, we don't check for this scenario because our Ids are expected to be unique, so we
 		// shouldn't ever have a collision in increments. Despite all this, this test can sometimes run so quickly
 		// that the dates actually do match, and the test fails. Thus, we don't assert on the date.
 		// assertThat(dsCounterShardMutationData.getCreationDateTime(),
 		// is(not(counterShardMutationData.getCreationDateTime())));
+		assertThat(dsCounterShardOperationData.getId(), is(1L));
 		assertThat(dsCounterShardOperationData.getAmount(), is(1L));
-		assertThat(dsCounterShardOperationData.getId(), is(uuid.toString()));
-		assertThat(dsCounterShardOperationData.getCounterShardDataKey(), is(counterShardDataKey));
-		assertThat(dsCounterShardOperationData.getType(), is(Type.INCREMENT));
+		assertThat(dsCounterShardOperationData.getParentCounterOperationUuid(), is(parentOperationUuid));
+		assertThat(dsCounterShardOperationData.getCounterShardDataKey(), is(counterShardOperationDataKey));
+		assertThat(dsCounterShardOperationData.getType(), is(CounterOperationType.INCREMENT));
 
 		impl.increment(TEST_COUNTER1, 1);
 		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(3L));
@@ -639,7 +644,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test
 	public void testDecrementShardWork_NoPreExistingCounter() throws Exception
 	{
-		final Optional<DecrementResult> actual = impl.new DecrementShardWork(TEST_COUNTER1,
+		final Optional<CounterShardDecrement> actual = impl.new DecrementShardWork(TEST_COUNTER1,
 			testCounter1CounterShard0Key, 1, UUID.randomUUID()).run();
 
 		assertThat(actual.isPresent(), is(false));
@@ -656,8 +661,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		impl.increment(TEST_COUNTER1, 1);
 		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(1L));
 
-		final Optional<DecrementResult> decrementShardResult = impl.new DecrementShardWork(
-			TEST_COUNTER1, testCounter1CounterShard0Key, 1, UUID.randomUUID()).run();
+		final Optional<CounterShardDecrement> decrementShardResult = impl.new DecrementShardWork(TEST_COUNTER1,
+			testCounter1CounterShard0Key, 1, UUID.randomUUID()).run();
 		assertThat(decrementShardResult.get().getAmount(), is(1L));
 
 		// The counter indicates a count of 1 still due to cache.
@@ -675,37 +680,41 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		final ShardedCounterServiceImpl shardedCounterServiceImpl1 = new ShardedCounterServiceImpl(memcache, config);
 
 		// Counter will exist, and be 2.
-		IncrementResultSet result = shardedCounterServiceImpl1.increment(TEST_COUNTER1, 2);
+		Increment result = shardedCounterServiceImpl1.increment(TEST_COUNTER1, 2);
 
-		final Key<CounterShardData> counterShardDataKey = result.getCounterOperationResults().toArray(
-			new CounterOperationResult[0])[0].getCounterShardDataKey();
-		final UUID uuid = UUID.randomUUID();
+		final Key<CounterShardData> counterShardDataKey = result.getCounterShardOperations().toArray(
+			new CounterShardOperation[0])[0].getCounterShardOperationDataKey();
+		final UUID parentOperaitonUuid = UUID.randomUUID();
+		final long counterShardOperationDataId = 1L;
 
 		// Create and save the counterShard mutation data...
 		final CounterShardOperationData counterShardOperationData = new CounterShardOperationData(counterShardDataKey,
-			uuid, Type.DECREMENT, 1L);
+			parentOperaitonUuid, CounterOperationType.DECREMENT, 1L);
+
 		ObjectifyService.ofy().save().entity(counterShardOperationData).now();
 
 		// This will increment the same counter shard, and try to persist the same counter mutation object.
-		final Optional<DecrementResult> actual = shardedCounterServiceImpl1.new DecrementShardWork(
-			TEST_COUNTER1, counterShardDataKey, 1, uuid).run();
+		final Optional<CounterShardDecrement> actual = shardedCounterServiceImpl1.new DecrementShardWork(TEST_COUNTER1,
+			counterShardDataKey, 1, parentOperaitonUuid).run();
 		assertThat(actual.get().getAmount(), is(1L));
 
 		// Load the mutation for the increment
 		final CounterShardOperationData dsCounterShardOperationData = ObjectifyService.ofy().load()
-			.key(CounterShardOperationData.key(counterShardDataKey, uuid)).now();
+			.key(CounterShardOperationData.key(counterShardDataKey, counterShardOperationDataId)).now();
 
 		// Even though we're updating the same CounterShardMutationData object, we're merely "saving" it, which will
 		// overwrite the existing one in the datastore. This won't cause an error, but we don't expect the dates to
-		// match. In reality, we don't check for this scenario because our UUIDs are expected to be unique, so we
+		// match. In reality, we don't check for this scenario because our ids are expected to be unique, so we
 		// shouldn't ever have a collision in increments. Despite all this, this test can sometimes run so quickly
 		// that the dates actually do match, and the test fails. Thus, we don't assert on the date.
 		// assertThat(dsCounterShardMutationData.getCreationDateTime(),
 		// is(not(counterShardMutationData.getCreationDateTime())));
-		assertThat(dsCounterShardOperationData.getAmount(), is(1L));
-		assertThat(dsCounterShardOperationData.getId(), is(uuid.toString()));
+		assertThat(dsCounterShardOperationData.getAmount(), is(2L));
+		assertThat(dsCounterShardOperationData.getId(), is(1L));
+		assertThat(dsCounterShardOperationData.getParentCounterOperationUuid(), is(parentOperaitonUuid));
+
 		assertThat(dsCounterShardOperationData.getCounterShardDataKey(), is(counterShardDataKey));
-		assertThat(dsCounterShardOperationData.getType(), is(Type.DECREMENT));
+		assertThat(dsCounterShardOperationData.getType(), is(CounterOperationType.DECREMENT));
 
 		impl.decrement(TEST_COUNTER1, 1);
 		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(0L));
@@ -715,124 +724,139 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	// testIncrementCounterOperationResult
 	// //////////////////////////////////
 
-	@Test(expected = NullPointerException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void testIncrementCounterOperationResult_NullOperationUuid()
 	{
+		final long counterShardIncrementId = -1L;
 		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
 		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 0);
-		new IncrementResult(null, counterShardDataKey, 0);
+		new CounterShardIncrement(counterShardIncrementId, counterShardDataKey, 0, DateTime.now(DateTimeZone.UTC));
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void testIncrementCounterOperationResult_NullCounterShardDataKey()
 	{
-		new IncrementResult(UUID.randomUUID(), null, 0);
+		new CounterShardIncrement(1L, null, 0, DateTime.now(DateTimeZone.UTC));
+	}
+
+	@Test(expected = NullPointerException.class)
+	public void testIncrementCounterOperationResult_NullCreationDateTime()
+	{
+		final long counterShardIncrementId = 1L;
+		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
+		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 0);
+		new CounterShardIncrement(counterShardIncrementId, counterShardDataKey, 1, null);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testIncrementCounterOperationResult_NegativeAmount()
 	{
+		final long counterShardIncrementId = 1L;
 		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
 		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 0);
-		new IncrementResult(UUID.randomUUID(), counterShardDataKey, -1);
+		new CounterShardIncrement(counterShardIncrementId, counterShardDataKey, -1, DateTime.now(DateTimeZone.UTC));
 	}
 
 	@Test
 	public void testIncrementCounterOperationResult_ValidAmounts()
 	{
-		final UUID mutationUuid = UUID.randomUUID();
+		final long counterShardIncrementId = 1L;
 		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
 		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 1);
-		IncrementResult result = new IncrementResult(mutationUuid, counterShardDataKey,
-			1);
+		final DateTime now = DateTime.now(DateTimeZone.UTC);
 
-		assertThat(result.getAmount(), is(1L));
-		assertThat(result.getCounterShardDataKey(), is(counterShardDataKey));
+		final CounterShardIncrement result = new CounterShardIncrement(counterShardIncrementId, counterShardDataKey,
+			10, now);
+
+		assertThat(result.getId(), is(1L));
+		assertThat(result.getAmount(), is(10L));
+		assertThat(result.getCounterShardOperationDataKey(), is(counterShardDataKey));
+		assertThat(result.getCreationDateTime(), is(now));
 	}
 
 	// //////////////////////////////////
 	// test CounterOperationResult (DecrementCounterOperationResult)
 	// //////////////////////////////////
 
-	@Test(expected = NullPointerException.class)
-	public void testCounterOperationResult_NullUuid()
+	@Test(expected = IllegalArgumentException.class)
+	public void testCounterOperationResult_NegativeShardId()
 	{
+		final long counterShardDecrementId = 0L;
 		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
 		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 0);
-		new DecrementResult(null, counterShardDataKey, 0);
+		new CounterShardDecrement(counterShardDecrementId, counterShardDataKey, 0, DateTime.now(DateTimeZone.UTC));
 	}
 
 	@Test(expected = NullPointerException.class)
 	public void testCounterOperationResult_NullCounterShardDataKey()
 	{
-		new DecrementResult(UUID.randomUUID(), null, 0);
+		new CounterShardDecrement(1L, null, 0, DateTime.now(DateTimeZone.UTC));
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testCounterOperationResult_NegativeAmount()
 	{
-		final UUID mutationUuid = UUID.randomUUID();
+		final long counterShardDecrementId = 1L;
 		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
 		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 0);
-		new DecrementResult(mutationUuid, counterShardDataKey, -1);
+		new CounterShardDecrement(counterShardDecrementId, counterShardDataKey, -1, DateTime.now(DateTimeZone.UTC));
 	}
 
 	@Test
 	public void testCounterOperationResult_ValidAmounts()
 	{
-		final UUID mutationUuid = UUID.randomUUID();
+		final long counterShardDecrementId = 1L;
 		final Key<CounterData> counterDataKey = CounterData.key(TEST_COUNTER1);
-		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 1);
-		CounterOperationResult result = new DecrementResult(mutationUuid, counterShardDataKey, 1);
+		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, 10);
+		final DateTime now = DateTime.now(DateTimeZone.UTC);
+		CounterShardOperation result = new CounterShardDecrement(counterShardDecrementId, counterShardDataKey, 1,
+			DateTime.now(DateTimeZone.UTC));
 
-		assertThat(result.getAmount(), is(1L));
-		assertThat(result.getCounterShardDataKey(), is(counterShardDataKey));
+		assertThat(result.getId(), is(1L));
+		assertThat(result.getAmount(), is(10L));
+		assertThat(result.getCounterShardOperationDataKey(), is(counterShardDataKey));
+		assertThat(result.getCreationDateTime(), is(now));
 	}
 
 	@Test
 	public void testCounterOperationResultCollection_NonEmptySet()
 	{
-		final UUID mutationUuid1 = UUID.randomUUID();
+		final long counterShardId1 = 1L;
 		final Key<CounterData> counterDataKey1 = CounterData.key(TEST_COUNTER1);
 		final Key<CounterShardData> counterShardDataKey1 = CounterShardData.key(counterDataKey1, 0);
-		final DecrementResult documentShardResult1 = new DecrementResult(mutationUuid1,
-			counterShardDataKey1, 1);
+		final CounterShardDecrement documentShardResult1 = new CounterShardDecrement(counterShardId1,
+			counterShardDataKey1, 1, DateTime.now(DateTimeZone.UTC));
 
-		final UUID mutationUuid2 = UUID.randomUUID();
+		final long counterShardId2 = 1L;
 		final Key<CounterData> counterDataKey2 = CounterData.key(TEST_COUNTER2);
 		final Key<CounterShardData> counterShardDataKey2 = CounterShardData.key(counterDataKey2, 0);
-		final DecrementResult documentShardResult2 = new DecrementResult(mutationUuid2,
-			counterShardDataKey2, 1);
+		final CounterShardDecrement documentShardResult2 = new CounterShardDecrement(counterShardId2,
+			counterShardDataKey2, 1, DateTime.now(DateTimeZone.UTC));
 
 		// Add the a single CounterOperationResult and assert that only 1 exists.
 		final UUID overallMutationUuid = UUID.randomUUID();
-		Set<DecrementResult> resultSet = ImmutableSet.of(documentShardResult1);
-		CounterOperationResultSet counterOperationResultSet = new DecrementResultSet.Builder(
-			overallMutationUuid).withCounterOperationResults(resultSet).build();
-		assertThat(counterOperationResultSet.getOperationUuid(), is(overallMutationUuid));
-		assertThat(counterOperationResultSet.getTotalAmount(), is(1L));
-		assertThat(counterOperationResultSet.getCounterOperationResults().size(), is(1));
-		assertThat((Set<DecrementResult>) counterOperationResultSet.getCounterOperationResults(),
-			is(resultSet));
+		Set<CounterShardDecrement> resultSet = ImmutableSet.of(documentShardResult1);
+		CounterOperation counterOperation = new Decrement.Builder(overallMutationUuid).withCounterOperationResults(
+			resultSet).build();
+		assertThat(counterOperation.getOperationUuid(), is(overallMutationUuid));
+		assertThat(counterOperation.getTotalAmount(), is(1L));
+		assertThat(counterOperation.getCounterShardOperations().size(), is(1));
+		assertThat((Set<CounterShardDecrement>) counterOperation.getCounterShardOperations(), is(resultSet));
 
 		// Add the same CounterOperationResult Twice and assert that only 1 exists.
 		resultSet = ImmutableSet.of(documentShardResult1, documentShardResult1);
-		counterOperationResultSet = new DecrementResultSet.Builder(overallMutationUuid)
-			.withCounterOperationResults(resultSet).build();
-		assertThat(counterOperationResultSet.getOperationUuid(), is(overallMutationUuid));
-		assertThat(counterOperationResultSet.getTotalAmount(), is(1L));
-		assertThat(counterOperationResultSet.getCounterOperationResults().size(), is(1));
-		assertThat((Set<DecrementResult>) counterOperationResultSet.getCounterOperationResults(),
-			is(resultSet));
+		counterOperation = new Decrement.Builder(overallMutationUuid).withCounterOperationResults(resultSet).build();
+		assertThat(counterOperation.getOperationUuid(), is(overallMutationUuid));
+		assertThat(counterOperation.getTotalAmount(), is(1L));
+		assertThat(counterOperation.getCounterShardOperations().size(), is(1));
+		assertThat((Set<CounterShardDecrement>) counterOperation.getCounterShardOperations(), is(resultSet));
 
 		// Add two different CounterOperationResult objects and assert that 2 exist.
 		resultSet = ImmutableSet.of(documentShardResult1, documentShardResult2);
-		counterOperationResultSet = new DecrementResultSet.Builder(overallMutationUuid)
-			.withCounterOperationResults(resultSet).build();
-		assertThat(counterOperationResultSet.getOperationUuid(), is(overallMutationUuid));
-		assertThat(counterOperationResultSet.getTotalAmount(), is(2L));
-		assertThat(counterOperationResultSet.getCounterOperationResults().size(), is(2));
-		assertThat((Set<DecrementResult>) counterOperationResultSet.getCounterOperationResults(),
-			is(resultSet));
+		counterOperation = new Decrement.Builder(overallMutationUuid).withCounterOperationResults(resultSet).build();
+		assertThat(counterOperation.getOperationUuid(), is(overallMutationUuid));
+		assertThat(counterOperation.getTotalAmount(), is(2L));
+		assertThat(counterOperation.getCounterShardOperations().size(), is(2));
+		assertThat((Set<CounterShardDecrement>) counterOperation.getCounterShardOperations(), is(resultSet));
 	}
 }

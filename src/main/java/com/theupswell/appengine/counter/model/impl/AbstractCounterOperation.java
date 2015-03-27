@@ -11,61 +11,55 @@ import lombok.ToString;
 import com.google.appengine.repackaged.com.google.common.collect.ImmutableSet;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.theupswell.appengine.counter.model.CounterOperationResult;
-import com.theupswell.appengine.counter.model.CounterOperationResultSet;
-import com.theupswell.appengine.counter.model.CounterOperationType;
+import com.theupswell.appengine.counter.model.CounterOperation;
+import com.theupswell.appengine.counter.model.CounterShardOperation;
 
 /**
- * An implementation of {@link CounterOperationResultSet} to model a counter operation that consists of 0 or more
- * operations upon counter shards.
+ * An implementation of {@link CounterOperation} to model a counter operation that consists of 0 or more operations upon
+ * counter shards.
  */
 @Getter
 @ToString
 @EqualsAndHashCode(of = {
 	"operationUuid"
 })
-public abstract class AbstractCounterOperationResultSet<T extends CounterOperationResult> implements
-		CounterOperationResultSet<T>
+public abstract class AbstractCounterOperation<T extends CounterShardOperation> implements CounterOperation<T>
 {
 	// A unique identifier for this counter operation collection.
 	private final UUID operationUuid;
 	private final CounterOperationType counterOperationType;
-
-	// May be foolhearty, but this Set could theoretically hold both Increment and Decrements at the same time.
-	// This is why this class is not generically typed to a single CounterOperationResult type, but is instead
-	// more lenient.
-	private final Set<T> counterOperationResults;
+	private final Set<T> counterShardOperations;
 
 	/**
 	 * Required-args Constructor.
 	 *
 	 * @param operationUuid A {@link UUID} that uniquely identifies this counter operation result set.
 	 * @param counterOperationType The {@link CounterOperationType} of this operation.
-	 * @param counterOperationResults A {@link Set} of instances of {@link CounterOperationResult} that represent the
+	 * @param counterShardOperations A {@link Set} of instances of {@link CounterShardOperation} that represent the
 	 *            shards operated upon and any associated data such as the amount.
 	 */
-	public AbstractCounterOperationResultSet(final UUID operationUuid, final CounterOperationType counterOperationType,
-			final Set<T> counterOperationResults)
+	public AbstractCounterOperation(final UUID operationUuid, final CounterOperationType counterOperationType,
+			final Set<T> counterShardOperations)
 	{
 		Preconditions.checkNotNull(operationUuid);
 		this.operationUuid = operationUuid;
 
-		Preconditions.checkNotNull(operationUuid);
+		Preconditions.checkNotNull(counterOperationType);
 		this.counterOperationType = counterOperationType;
 
-		Preconditions.checkNotNull(counterOperationResults);
-		this.counterOperationResults = ImmutableSet.copyOf(counterOperationResults);
+		Preconditions.checkNotNull(counterShardOperations);
+		this.counterShardOperations = ImmutableSet.copyOf(counterShardOperations);
 	}
 
 	/**
-	 * Helper method to retrieve the first {@link CounterOperationResult} in the Set of results accessed via
-	 * {@link #getCounterOperationResults()}.
+	 * Helper method to retrieve the first {@link CounterShardOperation} in the Set of results accessed via
+	 * {@link #getCounterShardOperations()}.
 	 *
 	 * @return
 	 */
 	public Optional<T> getFirstCounterOperationResult()
 	{
-		Set<T> results = this.getCounterOperationResults();
+		Set<T> results = this.getCounterShardOperations();
 		if (results != null)
 		{
 			Iterator<T> iterator = results.iterator();
@@ -87,7 +81,7 @@ public abstract class AbstractCounterOperationResultSet<T extends CounterOperati
 	{
 		long amount = 0;
 
-		for (CounterOperationResult operation : counterOperationResults)
+		for (CounterShardOperation operation : counterShardOperations)
 		{
 			amount += operation.getAmount();
 		}

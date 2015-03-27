@@ -33,8 +33,8 @@ import com.google.appengine.tools.development.testing.LocalTaskQueueTestConfig;
  * 
  * @author David Fuelling
  */
-public class ShardedCounterServiceIncrementNoMemcacheTest extends
-		com.theupswell.appengine.counter.service.ShardedCounterServiceIncrementTest
+public class ShardedCounterServiceShardIncrementNoMemcacheTest extends
+		ShardedCounterServiceShardIncrementTest
 {
 	@Before
 	public void setUp() throws Exception

@@ -9,27 +9,27 @@ import lombok.ToString;
 
 import com.google.appengine.repackaged.com.google.common.collect.ImmutableSet;
 import com.google.common.base.Preconditions;
-import com.theupswell.appengine.counter.model.CounterOperationResultSet;
-import com.theupswell.appengine.counter.model.CounterOperationType;
+import com.theupswell.appengine.counter.model.CounterOperation;
 
 /**
- * An implementation of {@link CounterOperationResultSet} to model a counter operation that consists of 0 or more
- * operations upon counter shards.
+ * An implementation of {@link CounterOperation} to model a counter operation that consists of 0 or more operations upon
+ * counter shards.
  */
 @Getter
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
-public class DecrementResultSet extends
-		AbstractCounterOperationResultSet<DecrementResult>
+public class Decrement extends AbstractCounterOperation<CounterShardDecrement> implements
+		CounterOperation<CounterShardDecrement>
 {
 	/**
 	 * Required-args Constructor.
 	 *
 	 * @param builder An instance of {@link Builder} to construct this instance from.
 	 */
-	private DecrementResultSet(final Builder builder)
+	private Decrement(final Builder builder)
 	{
-		super(builder.getOperationUuid(), CounterOperationType.DECREMENT, builder.getCounterOperationResults());
+		super(builder.getOperationUuid(), CounterOperationType.DECREMENT, ImmutableSet.copyOf(builder
+			.getCounterOperationResults()));
 	}
 
 	/**
@@ -42,7 +42,8 @@ public class DecrementResultSet extends
 	{
 		// A unique identifier for this counter operation collection.
 		private final UUID operationUuid;
-		private Set<DecrementResult> counterOperationResults;
+
+		private Set<CounterShardDecrement> counterOperationResults;
 
 		/**
 		 * Required-args Constructor.
@@ -58,25 +59,24 @@ public class DecrementResultSet extends
 		}
 
 		/**
-		 * Builder method for constructing instances of {@link DecrementResultSet}.
+		 * Builder method for constructing instances of {@link Decrement}.
 		 *
 		 * @return
 		 */
-		public DecrementResultSet build()
+		public Decrement build()
 		{
-			return new DecrementResultSet(this);
+			return new Decrement(this);
 		}
 
 		/**
 		 * Wither...
 		 *
-		 * @param decrementResults
+		 * @param counterShardDecrementResults
 		 * @return
 		 */
-		public Builder withCounterOperationResults(
-				final Set<DecrementResult> decrementResults)
+		public Builder withCounterOperationResults(final Set<CounterShardDecrement> counterShardDecrementResults)
 		{
-			this.counterOperationResults = decrementResults;
+			this.counterOperationResults = counterShardDecrementResults;
 			return this;
 		}
 	}

@@ -12,20 +12,18 @@
  */
 package com.theupswell.appengine.counter.service;
 
+import java.util.Set;
 import java.util.UUID;
 
 import com.google.appengine.api.datastore.DatastoreFailureException;
 import com.google.appengine.api.datastore.DatastoreTimeoutException;
-import com.google.common.base.Optional;
 import com.googlecode.objectify.Work;
 import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
-import com.theupswell.appengine.counter.model.impl.DecrementResult;
-import com.theupswell.appengine.counter.model.impl.DecrementResultSet;
-import com.theupswell.appengine.counter.model.impl.IncrementResult;
-import com.theupswell.appengine.counter.model.impl.IncrementResultSet;
+import com.theupswell.appengine.counter.model.impl.Decrement;
+import com.theupswell.appengine.counter.model.impl.Increment;
 
 /**
  * A Counter Service that can retrieve, increment, decrement, and delete a named {@link Counter}.
@@ -82,6 +80,11 @@ public interface CounterService
 	 * 
 	 * @param counterName The name of the counter to increment.
 	 * @param requestedIncrementAmount The amount to increment the counter with.
+	 * 
+	 * @return An instance of {@link Increment} that holds a {@link Set} decrements, as well as the amount that was
+	 *         actually added to the counter named {@code counterName}. This return value can be used to discern any
+	 *         difference between the requested and actual decrement amounts.
+	 * 
 	 * @throws NullPointerException if the {@code counterName} is null.
 	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
 	 * @throws IllegalArgumentException if the {@code amount} to decrement is negative (decrement amounts must always be
@@ -99,7 +102,7 @@ public interface CounterService
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
 	 */
-	public IncrementResultSet increment(final String counterName, final long requestedIncrementAmount);
+	public Increment increment(final String counterName, final long requestedIncrementAmount);
 
 	/**
 	 * Increment the value of a sharded counter by {@code amount} using an isolated TransactionContext and a specified
@@ -121,6 +124,11 @@ public interface CounterService
 	 * @param counterName The name of the counter to increment.
 	 * @param requestedIncrementAmount The amount to increment the counter with.
 	 * @param incrementUuid A {@link UUID} for the increment that will be performed.
+	 * 
+	 * @return An instance of {@link Increment} that holds a {@link Set} decrements, as well as the amount that was
+	 *         actually added to the counter named {@code counterName}. This return value can be used to discern any
+	 *         difference between the requested and actual decrement amounts.
+	 * 
 	 * @throws NullPointerException if the {@code counterName} is null.
 	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
 	 * @throws IllegalArgumentException if the {@code amount} to decrement is negative (decrement amounts must always be
@@ -138,8 +146,7 @@ public interface CounterService
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
 	 */
-	public IncrementResultSet increment(final String counterName, final long requestedIncrementAmount,
-			final UUID incrementUuid);
+	public Increment increment(final String counterName, final long requestedIncrementAmount, final UUID incrementUuid);
 
 	/**
 	 * <p>
@@ -155,10 +162,13 @@ public interface CounterService
 	 *
 	 * @param counterName The name of the counter to decrement.
 	 * @param requestedDecrementAmount The amount to decrement the counter with.
-	 * @return The amount that was actually decremented from this counter. Depending on counter configuration, requests
-	 *         to decrement a counter by more than its available count will succeed with a decrement amount that is
-	 *         smaller than the requested decrement amount (e.g., if a counter may not decrement below zero). This
-	 *         return value can be used to discern any difference between the requested and actual decrement amounts.
+	 * 
+	 * @return An instance of {@link Decrement} that holds a {@link Set} decrements, as well as the amount that was
+	 *         actually decremented from this counter. Depending on counter configuration, requests to decrement a
+	 *         counter by more than its available count will succeed with a decrement amount that is smaller than the
+	 *         requested decrement amount (e.g., if a counter may not decrement below zero). This return value can be
+	 *         used to discern any difference between the requested and actual decrement amounts.
+	 * 
 	 * @throws NullPointerException if the {@code counterName} is null.
 	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
 	 * @throws IllegalArgumentException if the {@code amount} to decrement is negative (decrement amounts must always be
@@ -172,12 +182,11 @@ public interface CounterService
 	 *             is overloaded or having trouble. Note that despite receiving this exception, it's possible that the
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
-	 * 
 	 * @throws RuntimeException if the counter exists in the Datastore but has a status that prevents it from being
 	 *             mutated (e.g., Fa {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
 	 *             counterStatus of {@link CounterStatus#AVAILABLE} may be mutated, incremented or decremented.
 	 */
-	public DecrementResultSet decrement(final String counterName, final long requestedDecrementAmount);
+	public Decrement decrement(final String counterName, final long requestedDecrementAmount);
 
 	/**
 	 * <p>
@@ -194,10 +203,13 @@ public interface CounterService
 	 * @param counterName The name of the counter to decrement.
 	 * @param requestedDecrementAmount The amount to decrement the counter with.
 	 * @param decrementUuid A {@link UUID} for the increment that will be performed.
-	 * @return The amount that was actually decremented from this counter. Depending on counter configuration, requests
-	 *         to decrement a counter by more than its available count will succeed with a decrement amount that is
-	 *         smaller than the requested decrement amount (e.g., if a counter may not decrement below zero). This
-	 *         return value can be used to discern any difference between the requested and actual decrement amounts.
+	 * 
+	 * @return An instance of {@link Decrement} that holds a {@link Set} decrements, as well as the amount that was
+	 *         actually decremented from this counter. Depending on counter configuration, requests to decrement a
+	 *         counter by more than its available count will succeed with a decrement amount that is smaller than the
+	 *         requested decrement amount (e.g., if a counter may not decrement below zero). This return value can be
+	 *         used to discern any difference between the requested and actual decrement amounts.
+	 * 
 	 * @throws NullPointerException if the {@code counterName} is null.
 	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
 	 * @throws IllegalArgumentException if the {@code amount} to decrement is negative (decrement amounts must always be
@@ -211,29 +223,11 @@ public interface CounterService
 	 *             is overloaded or having trouble. Note that despite receiving this exception, it's possible that the
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
-	 *
 	 * @throws RuntimeException if the counter exists in the Datastore but has a status that prevents it from being
 	 *             mutated (e.g., Fa {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
 	 *             counterStatus of {@link CounterStatus#AVAILABLE} may be mutated, incremented or decremented.
 	 */
-	public DecrementResultSet decrement(final String counterName, final long requestedDecrementAmount,
-			final UUID decrementUuid);
-
-	/**
-	 * Get the optionally present {@link IncrementResultSet} based upon the supplied {@code decrementUuid}.
-	 *
-	 * @param incrementWebsafeStringKey A {@link String} that uniquely identifies the decrement being requested.
-	 * @return
-	 */
-	public Optional<IncrementResult> getIncrement(final String incrementWebsafeStringKey);
-
-	/**
-	 * Get the optionally present {@link IncrementResultSet} based upon the supplied {@code decrementUuid}.
-	 *
-	 * @param decrementWebsafeStringKey A {@link String} that uniquely identifies the decrement being requested.
-	 * @return
-	 */
-	public Optional<DecrementResult> getDecrement(final String decrementWebsafeStringKey);
+	public Decrement decrement(final String counterName, final long requestedDecrementAmount, final UUID decrementUuid);
 
 	/**
 	 * Removes a {@link CounterData} from the Datastore and attempts to remove it's corresponding
