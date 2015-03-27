@@ -183,13 +183,14 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 	@Test
 	public void testDecrementResult()
 	{
-		final UUID operationUuid = UUID.randomUUID();
 
-		this.shardedCounterService.increment(TEST_COUNTER1, 1, operationUuid);
-		final Decrement result = this.shardedCounterService.decrement(TEST_COUNTER1, 1, operationUuid);
+		final UUID decrementUuid = UUID.randomUUID();
+
+		this.shardedCounterService.increment(TEST_COUNTER1, 1, decrementUuid);
+		final Decrement result = this.shardedCounterService.decrement(TEST_COUNTER1, 1, decrementUuid);
 
 		assertThat(result.getTotalAmount(), is(1L));
-		assertThat(result.getOperationUuid(), is(operationUuid));
+		assertThat(result.getOperationUuid(), is(decrementUuid));
 		assertThat(result.getCounterOperationType(), is(CounterOperationType.DECREMENT));
 		assertThat(result.getCounterShardOperations(), is(not(nullValue())));
 		assertThat(result.getCounterShardOperations().size(), is(1));
@@ -198,8 +199,9 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 
 		assertThat(results[0], is(not(nullValue())));
 		assertThat(results[0].getAmount(), is(1L));
-		assertThat(results[0].getCounterShardOperationDataKey(), is(not(nullValue())));
-		assertThat(results[0].getId() > 0, is(true));
+		assertThat(results[0].getCounterShardDataKey(), is(not(nullValue())));
+		assertThat(results[0].getCounterShardOperationUuid(), is(not(decrementUuid)));
+		assertThat(results[0].getParentCounterOperationUuid(), is(decrementUuid));
 		assertThat(results[0].getCreationDateTime(), is(not(nullValue())));
 	}
 

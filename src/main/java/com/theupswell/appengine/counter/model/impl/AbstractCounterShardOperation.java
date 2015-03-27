@@ -1,5 +1,7 @@
 package com.theupswell.appengine.counter.model.impl;
 
+import java.util.UUID;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -9,7 +11,6 @@ import org.joda.time.DateTime;
 import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.theupswell.appengine.counter.data.CounterShardData;
-import com.theupswell.appengine.counter.data.CounterShardOperationData;
 import com.theupswell.appengine.counter.model.CounterShardOperation;
 
 /**
@@ -18,13 +19,15 @@ import com.theupswell.appengine.counter.model.CounterShardOperation;
 @Getter
 @ToString
 @EqualsAndHashCode(of = {
-	"id", "counterShardOperationDataKey"
+	"counterShardOperationUuid"
 })
 public abstract class AbstractCounterShardOperation implements CounterShardOperation
 {
-	private final long id;
+	private final UUID counterShardOperationUuid;
 
-	private final Key<CounterShardOperationData> counterShardOperationDataKey;
+	private final UUID parentCounterOperationUuid;
+
+	private final Key<CounterShardData> counterShardDataKey;
 
 	private final long amount;
 
@@ -33,22 +36,25 @@ public abstract class AbstractCounterShardOperation implements CounterShardOpera
 	/**
 	 * Required-args Constructor.
 	 *
-	 * @param id A long number that when coupled with {@code counterShardOperationDataKey} uniquely identifies this
-	 *            counter shard operation.
-	 * @param counterShardOperationDataKey A {@link Key} for the associated {@link CounterShardData} that this increment
-	 *            was performed against.
+	 * @param counterShardOperationUuid A {@link UUID} that uniquely identifies this counter shard operation.
+	 * @param parentCounterOperationUuid A {@link UUID} that identifies the parent operation for this counter shard
+	 *            operation. Multiple increments/decrements may occur as part of a single counter operation.
+	 * @param counterShardDataKey A {@link Key} for the associated {@link CounterShardData} that this increment was
+	 *            performed against.
 	 * @param amount The amount of the applied increment or decrement.
 	 * @param creationDateTime The {@link DateTime} that this operation was created.
 	 */
-	protected AbstractCounterShardOperation(final long id,
-			final Key<CounterShardOperationData> counterShardOperationDataKey, final long amount,
-			final DateTime creationDateTime)
+	protected AbstractCounterShardOperation(UUID counterShardOperationUuid, final UUID parentCounterOperationUuid,
+			final Key<CounterShardData> counterShardDataKey, final long amount, final DateTime creationDateTime)
 	{
-		Preconditions.checkArgument(id > 0);
-		this.id = id;
+		Preconditions.checkNotNull(counterShardOperationUuid);
+		this.counterShardOperationUuid = counterShardOperationUuid;
 
-		Preconditions.checkNotNull(counterShardOperationDataKey);
-		this.counterShardOperationDataKey = counterShardOperationDataKey;
+		Preconditions.checkNotNull(parentCounterOperationUuid);
+		this.parentCounterOperationUuid = parentCounterOperationUuid;
+
+		Preconditions.checkNotNull(counterShardDataKey);
+		this.counterShardDataKey = counterShardDataKey;
 
 		Preconditions.checkArgument(amount > 0);
 		this.amount = amount;

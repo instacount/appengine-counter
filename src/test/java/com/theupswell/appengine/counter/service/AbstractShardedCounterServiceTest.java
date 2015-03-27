@@ -35,7 +35,6 @@ import com.googlecode.objectify.util.Closeable;
 import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterShardData;
-import com.theupswell.appengine.counter.data.CounterShardOperationData;
 
 /**
  * An abstract base class for testing {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}
@@ -116,7 +115,6 @@ public abstract class AbstractShardedCounterServiceTest
 
 		ObjectifyService.factory().register(CounterData.class);
 		ObjectifyService.factory().register(CounterShardData.class);
-		ObjectifyService.factory().register(CounterShardOperationData.class);
 
 		shardedCounterService = new ShardedCounterServiceImpl();
 	}

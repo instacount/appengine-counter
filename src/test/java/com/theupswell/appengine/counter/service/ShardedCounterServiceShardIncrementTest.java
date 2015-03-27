@@ -218,10 +218,10 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 
 		assertThat(results[0], is(not(nullValue())));
 		assertThat(results[0].getAmount(), is(1L));
-		assertThat(results[0].getCounterShardOperationDataKey(), is(not(nullValue())));
-		assertThat(results[0].getId(), is(not(nullValue())));
+		assertThat(results[0].getCounterShardDataKey(), is(not(nullValue())));
+		assertThat(results[0].getCounterShardOperationUuid(), is(not(operationUuid)));
+		assertThat(results[0].getParentCounterOperationUuid(), is(operationUuid));
 		assertThat(results[0].getCreationDateTime(), is(not(nullValue())));
-
 	}
 
 	// /////////////////////////

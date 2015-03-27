@@ -1,10 +1,11 @@
 package com.theupswell.appengine.counter.model;
 
+import java.util.UUID;
+
 import org.joda.time.DateTime;
 
 import com.googlecode.objectify.Key;
 import com.theupswell.appengine.counter.data.CounterShardData;
-import com.theupswell.appengine.counter.data.CounterShardOperationData;
 
 /**
  * An interface for modeling the result of the mutation (increment or decrement) of a {@link CounterShardData} entity in
@@ -13,31 +14,38 @@ import com.theupswell.appengine.counter.data.CounterShardOperationData;
 public interface CounterShardOperation
 {
 	/**
-	 * Return a long number that when coupled with {@link #getCounterShardOperationDataKey()} uniquely identifies this
-	 * counter shard operation.
+	 * Return a {@link UUID} that identifies this counter shard operation.
+	 *
+	 * @return
+	 */
+	UUID getCounterShardOperationUuid();
+
+	/**
+	 * Return a {@link UUID} that identifies the parent operation for this counter shard operation. Multiple
+	 * increments/decrements may occur as part of a single counter operation.
 	 * 
 	 * @return
 	 */
-	public long getId();
+	UUID getParentCounterOperationUuid();
 
 	/**
 	 * Return the {@link Key} for the {@link CounterShardData} that this counter operation result was effected upon.
 	 * 
 	 * @return
 	 */
-	public Key<CounterShardOperationData> getCounterShardOperationDataKey();
+	Key<CounterShardData> getCounterShardDataKey();
 
 	/**
 	 * Return the amount of this mutation result, as a long.
 	 *
 	 * @return
 	 */
-	public long getAmount();
+	long getAmount();
 
 	/**
 	 * Return the {@link DateTime} that this instance was created.
 	 * 
 	 * @return
 	 */
-	public DateTime getCreationDateTime();
+	DateTime getCreationDateTime();
 }
