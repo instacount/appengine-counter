@@ -25,6 +25,7 @@ import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
 import com.theupswell.appengine.counter.model.CounterOperation;
+import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
 import com.theupswell.appengine.counter.model.CounterShardOperation;
 import com.theupswell.appengine.counter.model.impl.CounterShardDecrement;
 import com.theupswell.appengine.counter.model.impl.CounterShardIncrement;
@@ -685,6 +686,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		assertThat(result.getCounterShardOperationUuid(), is(operationUuid));
 		assertThat(result.getParentCounterOperationUuid(), is(parentOperationUuid));
 		assertThat(result.getAmount(), is(10L));
+		assertThat(result.getCounterOperationType(), is(CounterOperationType.INCREMENT));
 		assertThat(result.getCounterShardDataKey(), is(counterShardDataKey));
 		assertThat(result.getCreationDateTime(), is(now));
 	}
@@ -743,6 +745,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 
 		assertThat(result.getCounterShardOperationUuid(), is(operationUuid));
 		assertThat(result.getParentCounterOperationUuid(), is(parentOperationUuid));
+		assertThat(result.getCounterOperationType(), is(CounterOperationType.DECREMENT));
 		assertThat(result.getAmount(), is(10L));
 		assertThat(result.getCounterShardDataKey(), is(counterShardDataKey));
 		assertTrue(result.getCreationDateTime().isEqual(now) || result.getCreationDateTime().isAfter(now));
@@ -773,6 +776,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		assertThat(counterOperation.getOperationUuid(), is(overallMutationUuid));
 		assertThat(counterOperation.getTotalAmount(), is(1L));
 		assertThat(counterOperation.getCounterShardOperations().size(), is(1));
+		assertThat(counterOperation.getCounterOperationType(), is(CounterOperationType.DECREMENT));
 		assertThat((Set<CounterShardDecrement>) counterOperation.getCounterShardOperations(), is(resultSet));
 
 		// Add the same CounterOperationResult Twice and assert that only 1 exists.
@@ -781,6 +785,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		assertThat(counterOperation.getOperationUuid(), is(overallMutationUuid));
 		assertThat(counterOperation.getTotalAmount(), is(1L));
 		assertThat(counterOperation.getCounterShardOperations().size(), is(1));
+		assertThat(counterOperation.getCounterOperationType(), is(CounterOperationType.DECREMENT));
 		assertThat((Set<CounterShardDecrement>) counterOperation.getCounterShardOperations(), is(resultSet));
 
 		// Add two different CounterOperationResult objects and assert that 2 exist.
@@ -789,6 +794,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		assertThat(counterOperation.getOperationUuid(), is(overallMutationUuid));
 		assertThat(counterOperation.getTotalAmount(), is(2L));
 		assertThat(counterOperation.getCounterShardOperations().size(), is(2));
+		assertThat(counterOperation.getCounterOperationType(), is(CounterOperationType.DECREMENT));
 		assertThat((Set<CounterShardDecrement>) counterOperation.getCounterShardOperations(), is(resultSet));
 	}
 }

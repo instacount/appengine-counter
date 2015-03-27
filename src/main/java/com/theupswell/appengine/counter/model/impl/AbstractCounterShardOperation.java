@@ -11,6 +11,7 @@ import org.joda.time.DateTime;
 import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
 import com.theupswell.appengine.counter.model.CounterShardOperation;
 
 /**
@@ -29,6 +30,8 @@ public abstract class AbstractCounterShardOperation implements CounterShardOpera
 
 	private final Key<CounterShardData> counterShardDataKey;
 
+	private final CounterOperationType counterOperationType;
+
 	private final long amount;
 
 	private DateTime creationDateTime;
@@ -41,11 +44,13 @@ public abstract class AbstractCounterShardOperation implements CounterShardOpera
 	 *            operation. Multiple increments/decrements may occur as part of a single counter operation.
 	 * @param counterShardDataKey A {@link Key} for the associated {@link CounterShardData} that this increment was
 	 *            performed against.
+	 * @param counterOperationType An instance of {@link CounterOperationType}.
 	 * @param amount The amount of the applied increment or decrement.
 	 * @param creationDateTime The {@link DateTime} that this operation was created.
 	 */
 	protected AbstractCounterShardOperation(UUID counterShardOperationUuid, final UUID parentCounterOperationUuid,
-			final Key<CounterShardData> counterShardDataKey, final long amount, final DateTime creationDateTime)
+			final Key<CounterShardData> counterShardDataKey, final CounterOperationType counterOperationType,
+			final long amount, final DateTime creationDateTime)
 	{
 		Preconditions.checkNotNull(counterShardOperationUuid);
 		this.counterShardOperationUuid = counterShardOperationUuid;
@@ -55,6 +60,9 @@ public abstract class AbstractCounterShardOperation implements CounterShardOpera
 
 		Preconditions.checkNotNull(counterShardDataKey);
 		this.counterShardDataKey = counterShardDataKey;
+
+		Preconditions.checkNotNull(counterShardDataKey);
+		this.counterOperationType = counterOperationType;
 
 		Preconditions.checkArgument(amount > 0);
 		this.amount = amount;

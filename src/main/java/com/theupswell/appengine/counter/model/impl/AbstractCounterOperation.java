@@ -8,6 +8,9 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import com.google.appengine.repackaged.com.google.common.collect.ImmutableSet;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -29,6 +32,7 @@ public abstract class AbstractCounterOperation<T extends CounterShardOperation> 
 	private final UUID operationUuid;
 	private final CounterOperationType counterOperationType;
 	private final Set<T> counterShardOperations;
+	private final DateTime dateTimeApplied;
 
 	/**
 	 * Required-args Constructor.
@@ -49,6 +53,8 @@ public abstract class AbstractCounterOperation<T extends CounterShardOperation> 
 
 		Preconditions.checkNotNull(counterShardOperations);
 		this.counterShardOperations = ImmutableSet.copyOf(counterShardOperations);
+
+		this.dateTimeApplied = DateTime.now(DateTimeZone.UTC);
 	}
 
 	/**

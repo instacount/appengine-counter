@@ -6,6 +6,7 @@ import org.joda.time.DateTime;
 
 import com.googlecode.objectify.Key;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
 import com.theupswell.appengine.counter.model.CounterShardOperation;
 
 /**
@@ -28,7 +29,7 @@ public class CounterShardDecrement extends AbstractCounterShardOperation impleme
 	public CounterShardDecrement(final UUID counterShardOperationUuid, final UUID parentCounterOperationUuid,
 			final Key<CounterShardData> counterShardDataKey, final long amount, final DateTime creationDateTime)
 	{
-		super(counterShardOperationUuid, parentCounterOperationUuid, counterShardDataKey, amount, creationDateTime);
+		super(counterShardOperationUuid, parentCounterOperationUuid, counterShardDataKey,
+			CounterOperationType.DECREMENT, amount, creationDateTime);
 	}
-
 }

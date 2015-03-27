@@ -6,6 +6,7 @@ import org.joda.time.DateTime;
 
 import com.googlecode.objectify.Key;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
 
 /**
  * An interface for modeling the result of the mutation (increment or decrement) of a {@link CounterShardData} entity in
@@ -34,6 +35,13 @@ public interface CounterShardOperation
 	 * @return
 	 */
 	Key<CounterShardData> getCounterShardDataKey();
+
+	/**
+	 * Get the type of counter operation that was performed.
+	 *
+	 * @return
+	 */
+	CounterOperationType getCounterOperationType();
 
 	/**
 	 * Return the amount of this mutation result, as a long.

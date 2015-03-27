@@ -33,7 +33,7 @@ public class Decrement extends AbstractCounterOperation<CounterShardDecrement> i
 	}
 
 	/**
-	 *
+	 * A builder for instances of {@link Decrement}.
 	 */
 	@Getter
 	@EqualsAndHashCode
