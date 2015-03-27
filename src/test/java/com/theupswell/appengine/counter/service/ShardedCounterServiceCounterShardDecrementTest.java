@@ -19,6 +19,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.UUID;
 import java.util.logging.Logger;
 
+import com.theupswell.appengine.counter.model.CounterOperation;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +29,6 @@ import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
 import com.theupswell.appengine.counter.model.CounterShardOperation;
-import com.theupswell.appengine.counter.model.impl.Decrement;
 
 /**
  * Unit tests for decrementing counters via {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}.
@@ -187,7 +187,7 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 		final UUID decrementUuid = UUID.randomUUID();
 
 		this.shardedCounterService.increment(TEST_COUNTER1, 1, decrementUuid);
-		final Decrement result = this.shardedCounterService.decrement(TEST_COUNTER1, 1, decrementUuid);
+		final CounterOperation result = this.shardedCounterService.decrement(TEST_COUNTER1, 1, decrementUuid);
 
 		assertThat(result.getTotalAmount(), is(1L));
 		assertThat(result.getOperationUuid(), is(decrementUuid));
@@ -200,7 +200,7 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 		assertThat(results[0], is(not(nullValue())));
 		assertThat(results[0].getAmount(), is(1L));
 		assertThat(results[0].getCounterShardDataKey(), is(not(nullValue())));
-		assertThat(results[0].getCounterShardOperationUuid(), is(not(decrementUuid)));
+		assertThat(results[0].getId(), is(not(decrementUuid)));
 		assertThat(results[0].getParentCounterOperationUuid(), is(decrementUuid));
 		assertThat(results[0].getCreationDateTime(), is(not(nullValue())));
 	}

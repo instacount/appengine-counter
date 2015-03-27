@@ -22,8 +22,7 @@ import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
-import com.theupswell.appengine.counter.model.impl.Decrement;
-import com.theupswell.appengine.counter.model.impl.Increment;
+import com.theupswell.appengine.counter.model.CounterOperation;
 
 /**
  * A Counter Service that can retrieve, increment, decrement, and delete a named {@link Counter}.
@@ -41,7 +40,7 @@ public interface CounterService
 	 *
 	 * @return An {@link Counter} with an accurate count.
 	 */
-	public Counter getCounter(final String counterName);
+	Counter getCounter(final String counterName);
 
 	/**
 	 * Update the non-count portions of a Counter with information found in {@code counter}. Note that changing a
@@ -59,7 +58,7 @@ public interface CounterService
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
 	 */
-	public void updateCounterDetails(final Counter counter);
+	void updateCounterDetails(final Counter counter);
 
 	/**
 	 * Increment the value of a sharded counter by {@code amount} using an isolated TransactionContext and a random
@@ -80,9 +79,9 @@ public interface CounterService
 	 * 
 	 * @param counterName The name of the counter to increment.
 	 * @param requestedIncrementAmount The amount to increment the counter with.
-	 * 
-	 * @return An instance of {@link Increment} that holds a {@link Set} decrements, as well as the amount that was
-	 *         actually added to the counter named {@code counterName}. This return value can be used to discern any
+	 *
+	 * @return An instance of {@link CounterOperation} that holds a {@link Set} decrements, as well as the amount that
+	 *         was actually added to the counter named {@code counterName}. This return value can be used to discern any
 	 *         difference between the requested and actual decrement amounts.
 	 * 
 	 * @throws NullPointerException if the {@code counterName} is null.
@@ -102,7 +101,7 @@ public interface CounterService
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
 	 */
-	public Increment increment(final String counterName, final long requestedIncrementAmount);
+	CounterOperation increment(final String counterName, final long requestedIncrementAmount);
 
 	/**
 	 * Increment the value of a sharded counter by {@code amount} using an isolated TransactionContext and a specified
@@ -125,8 +124,8 @@ public interface CounterService
 	 * @param requestedIncrementAmount The amount to increment the counter with.
 	 * @param incrementUuid A {@link UUID} for the increment that will be performed.
 	 * 
-	 * @return An instance of {@link Increment} that holds a {@link Set} decrements, as well as the amount that was
-	 *         actually added to the counter named {@code counterName}. This return value can be used to discern any
+	 * @return An instance of {@link CounterOperation} that holds a {@link Set} decrements, as well as the amount that
+	 *         was actually added to the counter named {@code counterName}. This return value can be used to discern any
 	 *         difference between the requested and actual decrement amounts.
 	 * 
 	 * @throws NullPointerException if the {@code counterName} is null.
@@ -146,7 +145,7 @@ public interface CounterService
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
 	 */
-	public Increment increment(final String counterName, final long requestedIncrementAmount, final UUID incrementUuid);
+	CounterOperation increment(final String counterName, final long requestedIncrementAmount, final UUID incrementUuid);
 
 	/**
 	 * <p>
@@ -163,8 +162,8 @@ public interface CounterService
 	 * @param counterName The name of the counter to decrement.
 	 * @param requestedDecrementAmount The amount to decrement the counter with.
 	 * 
-	 * @return An instance of {@link Decrement} that holds a {@link Set} decrements, as well as the amount that was
-	 *         actually decremented from this counter. Depending on counter configuration, requests to decrement a
+	 * @return An instance of {@link CounterOperation} that holds a {@link Set} decrements, as well as the amount that
+	 *         was actually decremented from this counter. Depending on counter configuration, requests to decrement a
 	 *         counter by more than its available count will succeed with a decrement amount that is smaller than the
 	 *         requested decrement amount (e.g., if a counter may not decrement below zero). This return value can be
 	 *         used to discern any difference between the requested and actual decrement amounts.
@@ -186,7 +185,7 @@ public interface CounterService
 	 *             mutated (e.g., Fa {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
 	 *             counterStatus of {@link CounterStatus#AVAILABLE} may be mutated, incremented or decremented.
 	 */
-	public Decrement decrement(final String counterName, final long requestedDecrementAmount);
+	CounterOperation decrement(final String counterName, final long requestedDecrementAmount);
 
 	/**
 	 * <p>
@@ -204,8 +203,8 @@ public interface CounterService
 	 * @param requestedDecrementAmount The amount to decrement the counter with.
 	 * @param decrementUuid A {@link UUID} for the increment that will be performed.
 	 * 
-	 * @return An instance of {@link Decrement} that holds a {@link Set} decrements, as well as the amount that was
-	 *         actually decremented from this counter. Depending on counter configuration, requests to decrement a
+	 * @return An instance of {@link CounterOperation} that holds a {@link Set} decrements, as well as the amount that
+	 *         was actually decremented from this counter. Depending on counter configuration, requests to decrement a
 	 *         counter by more than its available count will succeed with a decrement amount that is smaller than the
 	 *         requested decrement amount (e.g., if a counter may not decrement below zero). This return value can be
 	 *         used to discern any difference between the requested and actual decrement amounts.
@@ -227,7 +226,7 @@ public interface CounterService
 	 *             mutated (e.g., Fa {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
 	 *             counterStatus of {@link CounterStatus#AVAILABLE} may be mutated, incremented or decremented.
 	 */
-	public Decrement decrement(final String counterName, final long requestedDecrementAmount, final UUID decrementUuid);
+	CounterOperation decrement(final String counterName, final long requestedDecrementAmount, final UUID decrementUuid);
 
 	/**
 	 * Removes a {@link CounterData} from the Datastore and attempts to remove it's corresponding
@@ -248,5 +247,5 @@ public interface CounterService
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
 	 */
-	public void delete(final String counterName);
+	void delete(final String counterName);
 }

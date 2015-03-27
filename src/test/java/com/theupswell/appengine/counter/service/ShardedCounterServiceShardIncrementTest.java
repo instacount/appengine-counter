@@ -1,11 +1,11 @@
 /**
  * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -25,13 +25,13 @@ import org.junit.Test;
 import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
+import com.theupswell.appengine.counter.model.CounterOperation;
 import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
 import com.theupswell.appengine.counter.model.CounterShardOperation;
-import com.theupswell.appengine.counter.model.impl.Increment;
 
 /**
  * Unit tests for incrementing a counter via {@link ShardedCounterServiceImpl}.
- * 
+ *
  * @author David Fuelling
  */
 public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCounterServiceTest
@@ -98,8 +98,8 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 		catch (RuntimeException e)
 		{
 			assertEquals("Can't mutate the incrementAmount of counter '" + TEST_COUNTER1
-				+ "' because it's currently in the DELETING state but must be in in the AVAILABLE state!",
-				e.getMessage());
+							+ "' because it's currently in the DELETING state but must be in in the AVAILABLE state!",
+					e.getMessage());
 			throw e;
 		}
 	}
@@ -206,7 +206,8 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 	{
 		final UUID operationUuid = UUID.randomUUID();
 
-		final Increment result = this.shardedCounterService.increment(TEST_COUNTER1, 1, operationUuid);
+		final CounterOperation result = this.shardedCounterService
+				.increment(TEST_COUNTER1, 1, operationUuid);
 
 		assertThat(result.getTotalAmount(), is(1L));
 		assertThat(result.getOperationUuid(), is(operationUuid));
@@ -219,7 +220,7 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 		assertThat(results[0], is(not(nullValue())));
 		assertThat(results[0].getAmount(), is(1L));
 		assertThat(results[0].getCounterShardDataKey(), is(not(nullValue())));
-		assertThat(results[0].getCounterShardOperationUuid(), is(not(operationUuid)));
+		assertThat(results[0].getId(), is(not(operationUuid)));
 		assertThat(results[0].getParentCounterOperationUuid(), is(operationUuid));
 		assertThat(results[0].getCreationDateTime(), is(not(nullValue())));
 	}

@@ -33,10 +33,7 @@ import com.googlecode.objectify.Work;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterShardData;
 import com.theupswell.appengine.counter.model.CounterOperation;
-import com.theupswell.appengine.counter.model.impl.CounterShardDecrement;
-import com.theupswell.appengine.counter.model.impl.CounterShardIncrement;
-import com.theupswell.appengine.counter.model.impl.Decrement;
-import com.theupswell.appengine.counter.model.impl.Increment;
+import com.theupswell.appengine.counter.model.CounterShardOperation;
 import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration.Builder;
 
 /**
@@ -108,12 +105,12 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		 * @return
 		 */
 		@Override
-		public Increment increment(final String counterName, final long requestedIncrementAmount)
+		public CounterOperation increment(final String counterName, final long requestedIncrementAmount)
 		{
-			return ObjectifyService.ofy().transact(new Work<Increment>()
+			return ObjectifyService.ofy().transact(new Work<CounterOperation>()
 			{
 				@Override
-				public Increment run()
+				public CounterOperation run()
 				{
 					// 1.) Create a random CounterShardData for simulation purposes. It doesn't do anything except
 					// to allow us to do something else in the Datastore in the same transactional context whilst
@@ -140,10 +137,10 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 	{
 		// Use "impl" to ensure that only 1 shard-per-counter exists.
 
-		Increment increment = impl.increment(TEST_COUNTER1, 1);
+		CounterOperation increment = impl.increment(TEST_COUNTER1, 1);
 		assertThat(increment.getTotalAmount(), is(1L));
 		assertThat(increment.getCounterShardOperations().size(), is(1));
-		Optional<CounterShardIncrement> optIncrementResult = increment.getFirstCounterOperationResult();
+		Optional<CounterShardOperation> optIncrementResult = increment.getFirstCounterOperationResult();
 
 		assertThat(optIncrementResult.isPresent(), is(true));
 		assertThat(optIncrementResult.get().getAmount(), is(1L));
@@ -244,8 +241,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		assertEquals(6, impl.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(8, impl.getCounter(TEST_COUNTER2).getCount());
 
-		Decrement decrement = impl.decrement(TEST_COUNTER1, 1);
-		Optional<CounterShardDecrement> optDecrementResult = decrement.getFirstCounterOperationResult();
+		CounterOperation decrement = impl.decrement(TEST_COUNTER1, 1);
+		Optional<CounterShardOperation> optDecrementResult = decrement.getFirstCounterOperationResult();
 
 		assertThat(decrement.getTotalAmount(), is(1L));
 		assertThat(decrement.getCounterShardOperations().size(), is(1));

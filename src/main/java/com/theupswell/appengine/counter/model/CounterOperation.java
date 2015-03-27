@@ -3,8 +3,7 @@ package com.theupswell.appengine.counter.model;
 import java.util.Set;
 import java.util.UUID;
 
-import org.joda.time.DateTime;
-
+import com.google.common.base.Optional;
 import com.googlecode.objectify.Key;
 import com.theupswell.appengine.counter.data.CounterShardData;
 
@@ -12,7 +11,7 @@ import com.theupswell.appengine.counter.data.CounterShardData;
  * An interface for modeling the result of a mutation (increment or decrement) of a {@link CounterShardData} entity in
  * the Datastore.
  */
-public interface CounterOperation<T extends CounterShardOperation>
+public interface CounterOperation
 {
 	/**
 	 * A {@link UUID} that uniquely identifies this decrement operation.
@@ -33,7 +32,15 @@ public interface CounterOperation<T extends CounterShardOperation>
 	 *
 	 * @return
 	 */
-	Set<T> getCounterShardOperations();
+	Set<CounterShardOperation> getCounterShardOperations();
+
+	/**
+	 * Helper method to retrieve the first {@link CounterShardOperation} in the Set of results accessed via
+	 * {@link #getCounterShardOperations()}.
+	 *
+	 * @return
+	 */
+	 Optional<CounterShardOperation> getFirstCounterOperationResult();
 
 	/**
 	 * Return the total amount of this counter operation result across sub-operations, if any.
@@ -41,13 +48,6 @@ public interface CounterOperation<T extends CounterShardOperation>
 	 * @return
 	 */
 	long getTotalAmount();
-
-	/**
-	 * The date and time that this counter operation was applied.
-	 * 
-	 * @return
-	 */
-	DateTime getDateTimeApplied();
 
 	/**
 	 * An enumeration that identifies the type of a {@link CounterShardOperation}.

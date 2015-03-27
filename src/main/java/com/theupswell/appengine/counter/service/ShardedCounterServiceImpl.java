@@ -34,11 +34,11 @@ import com.google.appengine.api.memcache.MemcacheServiceFactory;
 import com.google.appengine.api.taskqueue.Queue;
 import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.TaskOptions;
-import com.google.appengine.repackaged.com.google.common.collect.ImmutableSet;
-import com.google.appengine.repackaged.com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSet.Builder;
 import com.google.common.collect.Lists;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
@@ -50,10 +50,11 @@ import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
-import com.theupswell.appengine.counter.model.impl.CounterShardDecrement;
-import com.theupswell.appengine.counter.model.impl.CounterShardIncrement;
-import com.theupswell.appengine.counter.model.impl.Decrement;
-import com.theupswell.appengine.counter.model.impl.Increment;
+import com.theupswell.appengine.counter.model.CounterOperation;
+import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
+import com.theupswell.appengine.counter.model.CounterShardOperation;
+import com.theupswell.appengine.counter.model.impl.CounterOperationImpl;
+import com.theupswell.appengine.counter.model.impl.CounterShardOperationImpl;
 
 /**
  * <p>
@@ -176,12 +177,12 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		this.config = config;
 
 		Preconditions.checkArgument(config.getNumInitialShards() > 0,
-				"Number of Shards for a new CounterData must be greater than 0!");
+			"Number of Shards for a new CounterData must be greater than 0!");
 		if (config.getRelativeUrlPathForDeleteTaskQueue() != null)
 		{
 			// The relativeUrlPathForDeleteTaskQueue may be null, but if it's non-null, then it must not be blank.
 			Preconditions.checkArgument(!StringUtils.isBlank(config.getRelativeUrlPathForDeleteTaskQueue()),
-					"Must be null (for the Default Queue) or a non-blank String!");
+				"Must be null (for the Default Queue) or a non-blank String!");
 		}
 	}
 
@@ -200,7 +201,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	public Counter getCounter(final String counterName)
 	{
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
-				"CounterData Names may not be null, blank, or empty!");
+			"CounterData Names may not be null, blank, or empty!");
 
 		// We always load the CounterData from the Datastore (or its Objectify
 		// cache), but we sometimes return the cached count value.
@@ -222,7 +223,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			if (getLogger().isLoggable(Level.FINE))
 			{
 				getLogger().log(Level.FINE,
-						"Cache Hit for Counter Named \"" + counterName + "\": value=" + cachedCounterCount);
+					"Cache Hit for Counter Named \"" + counterName + "\": value=" + cachedCounterCount);
 			}
 			return new CounterBuilder(counterData).withCount(cachedCounterCount).build();
 		}
@@ -235,13 +236,13 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			if (getLogger().isLoggable(Level.FINE))
 			{
 				getLogger().log(
-						Level.FINE,
-						"Cache Miss for CounterData Named \"" + counterName + "\": value=" + cachedCounterCount
-								+ ".  Checking Datastore instead!");
+					Level.FINE,
+					"Cache Miss for CounterData Named \"" + counterName + "\": value=" + cachedCounterCount
+						+ ".  Checking Datastore instead!");
 				getLogger().log(
-						Level.FINE,
-						"Aggregating counts from " + counterData.getNumShards()
-								+ " CounterDataShards for CounterData named '" + counterData.getCounterName() + "'!");
+					Level.FINE,
+					"Aggregating counts from " + counterData.getNumShards()
+						+ " CounterDataShards for CounterData named '" + counterData.getCounterName() + "'!");
 			}
 
 			// ///////////////////
@@ -263,7 +264,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			// No TX - get is Strongly consistent by default, and we will exceed the TX limit for high-shard-count
 			// counters if we try to do this in a TX.
 			final Map<Key<CounterShardData>, CounterShardData> counterShardDatasMap = ObjectifyService.ofy()
-					.transactionless().load().keys(keysToLoad);
+				.transactionless().load().keys(keysToLoad);
 			final Collection<CounterShardData> counterShardDatas = counterShardDatasMap.values();
 			for (CounterShardData counterShardData : counterShardDatas)
 			{
@@ -276,10 +277,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			if (getLogger().isLoggable(Level.FINE))
 			{
 				getLogger().log(
-						Level.FINE,
-						"The Datastore is reporting a count of " + sum + " for CounterData \""
-								+ counterData.getCounterName() + "\" count.  Resetting memcache count to " + sum
-								+ " for this counter name");
+					Level.FINE,
+					"The Datastore is reporting a count of " + sum + " for CounterData \""
+						+ counterData.getCounterName() + "\" count.  Resetting memcache count to " + sum
+						+ " for this counter name");
 			}
 
 			try
@@ -319,7 +320,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// state.
 				final CounterData counterDataInDatastore = getOrCreateCounterData(incomingCounter.getCounterName());
 				assertCounterDetailsMutatable(counterDataInDatastore.getCounterName(),
-						counterDataInDatastore.getCounterStatus());
+					counterDataInDatastore.getCounterStatus());
 
 				// NOTE: READ_ONLY_COUNT status means the count can't be incremented/decremented. However, it's details
 				// can still be mutated.
@@ -340,7 +341,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				if (incomingCounter.getNumShards() < counterDataInDatastore.getNumShards())
 				{
 					throw new RuntimeException(
-							"Reducing the number of counter shards is not currently allowed!  See https://github.com/theupswell/appengine-counter/issues/4 for more details.");
+						"Reducing the number of counter shards is not currently allowed!  See https://github.com/theupswell/appengine-counter/issues/4 for more details.");
 				}
 
 				counterDataInDatastore.setNumShards(incomingCounter.getNumShards());
@@ -350,7 +351,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 				// Update the CounterDataIndexes
 				counterDataInDatastore.setIndexes(incomingCounter.getIndexes() == null ? CounterIndexes.none()
-						: incomingCounter.getIndexes());
+					: incomingCounter.getIndexes());
 
 				// Update the counter in the datastore.
 				ObjectifyService.ofy().save().entity(counterDataInDatastore).now();
@@ -366,13 +367,13 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// /////////////////////////////
 
 	@Override
-	public Increment increment(final String counterName, final long requestedIncrementAmount)
+	public CounterOperation increment(final String counterName, final long requestedIncrementAmount)
 	{
 		return this.increment(counterName, requestedIncrementAmount, UUID.randomUUID());
 	}
 
 	@Override
-	public Increment increment(final String counterName, final long requestedIncrementAmount,
+	public CounterOperation increment(final String counterName, final long requestedIncrementAmount,
 			final UUID incrementOperationId)
 	{
 		// ///////////
@@ -380,13 +381,13 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		Preconditions.checkNotNull(counterName, "CounterName may not be null!");
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName));
 		Preconditions
-				.checkArgument(requestedIncrementAmount > 0, "Counter increment amounts must be positive numbers!");
+			.checkArgument(requestedIncrementAmount > 0, "Counter increment amounts must be positive numbers!");
 		Preconditions.checkNotNull(incrementOperationId);
 
 		// Create the Work to be done for this increment, which will be done inside of a TX. See
 		// "https://developers.google.com/appengine/docs/java/datastore/transactions#Java_Isolation_and_consistency"
-		final Work<CounterShardIncrement> atomicIncrementShardWork = new IncrementShardWork(counterName,
-				requestedIncrementAmount, incrementOperationId);
+		final Work<CounterShardOperation> atomicIncrementShardWork = new IncrementShardWork(counterName,
+			requestedIncrementAmount, incrementOperationId);
 
 		// Note that this operation is idempotent from the perspective of a ConcurrentModificationException. In that
 		// case, the increment operation will fail and will not have been applied. An Objectify retry of the increment
@@ -406,8 +407,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// We use the "amountIncrementedInTx" to pause this thread until the work inside of "atomicIncrementShardWork"
 		// completes. This is because we don't want to increment memcache (below) until after that a transaction
 		// successfully commits.
-		final CounterShardIncrement incrementedShardInTxResult = ObjectifyService.ofy().transact(
-				atomicIncrementShardWork);
+		final CounterShardOperation incrementedShardInTxResult = ObjectifyService.ofy().transact(
+			atomicIncrementShardWork);
 
 		// /////////////////
 		// Increment this counter in memcache atomically, but only if we're not inside of an existing transaction.
@@ -425,8 +426,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			this.incrementMemcacheAtomic(counterName, incrementedShardInTxResult.getAmount());
 		}
 
-		return new Increment.Builder(incrementOperationId).withCounterOperationResult(incrementedShardInTxResult)
-				.build();
+		return new CounterOperationImpl.Builder(incrementOperationId, CounterOperationType.INCREMENT)
+			.withCounterOperationResult(incrementedShardInTxResult).build();
 	}
 
 	/**
@@ -434,7 +435,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 * specified non-negative {@code incrementAmount}.
 	 */
 	@VisibleForTesting
-	final class IncrementShardWork implements Work<CounterShardIncrement>
+	final class IncrementShardWork implements Work<CounterShardOperation>
 	{
 		private final UUID counterShardOperationUuid;
 		// We begin this transactional unit of work with just the counter name so we can guarantee all data in question
@@ -475,7 +476,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		 * @return
 		 */
 		@Override
-		public CounterShardIncrement run()
+		public CounterShardOperation run()
 		{
 			// Do this inside of the TX so that we guarantee no other thread has changed the counterData in question
 			// (e.g., the status of the counter has not changed from underneath this thread).
@@ -491,7 +492,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			final int shardNumber = generator.nextInt(currentNumShards);
 
 			final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterData.getTypedKey(),
-					shardNumber);
+				shardNumber);
 
 			// Load the Shard from the DS.
 			CounterShardData counterShardData = ObjectifyService.ofy().load().key(counterShardDataKey).now();
@@ -510,16 +511,17 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			if (getLogger().isLoggable(Level.FINE))
 			{
 				final String msg = String
-						.format(
-								"About to update CounterShardData (%s-->Shard-%s) with current incrementAmount %s and new incrementAmount %s",
-								counterName, shardNumber, counterShardData.getCount(), newAmount);
+					.format(
+						"About to update CounterShardData (%s-->Shard-%s) with current incrementAmount %s and new incrementAmount %s",
+						counterName, shardNumber, counterShardData.getCount(), newAmount);
 				getLogger().log(Level.FINE, msg);
 			}
 
 			ObjectifyService.ofy().save().entities(counterShardData).now();
 
-			return new CounterShardIncrement(counterShardOperationUuid, this.parentCounterOperationUuid,
-					counterShardDataKey, incrementAmount, counterShardData.getUpdatedDateTime());
+			return new CounterShardOperationImpl(counterShardOperationUuid, this.parentCounterOperationUuid,
+				counterShardDataKey, CounterOperationType.INCREMENT, incrementAmount,
+				counterShardData.getUpdatedDateTime());
 		}
 	}
 
@@ -528,13 +530,13 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// /////////////////////////////
 
 	@Override
-	public Decrement decrement(final String counterName, final long amount)
+	public CounterOperation decrement(final String counterName, final long amount)
 	{
 		return this.decrement(counterName, amount, UUID.randomUUID());
 	}
 
 	@Override
-	public Decrement decrement(final String counterName, final long amount, final UUID decrementOperationUuid)
+	public CounterOperation decrement(final String counterName, final long amount, final UUID decrementOperationUuid)
 	{
 		// ///////////
 		// Precondition Checks
@@ -572,20 +574,20 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		final int randomShardNum = generator.nextInt(currentNumShards);
 		final Key<CounterShardData> randomCounterShardDataKey = CounterShardData.key(counterDataKey, randomShardNum);
 		DecrementShardWork decrementShardTask = new DecrementShardWork(counterName, randomCounterShardDataKey, amount,
-				decrementOperationUuid);
+			decrementOperationUuid);
 
 		// The eventually returned values
-		final Builder<CounterShardDecrement> resultBuilder = ImmutableSet.builder();
+		final Builder<CounterShardOperation> resultBuilder = ImmutableSet.builder();
 
-		Optional<CounterShardDecrement> optCounterShardDecrementInTx = ObjectifyService.ofy().transactNew(
-				decrementShardTask);
+		Optional<CounterShardOperation> optCounterShardDecrementInTx = ObjectifyService.ofy().transactNew(
+			decrementShardTask);
 		if (optCounterShardDecrementInTx.isPresent())
 		{
 			resultBuilder.add(optCounterShardDecrementInTx.get());
 		}
 
 		long amountDecrementedInTx = optCounterShardDecrementInTx.isPresent() ? optCounterShardDecrementInTx.get()
-				.getAmount() : 0L;
+			.getAmount() : 0L;
 		totalAmountDecremented = amountDecrementedInTx;
 		long amountLeftToDecrement = amount - amountDecrementedInTx;
 
@@ -606,7 +608,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				if (amountLeftToDecrement > 0)
 				{
 					decrementShardTask = new DecrementShardWork(counterName, sequentialCounterShardDataKey,
-							amountLeftToDecrement, decrementOperationUuid);
+						amountLeftToDecrement, decrementOperationUuid);
 					optCounterShardDecrementInTx = ObjectifyService.ofy().transactNew(decrementShardTask);
 					if (optCounterShardDecrementInTx.isPresent())
 					{
@@ -614,7 +616,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 					}
 
 					amountDecrementedInTx = optCounterShardDecrementInTx.isPresent() ? optCounterShardDecrementInTx
-							.get().getAmount() : 0L;
+						.get().getAmount() : 0L;
 					totalAmountDecremented += amountDecrementedInTx;
 					amountLeftToDecrement -= amountDecrementedInTx;
 				}
@@ -634,7 +636,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		incrementMemcacheAtomic(counterName, (totalAmountDecremented * -1L));
 
 		// Don't return #getCount because it should be accessed outside of the decrement context.
-		return new Decrement.Builder(decrementOperationUuid).withCounterOperationResults(resultBuilder.build()).build();
+		return new CounterOperationImpl.Builder(decrementOperationUuid, CounterOperationType.DECREMENT)
+			.withCounterOperationResults(resultBuilder.build()).build();
 	}
 
 	/**
@@ -643,7 +646,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 * callable may be less than the requested incrementAmount.
 	 */
 	@VisibleForTesting
-	final class DecrementShardWork implements Work<Optional<CounterShardDecrement>>
+	final class DecrementShardWork implements Work<Optional<CounterShardOperation>>
 	{
 		private final UUID counterShardOperationUuid;
 		private final String counterName;
@@ -663,7 +666,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		 * @param requestedDecrementAmount
 		 * @param parentCounterOperationUuid
 		 */
-		@VisibleForTesting DecrementShardWork(final String counterName, final Key<CounterShardData> counterShardDataKey,
+		@VisibleForTesting
+		DecrementShardWork(final String counterName, final Key<CounterShardData> counterShardDataKey,
 				final long requestedDecrementAmount, final UUID parentCounterOperationUuid)
 		{
 			this.counterShardOperationUuid = UUID.randomUUID();
@@ -677,7 +681,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			this.counterShardDataKey = counterShardDataKey;
 
 			Preconditions.checkArgument(requestedDecrementAmount > 0,
-					"Counter decrement amounts must be positive numbers!");
+				"Counter decrement amounts must be positive numbers!");
 			this.requestedDecrementAmount = requestedDecrementAmount;
 
 			Preconditions.checkNotNull(parentCounterOperationUuid);
@@ -690,7 +694,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		 * are not permitted to go negative!
 		 */
 		@Override
-		public Optional<CounterShardDecrement> run()
+		public Optional<CounterShardOperation> run()
 		{
 			// This must be done in each decrement to ensure the status of the CounterData has not changed from
 			// underneath us.
@@ -710,7 +714,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 			// This is the incrementAmount to decrement by. It may be reduced if the shard doesn't have enough count!
 			final long decrementAmount = computeLargestDecrementAmountForShard(counterShardData.getCount(),
-					requestedDecrementAmount);
+				requestedDecrementAmount);
 
 			// ///////////////////////////////
 			// We have adjusted the decrementAmount, but it's possible it's still 0, in which case we should
@@ -722,9 +726,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				if (getLogger().isLoggable(Level.FINE))
 				{
 					getLogger().fine(
-							"Unable to Decrement CounterShardData (" + counterShardDataKey + ") with count "
-									+ counterShardData.getCount() + " and requestedDecrementAmount of "
-									+ requestedDecrementAmount);
+						"Unable to Decrement CounterShardData (" + counterShardDataKey + ") with count "
+							+ counterShardData.getCount() + " and requestedDecrementAmount of "
+							+ requestedDecrementAmount);
 				}
 
 				// Nothing was decremented! We don't create shards on a decrement operation!
@@ -737,16 +741,16 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				if (getLogger().isLoggable(Level.FINE))
 				{
 					getLogger().fine(
-							"Saving Decremented CounterShardData (" + counterShardDataKey + ") with count "
-									+ counterShardData.getCount() + " after requestedDecrementAmount of "
-									+ requestedDecrementAmount + " and actual decrementAmount of " + decrementAmount);
+						"Saving Decremented CounterShardData (" + counterShardDataKey + ") with count "
+							+ counterShardData.getCount() + " after requestedDecrementAmount of "
+							+ requestedDecrementAmount + " and actual decrementAmount of " + decrementAmount);
 				}
 
 				ObjectifyService.ofy().save().entities(counterShardData).now();
 
-				final CounterShardDecrement counterShardDecrement = new CounterShardDecrement(
-						counterShardOperationUuid, parentCounterOperationUuid, counterShardDataKey, decrementAmount,
-						counterShardData.getUpdatedDateTime());
+				final CounterShardOperation counterShardDecrement = new CounterShardOperationImpl(
+					counterShardOperationUuid, parentCounterOperationUuid, counterShardDataKey,
+					CounterOperationType.DECREMENT, decrementAmount, counterShardData.getUpdatedDateTime());
 				return Optional.of(counterShardDecrement);
 			}
 
@@ -859,8 +863,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		{
 			// Nothing to delete...perhaps another task already did the deletion?
 			final String msg = String.format(
-					"No CounterData was found in the Datastore while attempting to delete CounterData named '%s",
-					counterName);
+				"No CounterData was found in the Datastore while attempting to delete CounterData named '%s",
+				counterName);
 			getLogger().severe(msg);
 
 			// Clear this counter from Memcache, just in case.
@@ -870,7 +874,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		else if (counterData.getCounterStatus() != CounterData.CounterStatus.DELETING)
 		{
 			final String msg = String.format(
-					"Can't delete counter '%s' because it is currently not in the DELETING state!", counterName);
+				"Can't delete counter '%s' because it is currently not in the DELETING state!", counterName);
 			throw new RuntimeException(msg);
 		}
 		else
@@ -903,7 +907,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 *
 	 * @param counterName
 	 */
-	@VisibleForTesting void memcacheSafeDelete(final String counterName)
+	@VisibleForTesting
+	void memcacheSafeDelete(final String counterName)
 	{
 		Preconditions.checkNotNull(counterName);
 		try
@@ -922,7 +927,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 *
 	 * @param memcacheKey
 	 */
-	@VisibleForTesting Long memcacheSafeGet(final String memcacheKey)
+	@VisibleForTesting
+	Long memcacheSafeGet(final String memcacheKey)
 	{
 		Preconditions.checkNotNull(memcacheKey);
 
@@ -1029,9 +1035,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 					if (getLogger().isLoggable(Level.FINE))
 					{
 						final String msg = String
-								.format(
-										"While trying to increment Memcache, no value was found for counter '%s'.  Memcache will be populated on the next called to getCounter()!",
-										counterName);
+							.format(
+								"While trying to increment Memcache, no value was found for counter '%s'.  Memcache will be populated on the next called to getCounter()!",
+								counterName);
 						getLogger().fine(msg);
 					}
 
@@ -1044,7 +1050,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 					if (getLogger().isLoggable(Level.FINE))
 					{
 						final String msg = String.format("Memcache: Increment SUCCESS! Post-Increment counter is %s",
-								postIncrementValue);
+							postIncrementValue);
 						getLogger().fine(msg);
 					}
 
@@ -1060,8 +1066,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 					if (getLogger().isLoggable(Level.WARNING))
 					{
 						final String msg = String.format(
-								"Memcache: Unable to atomically increment counter '%s'.  Retrying %s more times...",
-								counterName, (NUM_RETRIES_LIMIT - currentRetry));
+							"Memcache: Unable to atomically increment counter '%s'.  Retrying %s more times...",
+							counterName, (NUM_RETRIES_LIMIT - currentRetry));
 						getLogger().log(Level.WARNING, msg, memcacheException);
 					}
 					// Keep trying...
@@ -1071,9 +1077,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				{
 					// Evict the counter here, and let the next call to #getCounter populate memcache
 					final String msg = String
-							.format(
-									"Memcache: Unable to atomically increment counter '%s', with no more retries.   Evicting counter from the cache!",
-									counterName);
+						.format(
+							"Memcache: Unable to atomically increment counter '%s', with no more retries.   Evicting counter from the cache!",
+							counterName);
 					getLogger().log(Level.SEVERE, msg, memcacheException);
 					memcacheService.delete(memCacheKey);
 					break;
@@ -1122,9 +1128,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		if (counterStatus != CounterStatus.AVAILABLE)
 		{
 			final String msg = String
-					.format(
-							"Can't mutate the incrementAmount of counter '%s' because it's currently in the %s state but must be in in the %s state!",
-							counterName, counterStatus.name(), CounterStatus.AVAILABLE);
+				.format(
+					"Can't mutate the incrementAmount of counter '%s' because it's currently in the %s state but must be in in the %s state!",
+					counterName, counterStatus.name(), CounterStatus.AVAILABLE);
 			throw new RuntimeException(msg);
 		}
 	}
@@ -1144,9 +1150,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		if (counterStatus != CounterStatus.AVAILABLE && counterStatus != CounterStatus.READ_ONLY_COUNT)
 		{
 			final String msg = String
-					.format(
-							"Can't mutate the details of counter '%s' because it's currently in the %s state but must be in in the %s or %s state!",
-							counterName, counterStatus, CounterStatus.AVAILABLE, CounterStatus.READ_ONLY_COUNT);
+				.format(
+					"Can't mutate the details of counter '%s' because it's currently in the %s state but must be in in the %s or %s state!",
+					counterName, counterStatus, CounterStatus.AVAILABLE, CounterStatus.READ_ONLY_COUNT);
 			throw new RuntimeException(msg);
 		}
 	}
@@ -1155,7 +1161,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	protected boolean isParentTransactionActive()
 	{
 		return ObjectifyService.ofy().getTransaction() == null ? false : ObjectifyService.ofy().getTransaction()
-				.isActive();
+			.isActive();
 	}
 
 	// private static final String DASH = "-";

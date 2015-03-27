@@ -20,11 +20,11 @@ import com.theupswell.appengine.counter.model.CounterShardOperation;
 @Getter
 @ToString
 @EqualsAndHashCode(of = {
-	"counterShardOperationUuid"
+	"id"
 })
-public abstract class AbstractCounterShardOperation implements CounterShardOperation
+public class CounterShardOperationImpl implements CounterShardOperation
 {
-	private final UUID counterShardOperationUuid;
+	private final UUID id;
 
 	private final UUID parentCounterOperationUuid;
 
@@ -34,12 +34,12 @@ public abstract class AbstractCounterShardOperation implements CounterShardOpera
 
 	private final long amount;
 
-	private DateTime creationDateTime;
+	private final DateTime creationDateTime;
 
 	/**
 	 * Required-args Constructor.
 	 *
-	 * @param counterShardOperationUuid A {@link UUID} that uniquely identifies this counter shard operation.
+	 * @param id A {@link UUID} that uniquely identifies this counter shard operation.
 	 * @param parentCounterOperationUuid A {@link UUID} that identifies the parent operation for this counter shard
 	 *            operation. Multiple increments/decrements may occur as part of a single counter operation.
 	 * @param counterShardDataKey A {@link Key} for the associated {@link CounterShardData} that this increment was
@@ -48,12 +48,12 @@ public abstract class AbstractCounterShardOperation implements CounterShardOpera
 	 * @param amount The amount of the applied increment or decrement.
 	 * @param creationDateTime The {@link DateTime} that this operation was created.
 	 */
-	protected AbstractCounterShardOperation(UUID counterShardOperationUuid, final UUID parentCounterOperationUuid,
+	public CounterShardOperationImpl(UUID id, final UUID parentCounterOperationUuid,
 			final Key<CounterShardData> counterShardDataKey, final CounterOperationType counterOperationType,
 			final long amount, final DateTime creationDateTime)
 	{
-		Preconditions.checkNotNull(counterShardOperationUuid);
-		this.counterShardOperationUuid = counterShardOperationUuid;
+		Preconditions.checkNotNull(id);
+		this.id = id;
 
 		Preconditions.checkNotNull(parentCounterOperationUuid);
 		this.parentCounterOperationUuid = parentCounterOperationUuid;
@@ -61,7 +61,7 @@ public abstract class AbstractCounterShardOperation implements CounterShardOpera
 		Preconditions.checkNotNull(counterShardDataKey);
 		this.counterShardDataKey = counterShardDataKey;
 
-		Preconditions.checkNotNull(counterShardDataKey);
+		Preconditions.checkNotNull(counterOperationType);
 		this.counterOperationType = counterOperationType;
 
 		Preconditions.checkArgument(amount > 0);

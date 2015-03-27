@@ -19,19 +19,19 @@ public interface CounterShardOperation
 	 *
 	 * @return
 	 */
-	UUID getCounterShardOperationUuid();
+	UUID getId();
 
 	/**
 	 * Return a {@link UUID} that identifies the parent operation for this counter shard operation. Multiple
 	 * increments/decrements may occur as part of a single counter operation.
-	 * 
+	 *
 	 * @return
 	 */
 	UUID getParentCounterOperationUuid();
 
 	/**
 	 * Return the {@link Key} for the {@link CounterShardData} that this counter operation result was effected upon.
-	 * 
+	 *
 	 * @return
 	 */
 	Key<CounterShardData> getCounterShardDataKey();
@@ -52,7 +52,7 @@ public interface CounterShardOperation
 
 	/**
 	 * Return the {@link DateTime} that this instance was created.
-	 * 
+	 *
 	 * @return
 	 */
 	DateTime getCreationDateTime();
