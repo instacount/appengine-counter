@@ -151,8 +151,8 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 		shardedCounterService.increment(TEST_COUNTER1, 1);
 		shardedCounterService.increment(TEST_COUNTER2, 1);
 
-		assertEquals(3, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(4, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(BigInteger.valueOf(3L), shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(BigInteger.valueOf(4L), shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 
 		shardedCounterService.increment(TEST_COUNTER1, 1);
 		shardedCounterService.increment(TEST_COUNTER2, 1);
@@ -162,8 +162,8 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 		shardedCounterService.increment(TEST_COUNTER1, 1);
 		shardedCounterService.increment(TEST_COUNTER2, 1);
 
-		assertEquals(6, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(8, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(BigInteger.valueOf(6L), shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(BigInteger.valueOf(8L), shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 
 		shardedCounterService.decrement(TEST_COUNTER1, 1);
 		shardedCounterService.decrement(TEST_COUNTER2, 1);
@@ -173,8 +173,8 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 		shardedCounterService.decrement(TEST_COUNTER1, 1);
 		shardedCounterService.decrement(TEST_COUNTER2, 1);
 
-		assertEquals(3, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(4, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(BigInteger.valueOf(3L), shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(BigInteger.valueOf(4L), shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 
 		shardedCounterService.decrement(TEST_COUNTER1, 1);
 		shardedCounterService.decrement(TEST_COUNTER2, 1);
@@ -184,8 +184,8 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 		shardedCounterService.decrement(TEST_COUNTER1, 1);
 		shardedCounterService.decrement(TEST_COUNTER2, 1);
 
-		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(BigInteger.ZERO, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(BigInteger.ZERO, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 	}
 
 	// Tests counters with up to 15 shards and excerises each shard
@@ -210,7 +210,7 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 
 		assertThat(result.getAppliedAmount(), is(1L));
 		assertThat(result.getOperationUuid(), is(operationUuid));
-		assertThat(result.getCounterOperationType(), is(CounterOperationType.DECREMENT));
+		assertThat(result.getCounterOperationType(), is(CounterOperationType.INCREMENT));
 		assertThat(result.getCounterShardDataKey(), is(not(nullValue())));
 		assertThat(result.getCreationDateTime(), is(not(nullValue())));
 	}

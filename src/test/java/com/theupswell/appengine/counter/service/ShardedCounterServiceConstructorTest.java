@@ -19,6 +19,8 @@ import org.junit.Test;
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
 import com.theupswell.appengine.counter.Counter;
 
+import java.math.BigInteger;
+
 /**
  * Constructor Test class for {@link ShardedCounterService}.
  * 
@@ -79,7 +81,7 @@ public class ShardedCounterServiceConstructorTest extends AbstractShardedCounter
 	{
 		shardedCounterService = new ShardedCounterServiceImpl();
 		Counter counter = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter, TEST_COUNTER1, 0L);
+		assertCounter(counter, TEST_COUNTER1, BigInteger.ZERO);
 	}
 
 	@Test
@@ -91,7 +93,7 @@ public class ShardedCounterServiceConstructorTest extends AbstractShardedCounter
 		shardedCounterService = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(), config);
 
 		Counter counter = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter, TEST_COUNTER1, 0L);
+		assertCounter(counter, TEST_COUNTER1, BigInteger.ZERO);
 	}
 
 	@Test
@@ -104,7 +106,7 @@ public class ShardedCounterServiceConstructorTest extends AbstractShardedCounter
 		shardedCounterService = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(), config);
 
 		Counter counter = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter, TEST_COUNTER1, 0L);
+		assertCounter(counter, TEST_COUNTER1, BigInteger.ZERO);
 	}
 
 }

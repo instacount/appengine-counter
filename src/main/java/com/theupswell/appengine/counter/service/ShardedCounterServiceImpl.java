@@ -473,7 +473,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			ObjectifyService.ofy().save().entities(counterShardData).now();
 
 			return new CounterOperation.Impl(counterShardOperationUuid, counterShardDataKey,
-				CounterOperationType.INCREMENT, Math.abs(incrementAmount), counterShardData.getUpdatedDateTime());
+				incrementAmount < 0 ? CounterOperationType.DECREMENT : CounterOperationType.INCREMENT,
+				Math.abs(incrementAmount), counterShardData.getUpdatedDateTime());
 		}
 	}
 

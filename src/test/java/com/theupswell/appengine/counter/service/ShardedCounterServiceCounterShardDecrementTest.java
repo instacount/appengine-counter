@@ -16,6 +16,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import java.math.BigInteger;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -142,8 +143,8 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 			shardedCounterService.decrement(TEST_COUNTER2, 1);
 		}
 
-		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(BigInteger.ZERO, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(BigInteger.ZERO, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 	}
 
 	@Test
@@ -162,8 +163,8 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 			shardedCounterService.decrement(TEST_COUNTER2, 1);
 		}
 
-		assertEquals(-10, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(-10, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(BigInteger.valueOf(-10L), shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(BigInteger.valueOf(-10L), shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 	}
 
 	// Tests counters with up to 15 shards and excerises each shard
@@ -204,14 +205,15 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 		for (int i = 1; i <= numIterations; i++)
 		{
 			shardedCounterService.decrement(counterName + "-1", 1);
-			assertEquals(numIterations - i, shardedCounterService.getCounter(counterName + "-1").getCount());
+			assertEquals(BigInteger.valueOf(numIterations - i), shardedCounterService.getCounter(counterName + "-1")
+				.getCount());
 		}
 
 		// /////////////////////////
 		// Reset the counter
 		// /////////////////////////
 		shardedCounterService.increment(counterName + "-1", numIterations);
-		assertEquals(numIterations, shardedCounterService.getCounter(counterName + "-1").getCount());
+		assertEquals(BigInteger.valueOf(numIterations), shardedCounterService.getCounter(counterName + "-1").getCount());
 
 		// ////////////////////////
 		// No Memcache Caching
@@ -227,14 +229,15 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 			{
 				this.memcache.clearAll();
 			}
-			assertEquals(numIterations - i, shardedCounterService.getCounter(counterName + "-1").getCount());
+			assertEquals(BigInteger.valueOf(numIterations - i), shardedCounterService.getCounter(counterName + "-1")
+				.getCount());
 		}
 
 		// /////////////////////////
 		// Reset the counter
 		// /////////////////////////
 		shardedCounterService.increment(counterName + "-1", numIterations);
-		assertEquals(numIterations, shardedCounterService.getCounter(counterName + "-1").getCount());
+		assertEquals(BigInteger.valueOf(numIterations), shardedCounterService.getCounter(counterName + "-1").getCount());
 
 		// ////////////////////////
 		// Memcache Cleared BEFORE Decrement Only
@@ -246,14 +249,15 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 				this.memcache.clearAll();
 			}
 			shardedCounterService.decrement(counterName + "-1", 1);
-			assertEquals(numIterations - i, shardedCounterService.getCounter(counterName + "-1").getCount());
+			assertEquals(BigInteger.valueOf(numIterations - i), shardedCounterService.getCounter(counterName + "-1")
+				.getCount());
 		}
 
 		// /////////////////////////
 		// Reset the counter
 		// /////////////////////////
 		shardedCounterService.increment(counterName + "-1", numIterations);
-		assertEquals(numIterations, shardedCounterService.getCounter(counterName + "-1").getCount());
+		assertEquals(BigInteger.valueOf(numIterations), shardedCounterService.getCounter(counterName + "-1").getCount());
 
 		// ////////////////////////
 		// Memcache Cleared AFTER Decrement Only
@@ -265,7 +269,8 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 			{
 				this.memcache.clearAll();
 			}
-			assertEquals(numIterations - i, shardedCounterService.getCounter(counterName + "-1").getCount());
+			assertEquals(BigInteger.valueOf(numIterations - i), shardedCounterService.getCounter(counterName + "-1")
+				.getCount());
 		}
 
 	}

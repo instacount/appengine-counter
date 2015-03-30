@@ -36,6 +36,8 @@ import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterShardData;
 
+import java.math.BigInteger;
+
 /**
  * An abstract base class for testing {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}
  *
@@ -140,7 +142,7 @@ public abstract class AbstractShardedCounterServiceTest
 	 *
 	 * @param counter
 	 */
-	protected void assertCounter(Counter counter, String expectedCounterName, long expectedCounterCount)
+	protected void assertCounter(Counter counter, String expectedCounterName, BigInteger expectedCounterCount)
 	{
 		assertTrue(counter != null);
 		assertEquals(expectedCounterCount, counter.getCount());

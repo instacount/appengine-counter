@@ -278,6 +278,8 @@ Change Log
 + Introduced CounterService.reset() to reset a counter to 0.
 + Introduced CounterService.delete() to delete a counter.
 + Better failure handling in the event of a memcache failure.
++ Counter.java now holds a BigInteger instead of a long since the aggregation of multiple shards may exceed Long.MAX_VALUE - 1.
++ 
 
 **Version 1.2.0**
 + Remove AbstractEntity, and more tightly enforce that CounterData may not have null ids.

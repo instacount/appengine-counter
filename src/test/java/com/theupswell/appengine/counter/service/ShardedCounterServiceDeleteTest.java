@@ -14,6 +14,7 @@ package com.theupswell.appengine.counter.service;
 
 import static org.junit.Assert.*;
 
+import java.math.BigInteger;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
@@ -77,11 +78,11 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 	{
 		shardedCounterService.delete(TEST_COUNTER1);
 		Counter counter = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter, TEST_COUNTER1, 0L);
+		assertCounter(counter, TEST_COUNTER1, BigInteger.ZERO);
 
 		shardedCounterService.delete(TEST_COUNTER2);
 		counter = shardedCounterService.getCounter(TEST_COUNTER2);
-		assertCounter(counter, TEST_COUNTER2, 0L);
+		assertCounter(counter, TEST_COUNTER2, BigInteger.ZERO);
 	}
 
 	@Test
@@ -115,14 +116,14 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 	{
 		shardedCounterService.increment(TEST_COUNTER1, 1);
 		final Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter1, TEST_COUNTER1, 1L);
+		assertCounter(counter1, TEST_COUNTER1, BigInteger.valueOf(1L));
 
 		shardedCounterService.delete(TEST_COUNTER1);
 		assertPostDeleteCallSuccess(TEST_COUNTER1);
 
 		shardedCounterService.increment(TEST_COUNTER2, 1);
 		final Counter counter2 = shardedCounterService.getCounter(TEST_COUNTER2);
-		assertCounter(counter2, TEST_COUNTER2, 1L);
+		assertCounter(counter2, TEST_COUNTER2, BigInteger.valueOf(1L));
 
 		shardedCounterService.delete(TEST_COUNTER2);
 		assertPostDeleteCallSuccess(TEST_COUNTER2);
@@ -158,10 +159,10 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 		}
 
 		Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter1, TEST_COUNTER1, 21);
+		assertCounter(counter1, TEST_COUNTER1, BigInteger.valueOf(21L));
 
 		Counter counter2 = shardedCounterService.getCounter(TEST_COUNTER2);
-		assertCounter(counter2, TEST_COUNTER2, 22);
+		assertCounter(counter2, TEST_COUNTER2, BigInteger.valueOf(22L));
 
 		// ///////////////
 		// Assert that 6 CounterShards Exist (3 for each CounterData)
@@ -199,7 +200,7 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 		// ///////////////
 
 		Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter1, TEST_COUNTER1, 50);
+		assertCounter(counter1, TEST_COUNTER1, BigInteger.valueOf(50L));
 
 		// ///////////////
 		// Assert that 10 CounterShards Exist
