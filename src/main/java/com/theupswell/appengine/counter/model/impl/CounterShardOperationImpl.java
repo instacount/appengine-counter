@@ -64,7 +64,7 @@ public class CounterShardOperationImpl implements CounterShardOperation
 		Preconditions.checkNotNull(counterOperationType);
 		this.counterOperationType = counterOperationType;
 
-		Preconditions.checkArgument(amount > 0);
+		Preconditions.checkArgument(amount > 0, "Counter mutation amounts must be positive numbers!");
 		this.amount = amount;
 
 		Preconditions.checkNotNull(creationDateTime);

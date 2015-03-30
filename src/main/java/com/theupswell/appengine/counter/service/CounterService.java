@@ -37,7 +37,21 @@ public interface CounterService
 	 * then one will be created with a {@link Counter#getCount()} value of 0.
 	 *
 	 * @param counterName
+	 * @param skipCache {@code true} if the cache should be skipped and all shards should be counted in order to get the
+	 *            count; {@code false} if the cache should be consulted first in order to save computing resources while
+	 *            trying to determine the count.
 	 *
+	 * @return An {@link Counter} with an accurate count.
+	 */
+	Counter getCounter(final String counterName, final boolean skipCache);
+
+	/**
+	 * Retrieve the value of the counter with the specified {@code counterName}. Counters always exist and are
+	 * non-negative, so if the underlying implementation does not have a counter with the specified {@code counterName},
+	 * then one will be created with a {@link Counter#getCount()} value of 0.
+	 *
+	 * @param counterName
+	 * 
 	 * @return An {@link Counter} with an accurate count.
 	 */
 	Counter getCounter(final String counterName);
@@ -61,24 +75,12 @@ public interface CounterService
 	void updateCounterDetails(final Counter counter);
 
 	/**
-	 * Increment the value of a sharded counter by {@code amount} using an isolated TransactionContext and a random
-	 * increment UUID, which is used to uniquely identify each increment operation. If you need to execute this
-	 * operation in an existing parent transaction, then wrap this call in an Objectify {@link Work} anonymous class,
-	 * like this:
-	 *
-	 * <pre>
-	 * return ObjectifyService.ofy().transactNew(1, new Work&lt;Void&gt;()
-	 * {
-	 * 	&#064;Override
-	 * 	public Void run()
-	 * 	{
-	 * 		counterService.increment(&quot;foo&quot;, 1);
-	 * 	}
-	 * });
-	 * </pre>
+	 * Increment the value of a sharded counter by {@code amount} using a random increment {@link UUID}, which is used
+	 * to uniquely identify each increment operation. See the javadoc of {@link #increment(String, long, UUID)} for more
+	 * details.
 	 * 
 	 * @param counterName The name of the counter to increment.
-	 * @param requestedIncrementAmount The amount to increment the counter with.
+	 * @param amount The amount to increment the counter with.
 	 *
 	 * @return An instance of {@link CounterOperation} that holds a {@link Set} decrements, as well as the amount that
 	 *         was actually added to the counter named {@code counterName}. This return value can be used to discern any
@@ -86,10 +88,10 @@ public interface CounterService
 	 * 
 	 * @throws NullPointerException if the {@code counterName} is null.
 	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
-	 * @throws IllegalArgumentException if the {@code amount} to decrement is negative (decrement amounts must always be
+	 * @throws IllegalArgumentException if the {@code amount} to increment is negative (increment amounts must always be
 	 *             positive).
 	 * @throws RuntimeException if the counter exists in the Datastore but has a status that prevents it from being
-	 *             mutated (e.g., Fa {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
+	 *             mutated (e.g., a {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
 	 *             counterStatus of {@link CounterStatus#AVAILABLE} may be mutated, incremented or decremented.
 	 * @throws DatastoreFailureException Thrown when any unknown error occurs while communicating with the data store.
 	 *             Note that despite receiving this exception, it's possible that the datastore actually committed data
@@ -101,13 +103,24 @@ public interface CounterService
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
 	 */
-	CounterOperation increment(final String counterName, final long requestedIncrementAmount);
+	CounterOperation increment(final String counterName, final long amount);
 
 	/**
-	 * Increment the value of a sharded counter by {@code amount} using an isolated TransactionContext and a specified
-	 * increment UUID, which is used to uniquely identify each increment operation. If you need to execute this
-	 * operation in an existing parent transaction, then wrap this call in an Objectify {@link Work} anonymous class,
-	 * like this:
+	 * Increment the value of a sharded counter by {@code amount} using a specified increment {@link UUID}, which is
+	 * used to uniquely identify the increment operation for later idempotent retry.
+	 * 
+	 * This operation is idempotent from the perspective of a ConcurrentModificationException, in which case the
+	 * requested increment operation will have failed and will not have been applied. However, be aware that per the
+	 * AppEngine docs, in certain rare cases "If your application receives an exception when committing a transaction,
+	 * it does not always mean that the transaction failed. You can receive DatastoreTimeoutException or
+	 * DatastoreFailureException in cases where transactions have been committed and eventually will be applied
+	 * successfully." In these cases, clients of this counter service can retrieve the current count of a counter using
+	 * {@link #getCounter(String)} to help determine if an increment was actually applied. Additionally, for a more
+	 * accurate determination, clients can call {@link #isIncrementApplied} to determine if the increment succeeded or
+	 * failed, or is still in processing.
+	 * 
+	 * If you need to execute this operation in an existing parent transaction, then wrap this call in an Objectify
+	 * {@link Work} anonymous class, like this:
 	 *
 	 * <pre>
 	 * return ObjectifyService.ofy().transactNew(1, new Work&lt;Void&gt;()
@@ -121,7 +134,7 @@ public interface CounterService
 	 * </pre>
 	 *
 	 * @param counterName The name of the counter to increment.
-	 * @param requestedIncrementAmount The amount to increment the counter with.
+	 * @param amount The amount to increment the counter with.
 	 * @param incrementUuid A {@link UUID} for the increment that will be performed.
 	 * 
 	 * @return An instance of {@link CounterOperation} that holds a {@link Set} decrements, as well as the amount that
@@ -130,7 +143,7 @@ public interface CounterService
 	 * 
 	 * @throws NullPointerException if the {@code counterName} is null.
 	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
-	 * @throws IllegalArgumentException if the {@code amount} to decrement is negative (decrement amounts must always be
+	 * @throws IllegalArgumentException if the {@code amount} to increment is negative (increment amounts must always be
 	 *             positive).
 	 * @throws RuntimeException if the counter exists in the Datastore but has a status that prevents it from being
 	 *             mutated (e.g., Fa {@link CounterStatus} of {@code CounterStatus#DELETING}). Only Counters with a
@@ -145,7 +158,7 @@ public interface CounterService
 	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
 	 *             this exception without checking the state of the counter first.
 	 */
-	CounterOperation increment(final String counterName, final long requestedIncrementAmount, final UUID incrementUuid);
+	CounterOperation increment(final String counterName, final long amount, final UUID incrementUuid);
 
 	/**
 	 * <p>

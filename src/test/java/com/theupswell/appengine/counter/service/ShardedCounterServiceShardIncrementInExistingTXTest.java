@@ -349,19 +349,19 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		assertEquals(0, impl.getCounter(TEST_COUNTER2).getCount());
 
 		decrement = impl.decrement(TEST_COUNTER1, 1);
-		assertThat(decrement.getTotalAmount(), is(0L));
-		assertThat(decrement.getCounterShardOperations().size(), is(0));
+		assertThat(decrement.getTotalAmount(), is(1L));
+		assertThat(decrement.getCounterShardOperations().size(), is(1));
 		optDecrementResult = decrement.getFirstCounterOperationResult();
-		assertThat(optDecrementResult.isPresent(), is(false));
+		assertThat(optDecrementResult.isPresent(), is(true));
 
 		decrement = impl.decrement(TEST_COUNTER2, 1);
-		assertThat(decrement.getTotalAmount(), is(0L));
+		assertThat(decrement.getTotalAmount(), is(-1L));
 		assertThat(decrement.getCounterShardOperations().size(), is(0));
 		optDecrementResult = decrement.getFirstCounterOperationResult();
 		assertThat(optDecrementResult.isPresent(), is(false));
 	}
 
-	// /////////////////////////
+	// //////////
 	// Increment
 	// //////////
 	// ExistingTx: F; ExistingCounter: F (Cache is F - always)

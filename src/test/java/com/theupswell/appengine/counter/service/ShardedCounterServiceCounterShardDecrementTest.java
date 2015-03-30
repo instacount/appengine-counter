@@ -163,8 +163,8 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 			shardedCounterService.decrement(TEST_COUNTER2, 1);
 		}
 
-		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(0, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(-10, shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(-10, shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 	}
 
 	// Tests counters with up to 15 shards and excerises each shard
