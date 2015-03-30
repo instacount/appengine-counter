@@ -16,6 +16,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
+import java.math.BigInteger;
 import java.util.UUID;
 
 import org.junit.After;
@@ -27,7 +28,6 @@ import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.model.CounterOperation;
 import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
-import com.theupswell.appengine.counter.model.CounterShardOperation;
 
 /**
  * Unit tests for incrementing a counter via {@link ShardedCounterServiceImpl}.
@@ -98,8 +98,8 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 		catch (RuntimeException e)
 		{
 			assertEquals("Can't mutate the incrementAmount of counter '" + TEST_COUNTER1
-							+ "' because it's currently in the DELETING state but must be in in the AVAILABLE state!",
-					e.getMessage());
+				+ "' because it's currently in the DELETING state but must be in in the AVAILABLE state!",
+				e.getMessage());
 			throw e;
 		}
 	}
@@ -206,23 +206,13 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 	{
 		final UUID operationUuid = UUID.randomUUID();
 
-		final CounterOperation result = this.shardedCounterService
-				.increment(TEST_COUNTER1, 1, operationUuid);
+		final CounterOperation result = this.shardedCounterService.increment(TEST_COUNTER1, 1, operationUuid);
 
-		assertThat(result.getTotalAmount(), is(1L));
+		assertThat(result.getAppliedAmount(), is(1L));
 		assertThat(result.getOperationUuid(), is(operationUuid));
-		assertThat(result.getCounterOperationType(), is(CounterOperationType.INCREMENT));
-		assertThat(result.getCounterShardOperations(), is(not(nullValue())));
-		assertThat(result.getCounterShardOperations().size(), is(1));
-
-		CounterShardOperation[] results = result.getCounterShardOperations().toArray(new CounterShardOperation[0]);
-
-		assertThat(results[0], is(not(nullValue())));
-		assertThat(results[0].getAmount(), is(1L));
-		assertThat(results[0].getCounterShardDataKey(), is(not(nullValue())));
-		assertThat(results[0].getId(), is(not(operationUuid)));
-		assertThat(results[0].getParentCounterOperationUuid(), is(operationUuid));
-		assertThat(results[0].getCreationDateTime(), is(not(nullValue())));
+		assertThat(result.getCounterOperationType(), is(CounterOperationType.DECREMENT));
+		assertThat(result.getCounterShardDataKey(), is(not(nullValue())));
+		assertThat(result.getCreationDateTime(), is(not(nullValue())));
 	}
 
 	// /////////////////////////
@@ -237,7 +227,7 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 		for (int i = 1; i <= numIterations; i++)
 		{
 			shardedCounterService.increment(counterName + "-1", 1);
-			assertEquals(i, shardedCounterService.getCounter(counterName + "-1").getCount());
+			assertEquals(BigInteger.valueOf(i), shardedCounterService.getCounter(counterName + "-1").getCount());
 		}
 
 		// ////////////////////////
@@ -254,7 +244,7 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 			{
 				this.memcache.clearAll();
 			}
-			assertEquals(i, shardedCounterService.getCounter(counterName + "-2").getCount());
+			assertEquals(BigInteger.valueOf(i), shardedCounterService.getCounter(counterName + "-2").getCount());
 		}
 
 		// ////////////////////////
@@ -268,7 +258,7 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 				this.memcache.clearAll();
 			}
 			shardedCounterService.increment(counterName + "-3", 1);
-			assertEquals(i, shardedCounterService.getCounter(counterName + "-3").getCount());
+			assertEquals(BigInteger.valueOf(i), shardedCounterService.getCounter(counterName + "-3").getCount());
 		}
 
 		// ////////////////////////
@@ -283,7 +273,7 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 			{
 				this.memcache.clearAll();
 			}
-			assertEquals(i, shardedCounterService.getCounter(counterName + "-4").getCount());
+			assertEquals(BigInteger.valueOf(i), shardedCounterService.getCounter(counterName + "-4").getCount());
 		}
 
 	}

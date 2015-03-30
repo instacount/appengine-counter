@@ -4,6 +4,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 
+import java.math.BigInteger;
+
 import org.junit.Test;
 
 import com.theupswell.appengine.counter.data.CounterData;
@@ -16,7 +18,7 @@ public class CounterBuilderTest
 	private static final String TEST_COUNTER_NAME = "test-counter";
 	private static final String TEST_COUNTER_DESCRIPTION = "test-counter-description";
 	private static final int NUM_SHARDS = 3;
-	private static final long COUNT = 10L;
+	private static final BigInteger COUNT = BigInteger.valueOf(10L);
 	private static final CounterIndexes NO_INDEXES = CounterIndexes.none();
 
 	@Test

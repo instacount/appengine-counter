@@ -294,7 +294,7 @@ Change Log
 
 **Version 1.1.0**
 + Improve Transaction semantics for parent-transactions
-+ Simplify CounterService interface (no longer returns Counter count; must specify increment/decrement amount)
++ Simplify CounterService interface (no longer returns Counter count; must specify increment/decrement appliedAmount)
 + Fix [Issue #7](https://github.com/theupswell/appengine-counter/issues/7) numRetries doesn't get decremented in ShardedCounterServiceImpl.incrementMemcacheAtomic
 + Fix [Issue #11](https://github.com/theupswell/appengine-counter/issues/11) Default Delete Implementation (see [here](https://github.com/theupswell/appengine-counter/tree/master/src/main/java/com/theupswell/appengine/counter/ext/DefaultDeletionTaskHandler.java)).
 + Fix [Issue #16](https://github.com/theupswell/appengine-counter/issues/16) Remove redundant counterShard datastore put in ShardedCounterServiceImpl#increment

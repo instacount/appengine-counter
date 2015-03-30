@@ -12,6 +12,8 @@
  */
 package com.theupswell.appengine.counter;
 
+import java.math.BigInteger;
+
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.ToString;
@@ -39,7 +41,7 @@ public class Counter
 	// The number of shards available for this counter.
 	private final int numShards;
 	private final CounterData.CounterStatus counterStatus;
-	private final long count;
+	private final BigInteger count;
 	private final CounterIndexes indexes;
 
 	/**
@@ -77,7 +79,7 @@ public class Counter
 	public Counter(final String counterName, final String counterDescription, final int numShards,
 			final CounterData.CounterStatus counterStatus, final CounterIndexes indexes)
 	{
-		this(counterName, counterDescription, numShards, counterStatus, 0, indexes);
+		this(counterName, counterDescription, numShards, counterStatus, BigInteger.ZERO, indexes);
 	}
 
 	/**
@@ -90,7 +92,7 @@ public class Counter
 	 * @param indexes
 	 */
 	public Counter(final String counterName, final String counterDescription, final int numShards,
-			final CounterStatus counterStatus, final long count, final CounterIndexes indexes)
+			final CounterStatus counterStatus, final BigInteger count, final CounterIndexes indexes)
 	{
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName), "CounterName may not be empty, blank, or null!");
 		Preconditions.checkNotNull(counterStatus);

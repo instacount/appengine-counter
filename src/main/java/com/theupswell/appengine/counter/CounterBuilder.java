@@ -12,6 +12,8 @@
  */
 package com.theupswell.appengine.counter;
 
+import java.math.BigInteger;
+
 import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +30,7 @@ public class CounterBuilder
 	private String counterDescription;
 	private int numShards;
 	private CounterData.CounterStatus counterStatus = CounterData.CounterStatus.AVAILABLE;
-	private long count;
+	private BigInteger count;
 	private CounterIndexes indexes;
 
 	/**
@@ -111,7 +113,7 @@ public class CounterBuilder
 	 * @param count
 	 * @return
 	 */
-	public CounterBuilder withCount(final long count)
+	public CounterBuilder withCount(final BigInteger count)
 	{
 		this.setCount(count);
 		return this;
