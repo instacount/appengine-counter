@@ -579,6 +579,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// The eventually returned values
 		final Builder<CounterShardOperation> resultBuilder = ImmutableSet.builder();
 
+		// This can be retried in the event of a ConcurrentModificationException because the TX will rollback in that
+		// case. In the case of a DatastoreTimeoutException or DatastoreFailureException, this will be percolated to the
+		// calling method and register as a failure. The increment *may* commit, but it will be the responsibility of
+		// the caller to figure out if a retry should be performed.
 		Optional<CounterShardOperation> optCounterShardDecrementInTx = ObjectifyService.ofy().transactNew(
 			decrementShardTask);
 		if (optCounterShardDecrementInTx.isPresent())
