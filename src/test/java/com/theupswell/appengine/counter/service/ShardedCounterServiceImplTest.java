@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
+import com.google.appengine.repackaged.com.google.common.math.LongMath;
 import com.google.common.base.Optional;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
@@ -671,6 +672,32 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		assertThat(result.getAppliedAmount(), is(10L));
 		assertThat(result.getCounterShardDataKey(), is(counterShardDataKey));
 		assertTrue(result.getCreationDateTime().isEqual(now) || result.getCreationDateTime().isAfter(now));
+	}
+
+	// ///////////////////
+	// Guava Overflow/Underlfow
+	// ///////////////////
+
+	// Adding 1 to Long.MAX_VALUE should overflow.
+	@Test(expected = ArithmeticException.class)
+	public void testOverflow()
+	{
+		long left = Long.MAX_VALUE;
+		long right = 1L;
+
+		LongMath.checkedAdd(left, right);
+		fail();
+	}
+
+	// Adding a negative 1 to Long.MIN_VALUE should underflow.
+	@Test(expected = ArithmeticException.class)
+	public void testUnderflow()
+	{
+		long left = Long.MIN_VALUE;
+		long right = -1L;
+
+		LongMath.checkedAdd(left, right);
+		fail();
 	}
 
 }

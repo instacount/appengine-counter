@@ -242,6 +242,24 @@ public interface CounterService
 	CounterOperation decrement(final String counterName, final long requestedDecrementAmount, final UUID decrementUuid);
 
 	/**
+	 * Resets a {@link Counter} to have a count of zero by disabling the counter, incrementing or decrementing as
+	 * necessary, and then enabling the counter.
+	 *
+	 * @throws NullPointerException if the {@code counterName} is null.
+	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
+	 * @throws DatastoreFailureException Thrown when any unknown error occurs while communicating with the data store.
+	 *             Note that despite receiving this exception, it's possible that the datastore actually committed data
+	 *             properly. Thus, clients should not attempt to retry after receiving this exception without checking
+	 *             the state of the counter first.
+	 * @throws DatastoreTimeoutException Thrown when a datastore operation times out. This can happen when you attempt
+	 *             to put, get, or delete too many entities or an entity with too many properties, or if the datastore
+	 *             is overloaded or having trouble. Note that despite receiving this exception, it's possible that the
+	 *             datastore actually committed data properly. Thus, clients should not attempt to retry after receiving
+	 *             this exception without checking the state of the counter first.
+	 */
+	void reset(final String counterName);
+
+	/**
 	 * Removes a {@link CounterData} from the Datastore and attempts to remove it's corresponding
 	 * {@link CounterShardData} entities via a Task Queue. This operation may take some time to complete since it is
 	 * task queue based, so constructing or incrementing a {@link CounterData} while the same one is being deleted will
@@ -261,4 +279,5 @@ public interface CounterService
 	 *             this exception without checking the state of the counter first.
 	 */
 	void delete(final String counterName);
+
 }

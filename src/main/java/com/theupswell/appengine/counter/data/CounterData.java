@@ -14,7 +14,6 @@ package com.theupswell.appengine.counter.data;
 
 import java.util.UUID;
 
-import com.googlecode.objectify.ObjectifyService;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -263,6 +262,9 @@ public class CounterData
 		// This Counter is contracting the number of shards it holds internally, and may not be incremented,
 		// decremented, or deleted, or mutated.
 		CONTRACTING_SHARDS,
+		// This Counter is in the process of having all shard amounts set to zerp, and may not be incremented or
+		// decremented.
+		RESETTING,
 		// This Counter is in the process of being deleted, and may not be incremented or decremented and its details
 		// may not be changed.
 		DELETING

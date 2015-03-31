@@ -39,6 +39,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.math.LongMath;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
@@ -212,6 +213,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	@Override
 	public Counter getCounter(final String counterName, final boolean skipCache)
 	{
+		Preconditions.checkNotNull(counterName);
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName),
 			"CounterData Names may not be null, blank, or empty!");
 
@@ -390,94 +392,6 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		return this.mutateCounterShard(counterName, amount, incrementOperationId);
 	}
 
-	/**
-	 * A private implementation of {@link Work} that increments the incrementAmount of a {@link CounterShardData} by a
-	 * specified non-negative {@code incrementAmount}.
-	 */
-	@VisibleForTesting
-	final class IncrementShardWork implements Work<CounterOperation>
-	{
-		private final UUID counterShardOperationUuid;
-		// We begin this transactional unit of work with just the counter name so we can guarantee all data in question
-		// is consistent, and allow a counter shard key to vary based upon the number of shards indicated in
-		// CounterData, which won't be available in a consistent manner until we enter the transaction.
-		private final String counterName;
-		private final long incrementAmount;
-
-		/**
-		 * Required-Args Constructor.
-		 *
-		 * @param counterShardOperationUuid The unique identifier of the job that performed the increment.
-		 * @param counterName A {@link String} that identifies the name of the counter being incremented.
-		 * @param incrementAmount A long representing the amount of the increment to be applied.
-		 */
-		IncrementShardWork(final UUID counterShardOperationUuid, final String counterName, final long incrementAmount)
-		{
-			Preconditions.checkNotNull(counterShardOperationUuid);
-			this.counterShardOperationUuid = counterShardOperationUuid;
-
-			Preconditions.checkNotNull(counterName);
-			Preconditions.checkArgument(!StringUtils.isBlank(counterName));
-			this.counterName = counterName;
-
-			Preconditions.checkArgument(incrementAmount != 0,
-				"Counter increment amounts must be positive or negative numbers!");
-			this.incrementAmount = incrementAmount;
-		}
-
-		/**
-		 * NOTE: In order for this to work properly, the CounterShardData must be gotten, created, and updated all in
-		 * the same transaction in order to remain consistent (in other words, it must be atomic).
-		 *
-		 * @return
-		 */
-		@Override
-		public CounterOperation run()
-		{
-			// Do this inside of the TX so that we guarantee no other thread has changed the counterData in question
-			// (e.g., the status of the counter has not changed from underneath this thread).
-			final CounterData counterData = getOrCreateCounterData(counterName);
-
-			// Increments/Decrements can only occur on Counters with a counterStatus of AVAIALBLE.
-			assertCounterAmountMutatable(counterData.getCounterName(), counterData.getCounterStatus());
-
-			// Find how many shards are in this counter.
-			final int currentNumShards = counterData.getNumShards();
-
-			// Choose the shard randomly from the available shards.
-			final int shardNumber = generator.nextInt(currentNumShards);
-
-			final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterData.getTypedKey(),
-				shardNumber);
-
-			// Load the Shard from the DS.
-			CounterShardData counterShardData = ObjectifyService.ofy().load().key(counterShardDataKey).now();
-			if (counterShardData == null)
-			{
-				// Create a new CounterShardData in memory. No need to preemptively save to the Datastore until the very
-				// end.
-				counterShardData = new CounterShardData(counterName, shardNumber);
-			}
-
-			// Increment the count by {incrementAmount}
-			final long newAmount = counterShardData.getCount() + incrementAmount;
-			counterShardData.setCount(newAmount);
-			counterShardData.setUpdatedDateTime(DateTime.now(DateTimeZone.UTC));
-
-			final String msg = String
-				.format(
-					"About to update CounterShardData (%s-->Shard-%s) with current incrementAmount %s and new incrementAmount %s",
-					counterName, shardNumber, counterShardData.getCount(), newAmount);
-			getLogger().log(Level.FINE, msg);
-
-			ObjectifyService.ofy().save().entities(counterShardData).now();
-
-			return new CounterOperation.Impl(counterShardOperationUuid, counterShardDataKey,
-				incrementAmount < 0 ? CounterOperationType.DECREMENT : CounterOperationType.INCREMENT,
-				Math.abs(incrementAmount), counterShardData.getUpdatedDateTime());
-		}
-	}
-
 	// /////////////////////////////
 	// Decrementing Functions
 	// /////////////////////////////
@@ -497,6 +411,51 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 		final long decrementAmount = amount * -1L;
 		return this.mutateCounterShard(counterName, decrementAmount, decrementOperationUuid);
+	}
+
+	@Override
+	public void reset(final String counterName)
+	{
+		final Counter counter = this.getCounter(counterName);
+		if (counter == null)
+		{
+			// Do nothing - there's nothing to return.
+			return;
+		}
+		else if (counter.getCounterStatus() != CounterStatus.AVAILABLE)
+		{
+			throw new RuntimeException("Counters must be in the AVAILABLE status before being reset!");
+		}
+		else
+		{
+			// Update the Counter to the RESETTING_STATE.
+			final Counter readOnlyCounter = new CounterBuilder(counter).withCounterStatus(CounterStatus.RESETTING)
+				.build();
+			this.updateCounterDetails(readOnlyCounter);
+
+			// For each shard, reset it.
+
+			for (int shardNumber = 0; shardNumber < counter.getNumShards(); shardNumber++)
+			{
+				final ResetCounterShardWork resetWork = new ResetCounterShardWork(counterName, shardNumber);
+				ObjectifyService.ofy().transact(resetWork);
+			}
+
+			// Last but not least, update the counter status to Available.
+			final CounterData counterData = getOrCreateCounterData(counterName);
+			counterData.setCounterStatus(CounterStatus.AVAILABLE);
+			ObjectifyService.ofy().transact(new VoidWork()
+			{
+				@Override
+				public void vrun()
+				{
+					ObjectifyService.ofy().save().entity(counterData).now();
+				}
+			});
+
+			// Clear the cache to ensure that future callers get the right count.
+			memcacheSafeDelete(counterName);
+		}
 	}
 
 	/**
@@ -667,6 +626,168 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// //////////////////////////////////
 	// Protected Helpers
 	// //////////////////////////////////
+
+	/**
+	 * A private implementation of {@link Work} that increments the incrementAmount of a {@link CounterShardData} by a
+	 * specified non-negative {@code incrementAmount}.
+	 */
+	@VisibleForTesting
+	final class IncrementShardWork implements Work<CounterOperation>
+	{
+		private final UUID counterShardOperationUuid;
+		// We begin this transactional unit of work with just the counter name so we can guarantee all data in question
+		// is consistent, and allow a counter shard key to vary based upon the number of shards indicated in
+		// CounterData, which won't be available in a consistent manner until we enter the transaction.
+		private final String counterName;
+		private final long incrementAmount;
+		// Set this to true to allow increment/decrements to occur even if the counter is not in the AVAILABLE status.
+		private final boolean adminOperation;
+
+		/**
+		 * Required-Args Constructor.
+		 *
+		 * @param counterShardOperationUuid The unique identifier of the job that performed the increment.
+		 * @param counterName A {@link String} that identifies the name of the counter being incremented.
+		 * @param incrementAmount A long representing the amount of the increment to be applied.
+		 */
+		IncrementShardWork(final UUID counterShardOperationUuid, final String counterName, final long incrementAmount)
+		{
+			this(counterShardOperationUuid, counterName, incrementAmount, false);
+		}
+
+		/**
+		 * Required-Args Constructor.
+		 *
+		 * @param counterShardOperationUuid The unique identifier of the job that performed the increment.
+		 * @param counterName A {@link String} that identifies the name of the counter being incremented.
+		 * @param incrementAmount A long representing the amount of the increment to be applied.
+		 */
+		IncrementShardWork(final UUID counterShardOperationUuid, final String counterName, final long incrementAmount,
+				final boolean adminOperation)
+		{
+			Preconditions.checkNotNull(counterShardOperationUuid);
+			this.counterShardOperationUuid = counterShardOperationUuid;
+
+			Preconditions.checkNotNull(counterName);
+			Preconditions.checkArgument(!StringUtils.isBlank(counterName));
+			this.counterName = counterName;
+
+			Preconditions.checkArgument(incrementAmount != 0,
+				"Counter increment amounts must be positive or negative numbers!");
+			this.incrementAmount = incrementAmount;
+
+			this.adminOperation = adminOperation;
+		}
+
+		/**
+		 * NOTE: In order for this to work properly, the CounterShardData must be gotten, created, and updated all in
+		 * the same transaction in order to remain consistent (in other words, it must be atomic).
+		 *
+		 * @return An instance of {@link CounterOperation} containing the results of this increment.
+		 *
+		 * @throws ArithmeticException if after adding {@code incrementAmount} to the current shard's amount, an
+		 *             Overflow or Underflow would occur.
+		 */
+		@Override
+		public CounterOperation run()
+		{
+			// Do this inside of the TX so that we guarantee no other thread has changed the counterData in question
+			// (e.g., the status of the counter has not changed from underneath this thread).
+			final CounterData counterData = getOrCreateCounterData(counterName);
+
+			// Increments/Decrements can only occur on Counters with a counterStatus of AVAIALBLE.
+			assertCounterAmountMutatable(counterData.getCounterName(), counterData.getCounterStatus());
+
+			// Find how many shards are in this counter.
+			final int currentNumShards = counterData.getNumShards();
+
+			// Choose the shard randomly from the available shards.
+			final int shardNumber = generator.nextInt(currentNumShards);
+
+			final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterData.getTypedKey(),
+				shardNumber);
+
+			// Load the Shard from the DS.
+			CounterShardData counterShardData = ObjectifyService.ofy().load().key(counterShardDataKey).now();
+			if (counterShardData == null)
+			{
+				// Create a new CounterShardData in memory. No need to preemptively save to the Datastore until the very
+				// end.
+				counterShardData = new CounterShardData(counterName, shardNumber);
+			}
+
+			// Increment the count by {incrementAmount}, but only if there will be no overflow/underflow, since If it
+			// overflows, it goes back to the minimum value and continues from there. If it underflows, it goes back to
+			// the maximum value and continues from there..
+			final long newAmount = LongMath.checkedAdd(counterShardData.getCount(), incrementAmount);
+			counterShardData.setCount(newAmount);
+			counterShardData.setUpdatedDateTime(DateTime.now(DateTimeZone.UTC));
+
+			final String msg = String
+				.format(
+					"About to update CounterShardData (%s-->Shard-%s) with current incrementAmount %s and new incrementAmount %s",
+					counterName, shardNumber, counterShardData.getCount(), newAmount);
+			getLogger().log(Level.FINE, msg);
+
+			ObjectifyService.ofy().save().entities(counterShardData).now();
+
+			return new CounterOperation.Impl(counterShardOperationUuid, counterShardDataKey,
+				incrementAmount < 0 ? CounterOperationType.DECREMENT : CounterOperationType.INCREMENT,
+				Math.abs(incrementAmount), counterShardData.getUpdatedDateTime());
+		}
+
+	}
+
+	/**
+	 * A private implementation of {@link Work} that sets a CounterShard's amount to zero.
+	 */
+	@VisibleForTesting
+	final static class ResetCounterShardWork extends VoidWork
+	{
+		private final String counterName;
+		private final int shardNumber;
+
+		/**
+		 * Required-Args Constructor.
+		 *
+		 * @param counterName A {@link String} that identifies the name of the counter being incremented.
+		 * @param shardNumber The index of the shard number to reset to zero.
+		 */
+		ResetCounterShardWork(final String counterName, int shardNumber)
+		{
+			Preconditions.checkNotNull(counterName);
+			Preconditions.checkArgument(!StringUtils.isBlank(counterName));
+			this.counterName = counterName;
+
+			Preconditions.checkArgument(shardNumber >= 0);
+			this.shardNumber = shardNumber;
+		}
+
+		/**
+		 * Reset the indicated CounterShardData 'count' to zero.
+		 *
+		 * @return
+		 */
+		@Override
+		public void vrun()
+		{
+			final Key<CounterData> counterDataKey = CounterData.key(counterName);
+			final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, shardNumber);
+			final CounterShardData counterShardData = ObjectifyService.ofy().load().key(counterShardDataKey).now();
+			if (counterShardData == null)
+			{
+				return;
+			}
+			else
+			{
+				counterShardData.setCount(0L);
+				counterShardData.setUpdatedDateTime(DateTime.now(DateTimeZone.UTC));
+				logger.log(Level.FINE, String.format("Resetting CounterShardData (%s-->ShardNum: %s) to zero!",
+					counterShardDataKey, shardNumber, counterShardData.getCount()));
+				ObjectifyService.ofy().save().entities(counterShardData).now();
+			}
+		}
+	}
 
 	/**
 	 * Attempt to delete a counter from memcache but swallow any exceptions from memcache if it's down.
@@ -880,6 +1001,28 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		}
 	}
 
+	//
+	// /**
+	// * Helper method to determine if a counter's incrementAmount can be mutated (incremented or decremented). In order
+	// * for that to happen, the counter's status must be {@link CounterStatus#AVAILABLE}.
+	// *
+	// * @param counterName
+	// * @param counterStatus
+	// * @return
+	// */
+	// @VisibleForTesting
+	// protected void assertCounterAmountResetable(final String counterName, final CounterStatus counterStatus)
+	// {
+	// if (counterStatus != CounterStatus.RESETTING)
+	// {
+	// final String msg = String
+	// .format(
+	// "Can't reset the amount of counter '%s' because it's currently in the %s state but must be in in the %s state!",
+	// counterName, counterStatus.name(), CounterStatus.AVAILABLE);
+	// throw new RuntimeException(msg);
+	// }
+	// }
+
 	/**
 	 * Helper method to determine if a counter's incrementAmount can be mutated (incremented or decremented). In order
 	 * for that to happen, the counter's status must be {@link CounterStatus#AVAILABLE}.
@@ -907,202 +1050,5 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		return ObjectifyService.ofy().getTransaction() == null ? false : ObjectifyService.ofy().getTransaction()
 			.isActive();
 	}
-
-	// private static final String DASH = "-";
-	//
-	// /**
-	// * A container class that is used to identify a discrete increment for later identification.
-	// */
-	// @Getter
-	// @ToString(callSuper = true)
-	// @EqualsAndHashCode(callSuper = true)
-	// public static class IncrementShardResult extends AbstractShardOperationResult
-	// {
-	// /**
-	// * Required-args Constructor.
-	// *
-	// * @param incrementId A {@link UUID} that uniquely identifies this decrement operation.
-	// * @param counterShardDataKey A {@link Key} for the associated {@link CounterShardData} operated upon.
-	// * @param amount The amount of this increment.
-	// */
-	// public IncrementShardResult(final UUID incrementId, final Key<CounterShardData> counterShardDataKey,
-	// final long amount)
-	// {
-	// super(incrementId, counterShardDataKey, amount);
-	// }
-	// }
-	//
-	// /**
-	// * A container class that is used to identify a discrete decrement for later identification.
-	// */
-	// @Getter
-	// @ToString(callSuper = true)
-	// @EqualsAndHashCode(callSuper = true)
-	// public static class PositiveDecrementShardResult extends AbstractShardOperationResult implements
-	// DecrementShardResult
-	// {
-	// /**
-	// * Required-args Constructor.
-	// *
-	// * @param decrementId A {@link UUID} that uniquely identifies this decrement operation.
-	// * @param counterShardDataKey A {@link Key} for the associated {@link CounterShardData} operated upon.
-	// * @param amount The amount of this decrement.
-	// */
-	// public PositiveDecrementShardResult(final UUID decrementId, final Key<CounterShardData> counterShardDataKey,
-	// final long amount)
-	// {
-	// super(decrementId, counterShardDataKey, amount);
-	// }
-	//
-	// @Override
-	// public Optional<Key<CounterShardData>> getOptCounterShardDataKey()
-	// {
-	// return Optional.of(this.getCounterShardOperationDataKey());
-	// }
-	// }
-	//
-	// /**
-	// * A container class that is used to identify a discrete decrement for later identification.
-	// */
-	// @Getter
-	// @ToString
-	// @EqualsAndHashCode
-	// public static class NoOpDecrementShardResult implements DecrementShardResult
-	// {
-	// private final Optional<Key<CounterShardData>> optCounterShardDataKey;
-	//
-	// /**
-	// * Required-args Constructor.
-	// *
-	// * @param optCounterShardDataKey
-	// */
-	// public NoOpDecrementShardResult(final Optional<Key<CounterShardData>> optCounterShardDataKey)
-	// {
-	// Preconditions.checkNotNull(optCounterShardDataKey);
-	// this.optCounterShardDataKey = optCounterShardDataKey;
-	// }
-	//
-	// @Override
-	// public long getAppliedAmount()
-	// {
-	// return 0L;
-	// }
-	// }
-
-	// /**
-	// * A container class that is used to identify a discrete decrement for later identification.
-	// */
-	// @Getter
-	// @ToString
-	// @EqualsAndHashCode(of = "mutationUuid")
-	// public static abstract class AbstractShardOperationResult
-	// {
-	// // A unique identifier for this mutation.
-	// private final UUID mutationUuid;
-	//
-	// // The Key of the CounterShardData that this mutation occured on.
-	// private final Key<CounterShardData> counterShardDataKey;
-	//
-	// private final long amount;
-	//
-	// /**
-	// * Required-args Constructor.
-	// *
-	// * @param mutationId The {@link UUID} of this increment/decrement operation.
-	// * @param counterShardDataKey A unique identifier that consists of a
-	// * @param amount The amount of the applied increment or decrement.
-	// */
-	// protected AbstractShardOperationResult(final UUID mutationId, final Key<CounterShardData> counterShardDataKey,
-	// final long amount)
-	// {
-	// Preconditions.checkNotNull(mutationId);
-	// this.mutationUuid = mutationId;
-	// // this.constructIdentifier(counterShardDataKey, uuid);
-	//
-	// Preconditions.checkNotNull(counterShardDataKey);
-	// this.counterShardDataKey = counterShardDataKey;
-	//
-	// Preconditions.checkArgument(amount > 0);
-	// this.amount = amount;
-	// }
-	//
-	// // /**
-	// // * Helper method to set the internal identifier for this entity.
-	// // *
-	// // * @param counterShardDataKey
-	// // */
-	// // private String constructIdentifier(final Key<CounterShardData> counterShardDataKey, final UUID uuid)
-	// // {
-	// // Preconditions.checkNotNull(counterShardDataKey);
-	// // return uuid + counterShardDataKey.getName();
-	// // }
-	// }
-	//
-	// /**
-	// * A container class that is used to identify a discrete decrement for later identification.
-	// */
-	// @Getter
-	// @ToString
-	// @EqualsAndHashCode(of = "id")
-	// public static class DecrementShardResultCollection
-	// {
-	// // A unique identifier for this mutation. The identifier starts with the Key of a CounterShard, followed by a
-	// // dash, followed by a UUID.
-	// private final UUID decrementId;
-	// private final Set<DecrementShardResult> decrements;
-	//
-	// /**
-	// * Required-args Constructor.
-	// *
-	// * @param decrementId A {@link UUID} that uniquely identifies this decrement operation(s).
-	// * @param decrements A {@link Set} of instances of {@link DecrementShardResult} that represent the decremented
-	// * shards that were reduced as part of this decrement operation.
-	// */
-	// public DecrementShardResultCollection(final UUID decrementId, final Set<DecrementShardResult> decrements)
-	// {
-	// Preconditions.checkNotNull(decrementId);
-	// this.decrementId = decrementId;
-	//
-	// Preconditions.checkNotNull(decrements);
-	// this.decrements = decrements;
-	// }
-	//
-	// /**
-	// * Get the total amount of all decrements.
-	// *
-	// * @return
-	// */
-	// public long getTotalDecrementAmount()
-	// {
-	// long amount = 0;
-	// for (DecrementShardResult decrement : decrements)
-	// {
-	// amount += decrement.getAppliedAmount();
-	// }
-	// return amount;
-	// }
-	// }
-	//
-	// /**
-	// * An interface for modeling the result of a mutation (increment or decrement) of a {@link CounterShardData}
-	// entity
-	// * in the Datastore.
-	// */
-	// public static interface DecrementShardResult
-	// {
-	// /**
-	// * Return the optionally present {@link Key} for the {@link CounterShardData} that a mutation was effected upon.
-	// *
-	// * @return
-	// */
-	// public Optional<Key<CounterShardData>> getOptCounterShardDataKey();
-	//
-	// /**
-	// * Return the amount of this mutation result, as a long.
-	// *
-	// * @return
-	// */
-	// public long getAppliedAmount();
-	// }
 
 }
