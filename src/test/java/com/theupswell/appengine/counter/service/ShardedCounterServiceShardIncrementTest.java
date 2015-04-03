@@ -24,10 +24,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.googlecode.objectify.ObjectifyService;
+import com.theupswell.appengine.counter.CounterOperation;
+import com.theupswell.appengine.counter.CounterOperation.CounterOperationType;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
-import com.theupswell.appengine.counter.model.CounterOperation;
-import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
+import com.theupswell.appengine.counter.data.CounterShardData;
 
 /**
  * Unit tests for incrementing a counter via {@link ShardedCounterServiceImpl}.
@@ -206,12 +207,12 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 	{
 		final UUID operationUuid = UUID.randomUUID();
 
-		final CounterOperation result = this.shardedCounterService.increment(TEST_COUNTER1, 1, operationUuid);
+		final CounterOperation result = this.shardedCounterService.increment(TEST_COUNTER1, 1, 1, operationUuid);
 
 		assertThat(result.getAppliedAmount(), is(1L));
 		assertThat(result.getOperationUuid(), is(operationUuid));
 		assertThat(result.getCounterOperationType(), is(CounterOperationType.INCREMENT));
-		assertThat(result.getCounterShardDataKey(), is(not(nullValue())));
+		assertThat(result.getCounterShardDataKey(), is(CounterShardData.key(CounterData.key(TEST_COUNTER1), 1)));
 		assertThat(result.getCreationDateTime(), is(not(nullValue())));
 	}
 

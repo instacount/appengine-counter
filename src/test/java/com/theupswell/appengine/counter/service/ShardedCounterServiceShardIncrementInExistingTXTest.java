@@ -32,7 +32,7 @@ import com.googlecode.objectify.VoidWork;
 import com.googlecode.objectify.Work;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterShardData;
-import com.theupswell.appengine.counter.model.CounterOperation;
+import com.theupswell.appengine.counter.CounterOperation;
 import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration.Builder;
 
 /**

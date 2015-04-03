@@ -30,10 +30,9 @@ import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Unindex;
 
 /**
- * Represents a discrete increment or decrement for a particular counter shard.  This object is necessary to indicate of a particular
- * counter increment/decrement succeeded.  <br/>
- * <br/>
- * An individual shard is written to infrequently to allow the counter in aggregate to be incremented rapidly.
+ * Represents a shard for a named counter in the datastore. An individual shard is written to infrequently to allow the
+ * counter in aggregate to be incremented rapidly. All shard counts for a given named counter will be added together to
+ * assemble the actual count for any named counter.
  * 
  * @author David Fuelling
  */

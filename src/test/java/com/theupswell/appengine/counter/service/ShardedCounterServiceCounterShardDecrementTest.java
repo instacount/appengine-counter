@@ -25,10 +25,11 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.googlecode.objectify.ObjectifyService;
+import com.theupswell.appengine.counter.CounterOperation;
+import com.theupswell.appengine.counter.CounterOperation.CounterOperationType;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
-import com.theupswell.appengine.counter.model.CounterOperation;
-import com.theupswell.appengine.counter.model.CounterOperation.CounterOperationType;
+import com.theupswell.appengine.counter.data.CounterShardData;
 
 /**
  * Unit tests for decrementing counters via {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}.
@@ -183,15 +184,14 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 	@Test
 	public void testDecrementResult()
 	{
+		this.shardedCounterService.increment(TEST_COUNTER1, 1, 2, UUID.randomUUID());
 		final UUID decrementUuid = UUID.randomUUID();
-
-		this.shardedCounterService.increment(TEST_COUNTER1, 1, decrementUuid);
-		final CounterOperation result = this.shardedCounterService.decrement(TEST_COUNTER1, 1, decrementUuid);
+		final CounterOperation result = this.shardedCounterService.decrement(TEST_COUNTER1, 1, 2, decrementUuid);
 
 		assertThat(result.getAppliedAmount(), is(1L));
 		assertThat(result.getOperationUuid(), is(decrementUuid));
 		assertThat(result.getCounterOperationType(), is(CounterOperationType.DECREMENT));
-		assertThat(result.getCounterShardDataKey(), is(not(nullValue())));
+		assertThat(result.getCounterShardDataKey(), is(CounterShardData.key(CounterData.key(TEST_COUNTER1), 2)));
 		assertThat(result.getCreationDateTime(), is(not(nullValue())));
 	}
 

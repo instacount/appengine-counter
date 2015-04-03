@@ -46,6 +46,9 @@ public class ShardedCounterServiceConfiguration
 	// The default Memcache expiration for counter objects.
 	private final Expiration defaultExpiration;
 
+//	// Set to true to store each increment/decrement with a unique identifier
+//	private final boolean storeCounterShardOperations;
+
 	// The name of the queue that will be used to delete shards in an async fashion
 	private final String deleteCounterShardQueueName;
 

@@ -1,4 +1,4 @@
-package com.theupswell.appengine.counter.model;
+package com.theupswell.appengine.counter;
 
 import java.util.UUID;
 
@@ -11,6 +11,7 @@ import org.joda.time.DateTime;
 import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.data.CounterShardOperationData;
 
 /**
  * An interface for modeling the result of a mutation (increment or decrement) of a {@link CounterShardData} entity in
@@ -111,6 +112,22 @@ public interface CounterOperation
 
 			Preconditions.checkNotNull(creationDateTime);
 			this.creationDateTime = creationDateTime;
+		}
+
+		/**
+		 * Required-args Constructor.
+		 *
+		 * @param counterShardOperationData An instance of {@link CounterShardOperationData} to copy from.
+		 */
+		public Impl(final CounterShardOperationData counterShardOperationData)
+		{
+			Preconditions.checkNotNull(counterShardOperationData);
+
+			this.operationUuid = UUID.fromString(counterShardOperationData.getId());
+			this.counterShardDataKey = counterShardOperationData.getCounterShardDataKey();
+			this.counterOperationType = counterShardOperationData.getCounterOperationType();
+			this.appliedAmount = counterShardOperationData.getMutationAmount();
+			this.creationDateTime = counterShardOperationData.getCreationDateTime();
 		}
 
 	}

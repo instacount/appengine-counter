@@ -27,6 +27,7 @@ public class CounterBuilder
 {
 	@NonNull
 	private final String counterName;
+
 	private String counterDescription;
 	private int numShards;
 	private CounterData.CounterStatus counterStatus = CounterData.CounterStatus.AVAILABLE;
