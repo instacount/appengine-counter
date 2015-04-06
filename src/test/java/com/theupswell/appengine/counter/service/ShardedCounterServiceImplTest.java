@@ -4,6 +4,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
 
 import java.math.BigInteger;
 import java.util.UUID;
@@ -480,77 +481,66 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	// //////////////////////////////////
 
 	@Test(expected = NullPointerException.class)
-	public void testIncrementShardWork_NullOperationUuid() throws Exception
+	public void testIncrementShardWork_NullCounterData() throws Exception
 	{
-		impl.new IncrementShardWork(null, TEST_COUNTER1, 1, Optional.of(1));
+		impl.new IncrementShardWork(null, UUID.randomUUID(), Optional.of(1), 1);
 	}
 
 	@Test(expected = NullPointerException.class)
-	public void testIncrementShardWork_NullCounterName() throws Exception
+	public void testIncrementShardWork_NullOperationUuid() throws Exception
 	{
-		impl.new IncrementShardWork(UUID.randomUUID(), null, 1, Optional.of(1));
+		impl.new IncrementShardWork(mock(CounterData.class), null, Optional.of(1), 1);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testIncrementShardWork_EmptyCounterName() throws Exception
+	@Test(expected = NullPointerException.class)
+	public void testIncrementShardWork_NullShardNumber() throws Exception
 	{
-		impl.new IncrementShardWork(UUID.randomUUID(), "", 1, Optional.of(1));
+		impl.new IncrementShardWork(mock(CounterData.class), UUID.randomUUID(), null, 1);
 	}
 
+	// Expect IllegalArgumentException because the CounterData doesn't exist.
 	@Test(expected = IllegalArgumentException.class)
-	public void testIncrementShardWork_BlankCounterName() throws Exception
+	public void testIncrementShardWork_AbsentOptionalShardNumber_NoPreExistingCounterData() throws Exception
 	{
-		impl.new IncrementShardWork(UUID.randomUUID(), " ", 1, Optional.of(1));
+		impl.new IncrementShardWork(mock(CounterData.class), UUID.randomUUID(), Optional.<Integer> absent(), 1).run();
+	}
+
+	@Test
+	public void testIncrementShardWork_AbsentOptionalShardNumber_PreExistingCounterData() throws Exception
+	{
+		impl.increment(TEST_COUNTER1, 1);
+
+		CounterData counterData = impl.getOrCreateCounterData(TEST_COUNTER1);
+
+		CounterOperation actual = impl.new IncrementShardWork(counterData, UUID.randomUUID(),
+			Optional.<Integer> absent(), 1).run();
+		assertThat(actual.getAppliedAmount(), is(1L));
+
+		impl.increment(TEST_COUNTER1, 1);
+
+		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.valueOf(3L)));
 	}
 
 	@Test
 	public void testIncrementShardWork_NegativeCount() throws Exception
 	{
-		impl.new IncrementShardWork(UUID.randomUUID(), TEST_COUNTER1, -1, Optional.of(1));
+		impl.new IncrementShardWork(mock(CounterData.class), UUID.randomUUID(), Optional.of(1), -1);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testIncrementShardWork_ZeroCount() throws Exception
 	{
-		impl.new IncrementShardWork(UUID.randomUUID(), TEST_COUNTER1, 0, Optional.of(1));
-	}
-
-	@Test(expected = NullPointerException.class)
-	public void testIncrementShardWork_NullOptionalShardNumber() throws Exception
-	{
-		impl.new IncrementShardWork(UUID.randomUUID(), TEST_COUNTER1, 1, null);
+		impl.new IncrementShardWork(mock(CounterData.class), UUID.randomUUID(), Optional.of(1), 0);
 	}
 
 	@Test
-	public void testIncrementShardWork_AbsentOptionalShardNumber() throws Exception
-	{
-		CounterOperation actual = impl.new IncrementShardWork(UUID.randomUUID(), TEST_COUNTER1, 1,
-			Optional.<Integer> absent()).run();
-		assertThat(actual.getAppliedAmount(), is(1L));
-
-		impl.increment(TEST_COUNTER1, 1);
-
-		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.valueOf(2L)));
-	}
-
-	@Test
-	public void testIncrementShardWork_NoPreExistingCounter() throws Exception
-	{
-		CounterOperation actual = impl.new IncrementShardWork(UUID.randomUUID(), TEST_COUNTER1, 1, Optional.of(1))
-			.run();
-		assertThat(actual.getAppliedAmount(), is(1L));
-
-		impl.increment(TEST_COUNTER1, 1);
-
-		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.valueOf(2L)));
-	}
-
-	@Test
-	public void testIncrementShardWork_PreExistingCounter() throws Exception
+	public void testIncrementShardWork_PreExistingCounterData() throws Exception
 	{
 		impl.increment(TEST_COUNTER1, 1);
 
-		final CounterOperation actual = impl.new IncrementShardWork(UUID.randomUUID(), TEST_COUNTER1, 1, Optional.of(1))
+		final CounterData counterData = impl.getOrCreateCounterData(TEST_COUNTER1);
+
+		final CounterOperation actual = impl.new IncrementShardWork(counterData, UUID.randomUUID(), Optional.of(1), 1)
 			.run();
 		assertThat(actual.getAppliedAmount(), is(1L));
 
@@ -564,18 +554,6 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	// //////////////////////////////////
 
 	@Test
-	public void testIncrementShardWork_NoPreExistingCounter_NegativeAmount() throws Exception
-	{
-		CounterOperation actual = impl.new IncrementShardWork(UUID.randomUUID(), TEST_COUNTER1, -1, Optional.of(1))
-			.run();
-		assertThat(actual.getAppliedAmount(), is(1L));
-
-		impl.increment(TEST_COUNTER1, 1);
-
-		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.valueOf(0L)));
-	}
-
-	@Test
 	public void testDecrementShardWork_PreExistingCounter_NegativeAmount() throws Exception
 	{
 		// Make sure there's only 1 shard in the counter so we don't have unpredictable results.
@@ -586,8 +564,10 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		impl.increment(TEST_COUNTER1, 1);
 		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.valueOf(1L)));
 
-		final CounterOperation decrementShardResult = impl.new IncrementShardWork(UUID.randomUUID(), TEST_COUNTER1, -1,
-			Optional.of(1)).run();
+		final CounterData counterData = impl.getOrCreateCounterData(TEST_COUNTER1);
+
+		final CounterOperation decrementShardResult = impl.new IncrementShardWork(counterData, UUID.randomUUID(),
+			Optional.of(1), -1).run();
 		assertThat(decrementShardResult.getAppliedAmount(), is(1L));
 
 		// The counter indicates a count of 1 still due to cache.

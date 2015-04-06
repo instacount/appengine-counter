@@ -194,8 +194,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// /////////////////////////////
 
 	/**
-	 * The cache will expire after {@code defaultCounterCountExpiration} seconds, so the counter will be accurate after a minute
-	 * because it performs a load from the datastore.
+	 * The cache will expire after {@code defaultCounterCountExpiration} seconds, so the counter will be accurate after
+	 * a minute because it performs a load from the datastore.
 	 *
 	 * @param counterName
 	 * @return
@@ -229,8 +229,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	}
 
 	/**
-	 * The cache will expire after {@code defaultCounterCountExpiration} seconds, so the counter will be accurate after a minute
-	 * because it performs a load from the datastore.
+	 * The cache will expire after {@code defaultCounterCountExpiration} seconds, so the counter will be accurate after
+	 * a minute because it performs a load from the datastore.
 	 *
 	 * @param counterName
 	 * @return
@@ -550,10 +550,16 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// ///////////
 		// Precondition Checks are performed by calling methods.
 
+		// This get is transactional and strongly consistent, but we perform it here so that the increment doesn't have
+		// to be part of an XG transaction. Since the CounterData isn't expected to mutate that often, we want
+		// increment/decrement operations to be as speedy as possibly. In this way, the IncrementWork can take place in
+		// a non-XG transaction.
+		final CounterData counterData = this.getOrCreateCounterData(counterName);
+
 		// Create the Work to be done for this increment, which will be done inside of a TX. See
 		// "https://developers.google.com/appengine/docs/java/datastore/transactions#Java_Isolation_and_consistency"
-		final Work<CounterOperation> atomicIncrementShardWork = new IncrementShardWork(incrementOperationId,
-			counterName, amount, optShardNumber);
+		final Work<CounterOperation> atomicIncrementShardWork = new IncrementShardWork(counterData,
+			incrementOperationId, optShardNumber, amount);
 
 		// Note that this operation is idempotent from the perspective of a ConcurrentModificationException. In that
 		// case, the increment operation will fail and will not have been applied. An Objectify retry of the increment
@@ -715,32 +721,28 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	@VisibleForTesting
 	final class IncrementShardWork implements Work<CounterOperation>
 	{
+		private final CounterData counterData;
 		private final UUID counterShardOperationUuid;
-		// We begin this transactional unit of work with just the counter name so we can guarantee all data in question
-		// is consistent, and allow a counter shard key to vary based upon the number of shards indicated in
-		// CounterData, which won't be available in a consistent manner until we enter the transaction.
-		private final String counterName;
-		private final long incrementAmount;
 		private final Optional<Integer> optShardNumber;
+		private final long incrementAmount;
 
 		/**
 		 * Required-Args Constructor.
 		 *
+		 * @param counterData A {@link CounterData} that contains information about the counter being incremented.
 		 * @param counterShardOperationUuid The unique identifier of the job that performed the increment.
-		 * @param counterName A {@link String} that identifies the name of the counter being incremented.
-		 * @param incrementAmount A long representing the amount of the increment to be applied.
 		 * @param optShardNumber An optionally supplied shard number that should an increment/decrement should be
-		 *            applied to. If specified as {@link Optional#absent()} , then a random shard will be selected.
+		 * @param incrementAmount A long representing the amount of the increment to be applied. applied to. If
+		 *            specified as {@link Optional#absent()} , then a random shard will be selected.
 		 */
-		IncrementShardWork(final UUID counterShardOperationUuid, final String counterName, final long incrementAmount,
-				final Optional<Integer> optShardNumber)
+		IncrementShardWork(final CounterData counterData, final UUID counterShardOperationUuid,
+				final Optional<Integer> optShardNumber, final long incrementAmount)
 		{
+			Preconditions.checkNotNull(counterData);
+			this.counterData = counterData;
+
 			Preconditions.checkNotNull(counterShardOperationUuid);
 			this.counterShardOperationUuid = counterShardOperationUuid;
-
-			Preconditions.checkNotNull(counterName);
-			Preconditions.checkArgument(!StringUtils.isBlank(counterName));
-			this.counterName = counterName;
 
 			Preconditions.checkArgument(incrementAmount != 0,
 				"Counter increment amounts must be positive or negative numbers!");
@@ -761,9 +763,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		@Override
 		public CounterOperation run()
 		{
-			// Do this inside of the TX so that we guarantee no other thread has changed the counterData in question
-			// (e.g., the status of the counter has not changed from underneath this thread).
-			final CounterData counterData = getOrCreateCounterData(counterName);
+			final String counterName = counterData.getCounterName();
 
 			// Callers may specify a random shard number. If not specified, then choose the shard randomly from the
 			// available shards.
