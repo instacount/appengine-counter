@@ -35,6 +35,7 @@ import com.googlecode.objectify.annotation.Index;
 import com.googlecode.objectify.annotation.Unindex;
 import com.theupswell.appengine.counter.data.ofy.IfCounterDataIndexable;
 import com.theupswell.appengine.counter.service.ShardedCounterService;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration;
 
 /**
  * Represents a named counter in the datastore and allows for shard-initialization and shard-association. Note that this
@@ -44,7 +45,11 @@ import com.theupswell.appengine.counter.service.ShardedCounterService;
  * @author David Fuelling
  */
 @Entity
-@Cache
+// Cached via @Cache because this information isn't mutated frequently like a CounterShardData, so it's actually helpful
+// to have this accessed via memcache instead of hitting the Datastore. Per the objectify docs, "There is still,
+// however, one circumstance in which the cache could go out of synchronization with the datastore: If your requests are
+// cut off by DeadlineExceededException." Thus, we expire the global cache every OBJECTIFY_ENTITY_CACHE_TIMEOUT seconds.
+@Cache(expirationSeconds = ShardedCounterServiceConfiguration.OBJECTIFY_ENTITY_CACHE_TIMEOUT)
 @Getter
 @Setter
 @Unindex

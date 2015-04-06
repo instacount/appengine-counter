@@ -37,13 +37,15 @@ import com.theupswell.appengine.counter.CounterOperation.CounterOperationType;
  * @author David Fuelling
  */
 @Entity
+// Not cached via @Cache because this information isn't required to be accessed often, and persisting it to memcache
+// during the counter shard update adds potential memcache latency that isn't adding value.
 @Getter
 @Unindex
 @ToString
 @EqualsAndHashCode(of = "id")
 public class CounterShardOperationData
 {
-	static final String COUNTER_SHARD_KEY_SEPARATOR = "-";
+	//static final String COUNTER_SHARD_KEY_SEPARATOR = "-";
 
 	// It's ok if two shards share the same UUID since they will have different @Parent's.
 	@Id

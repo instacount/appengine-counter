@@ -98,7 +98,7 @@ If you want to control the configuration of the ShardedCounterService, you will 
 		</property>
 
 		<!-- The default Memcache expiration for counter objects in seconds. -->
-		<property name="defaultExpiration">
+		<property name="defaultCounterCountExpiration">
 			<value>300</value>
 		</property>
 
@@ -278,6 +278,8 @@ Change Log
 + Changes to sharding implementation to unify increment and decrement.
 + Counter.java now holds a BigInteger instead of a long since the aggregation of multiple shards may exceed Long.MAX_VALUE - 1.
 + Better failure handling in the event of a memcache failure.
++ Default counter memcache settings reduced to 60 seconds.
++ Improvements around Objectify's session cache handling of CounterShards.
 
 **Version 1.2.0**
 + Remove AbstractEntity, and more tightly enforce that CounterData may not have null ids.

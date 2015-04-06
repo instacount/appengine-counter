@@ -24,7 +24,6 @@ import org.joda.time.DateTimeZone;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
-import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Unindex;
@@ -37,7 +36,7 @@ import com.googlecode.objectify.annotation.Unindex;
  * @author David Fuelling
  */
 @Entity
-@Cache
+// Not cached via @Cache because the this counter provides its own caching mechanism.
 @Getter
 @Setter
 @Unindex

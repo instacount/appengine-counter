@@ -20,9 +20,11 @@ import lombok.Setter;
 import lombok.ToString;
 
 import com.googlecode.objectify.Key;
+import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Index;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration;
 
 /**
  * An entity parented by {@link CounterData} that represents an eventually consistent view of that counter's count and
@@ -33,6 +35,11 @@ import com.googlecode.objectify.annotation.Index;
  * @author David Fuelling
  */
 @Entity
+// Cached via @Cache because this information isn't mutated frequently like a CounterShardData, so it's actually helpful
+// to have this accessed via memcache instead of hitting the Datastore. Per the objectify docs, "There is still,
+// however, one circumstance in which the cache could go out of synchronization with the datastore: If your requests are
+// cut off by DeadlineExceededException." Thus, we expire the global cache every OBJECTIFY_ENTITY_CACHE_TIMEOUT minutes.
+@Cache(expirationSeconds = ShardedCounterServiceConfiguration.OBJECTIFY_ENTITY_CACHE_TIMEOUT)
 @Getter
 @Setter
 @Index
@@ -71,8 +78,9 @@ public class CounterGroupData
 	// //////////////////////////////
 
 	/**
-	 * Create a {@link Key Key<CounterGroupData>}. This entity only exists in the context of a {@link CounterData}, and
-	 * is always parented by that entity so the id of this entity is always {@code COUNTER_GROUP_DATA_IDENTIFIER}.
+	 * Create a {@link Key} of type {@link CounterGroupData}. This entity only exists in the context of a
+	 * {@link CounterData}, and is always parented by that entity so the id of this entity is always
+	 * {@code CounterGroupData#COUNTER_GROUP_DATA_IDENTIFIER}.
 	 *
 	 * @return A {@link Key}
 	 */

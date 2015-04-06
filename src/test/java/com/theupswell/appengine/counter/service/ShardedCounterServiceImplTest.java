@@ -312,7 +312,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	// getOrCreateCounterData
 	// /////////////////////////
 
-	@Test(expected = NullPointerException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void testGetOrCreateCounterData_NullInput() throws Exception
 	{
 		impl.getOrCreateCounterData(null);

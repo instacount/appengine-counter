@@ -35,19 +35,35 @@ public class ShardedCounterServiceConfiguration
 	// The number of shards to begin with for this counter.
 	public static final int DEFAULT_NUM_COUNTER_SHARDS = 3;
 
-	static final int FIFTEEN_MINUTES_IN_SECONDS = 15 * 60;
+	static final int SIXTY_SECONDS = 60;
 
-	// 15 Minute Expiration (by default) for counter counts in memcache before a Datastore query is attempted to get the new count.
-	static final Expiration DEFAULT_EXPIRATION = Expiration.byDeltaSeconds(FIFTEEN_MINUTES_IN_SECONDS);
+	// static final int FIVE_MINUTES_IN_SECONDS = SIXTY_SECONDS * 5;
+
+	static final int SIXTY_MINUTES_IN_SECONDS = 60 * SIXTY_SECONDS;
+
+	// The timeout for any entities annotated with Objectify's @Cache annotation, which will be stored in memcache via
+	// Objectify's session cache. CounterShards do not have this annotation, but counter data and other infrequently
+	// updated entities have this value. Per the objectify docs, "There is still, however, one circumstance in which the
+	// cache could go out of synchronization with the datastore: If your requests are cut off by
+	// DeadlineExceededException." Thus, we limit the caching of this information to 1 hour, by default, since we don't
+	// expect this condition to occur very often, but just in case.
+	public static final int OBJECTIFY_ENTITY_CACHE_TIMEOUT = SIXTY_MINUTES_IN_SECONDS;
+
+	// Each Counter's count is cached in memcache upon a "get count". Additionally, increments and decrements mutate the
+	// cache, so we expect the memcache version of the count to be highly accurate. If memcache is having problems or is
+	// down, the counter will be loaded from the datastore. Thus, there's a small chance that the cache will go out of
+	// sync, but a 1 hour cache expiration is suitable for an eventual-consistency model.
+	static final Expiration DEFAULT_COUNTER_COUNT_CACHE_EXPIRATION = Expiration
+		.byDeltaSeconds(SIXTY_MINUTES_IN_SECONDS);
 
 	// The number of counter shards to create when a new counter is created. The default value is 3.
 	private final int numInitialShards;
 
 	// The default Memcache expiration for counter objects.
-	private final Expiration defaultExpiration;
+	private final Expiration defaultCounterCountExpiration;
 
-//	// Set to true to store each increment/decrement with a unique identifier
-//	private final boolean storeCounterShardOperations;
+	// // Set to true to store each increment/decrement with a unique identifier
+	// private final boolean storeCounterShardOperations;
 
 	// The name of the queue that will be used to delete shards in an async fashion
 	private final String deleteCounterShardQueueName;
@@ -67,7 +83,7 @@ public class ShardedCounterServiceConfiguration
 		this.numInitialShards = builder.numInitialShards;
 		this.deleteCounterShardQueueName = builder.deleteCounterShardQueueName;
 		this.relativeUrlPathForDeleteTaskQueue = builder.relativeUrlPathForDeleteTaskQueue;
-		this.defaultExpiration = builder.getDefaultExpiration();
+		this.defaultCounterCountExpiration = builder.getDefaultCounterCountExpiration();
 	}
 
 	/**
@@ -97,7 +113,7 @@ public class ShardedCounterServiceConfiguration
 		 */
 		@Getter
 		@Setter
-		private Expiration defaultExpiration;
+		private Expiration defaultCounterCountExpiration;
 
 		@Getter
 		@Setter
@@ -113,13 +129,14 @@ public class ShardedCounterServiceConfiguration
 		public Builder()
 		{
 			this.numInitialShards = DEFAULT_NUM_COUNTER_SHARDS;
-			this.defaultExpiration = DEFAULT_EXPIRATION;
+			// The default expiration for Counter counts in memcache. See comment with variable declaration.
+			this.defaultCounterCountExpiration = DEFAULT_COUNTER_COUNT_CACHE_EXPIRATION;
 		}
 
 		public Builder withNumInitialShards(int numInitialShards)
 		{
 			Preconditions.checkArgument(numInitialShards > 0,
-					"Number of Shards for a new CounterData must be greater than 0!");
+				"Number of Shards for a new CounterData must be greater than 0!");
 			this.numInitialShards = numInitialShards;
 			return this;
 		}
