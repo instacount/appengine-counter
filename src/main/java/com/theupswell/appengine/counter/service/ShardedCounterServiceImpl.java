@@ -568,9 +568,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// DatastoreFailureException in cases where transactions have been committed and eventually will be applied
 		// successfully."
 
-		// We use the "counterShardOperationInTx" to pause this thread until the work inside of
+		// We use the "counterShardOperationInTx" to force this thread to wait until the work inside of
 		// "atomicIncrementShardWork" completes. This is because we don't want to increment memcache (below) until after
-		// that a transaction successfully commits.
+		// that operation's transaction successfully commits.
 		final CounterOperation counterShardOperationInTx = ObjectifyService.ofy().transact(atomicIncrementShardWork);
 
 		// /////////////////
