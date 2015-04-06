@@ -276,10 +276,11 @@ Change Log
 + [Issue #20](https://github.com/theupswell/appengine-counter/issues/20) Introduced CounterService.create() to create a counter without having to increment it.
 + Introduced CounterService.reset() to reset all counter shards to 0.
 + Changes to sharding implementation to unify increment and decrement.
-+ Counter.java now holds a BigInteger instead of a long since the aggregation of multiple shards may exceed Long.MAX_VALUE - 1.
++ Counter.java now holds a BigInteger instead of a long since the aggregation of multiple shards may exceed (Long.MAX_VALUE - 1).
 + Better failure handling in the event of a memcache failure.
 + Default counter memcache settings reduced to 60 seconds.
 + Improvements around Objectify's session cache handling of CounterShards.
++ Allow Counter configuration to preclude negative counts.
 
 **Version 1.2.0**
 + Remove AbstractEntity, and more tightly enforce that CounterData may not have null ids.
