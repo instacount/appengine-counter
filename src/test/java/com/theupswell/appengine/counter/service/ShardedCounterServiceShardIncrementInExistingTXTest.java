@@ -30,9 +30,9 @@ import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.googlecode.objectify.VoidWork;
 import com.googlecode.objectify.Work;
+import com.theupswell.appengine.counter.CounterOperation;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterShardData;
-import com.theupswell.appengine.counter.CounterOperation;
 import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration.Builder;
 
 /**
@@ -55,7 +55,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 	{
 		super.setUp();
 
-		final ShardedCounterServiceConfiguration config = new Builder().withNumInitialShards(1).build();
+		final ShardedCounterServiceConfiguration config = new Builder().withNumInitialShards(1)
+			.withNegativeCountAllowed(ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS).build();
 		this.singleShardShardedCounterService = new ShardedCounterServiceTxWrapper(super.memcache, config);
 		impl = (ShardedCounterServiceImpl) this.singleShardShardedCounterService;
 
@@ -646,7 +647,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		// clear the cache
 		memcache.clearAll();
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(-1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(),
+			is(BigInteger.valueOf(-1L)));
 		this.assertCounterShardValue(counterName, -1L);
 	}
 

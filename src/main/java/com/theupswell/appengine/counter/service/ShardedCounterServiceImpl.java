@@ -556,6 +556,18 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// a non-XG transaction.
 		final CounterData counterData = this.getOrCreateCounterData(counterName);
 
+		// Disallow decrements based upon the configuration of the CounterData, but only if this mutation is for a
+		// negative increment (i.e., a decrement).
+		if (amount < 0 && !counterData.isNegativeCountAllowed())
+		{
+			final Counter counter = getCounter(counterName);
+			if (counter.getCount().compareTo(BigInteger.ZERO) <= 0)
+			{
+				throw new IllegalArgumentException(String.format("Can't mutate counter %s below zero!",
+					counter.getCounterName()));
+			}
+		}
+
 		// Create the Work to be done for this increment, which will be done inside of a TX. See
 		// "https://developers.google.com/appengine/docs/java/datastore/transactions#Java_Isolation_and_consistency"
 		final Work<CounterOperation> atomicIncrementShardWork = new IncrementShardWork(counterData,
@@ -996,6 +1008,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				if (counterData == null)
 				{
 					counterData = new CounterData(counterName, config.getNumInitialShards());
+					counterData.setNegativeCountAllowed(config.isNegativeCountAllowed());
 					ObjectifyService.ofy().save().entity(counterData).now();
 				}
 				return counterData;

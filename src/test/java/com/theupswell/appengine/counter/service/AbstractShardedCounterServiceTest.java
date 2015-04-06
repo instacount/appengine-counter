@@ -161,8 +161,23 @@ public abstract class AbstractShardedCounterServiceTest
 	 */
 	protected ShardedCounterService initialShardedCounterService(int numInitialShards)
 	{
+		return this.initialShardedCounterService(numInitialShards,
+			ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS);
+	}
+
+	/**
+	 * Create a new {@link com.theupswell.appengine.counter.service.CounterService} with the specified "number of
+	 * initial shards" as found in {@code numInitialShards} .
+	 *
+	 * @param numInitialShards
+	 *
+	 * @return
+	 */
+	protected ShardedCounterService initialShardedCounterService(int numInitialShards,
+			final boolean negativeCountsAllowed)
+	{
 		ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
-			.withNumInitialShards(numInitialShards).build();
+			.withNumInitialShards(numInitialShards).withNegativeCountAllowed(negativeCountsAllowed).build();
 
 		ShardedCounterService service = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(),
 			config);

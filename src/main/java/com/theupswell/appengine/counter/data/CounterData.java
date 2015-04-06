@@ -70,8 +70,8 @@ public class CounterData
 	@Unindex
 	private CounterIndexes indexes = CounterIndexes.none();
 
-	// Embedded class that allows for eventually consistent count querying as well as counter-groups for tagging. Null
-	// by default, set if counter group informaiton should be used.
+	// Embedded class that allows for eventually consistent count querying via the Datastore, plus counter tagging. Null
+	// by default, set if counter group information should be used.
 	@Index
 	private CounterGroupData counterGroupData;
 
@@ -81,6 +81,10 @@ public class CounterData
 
 	@Index(IfCounterDataIndexable.class)
 	private String counterDescription;
+
+	// false by default, but by setting to true allows the counter to go negative.
+	@Unindex
+	private boolean negativeCountAllowed;
 
 	// This is AVAILABLE by default, which means it can be incremented and decremented
 	@Index(IfCounterDataIndexable.class)
@@ -250,7 +254,7 @@ public class CounterData
 
 	// Used by the Get methods to indicate the state of a CounterData while it
 	// is deleting.
-	public static enum CounterStatus
+	public enum CounterStatus
 	{
 		// This Counter is available to be incremented, decremented, or deleted.
 		AVAILABLE,

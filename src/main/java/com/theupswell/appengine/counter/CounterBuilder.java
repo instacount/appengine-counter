@@ -18,8 +18,11 @@ import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+import com.google.common.base.Preconditions;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
+import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
+import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration;
 
 @Data
 @RequiredArgsConstructor
@@ -30,8 +33,9 @@ public class CounterBuilder
 
 	private String counterDescription;
 	private int numShards;
-	private CounterData.CounterStatus counterStatus = CounterData.CounterStatus.AVAILABLE;
+	private CounterStatus counterStatus = CounterStatus.AVAILABLE;
 	private BigInteger count;
+	private boolean negativeCountAllowed;
 	private CounterIndexes indexes;
 
 	/**
@@ -42,11 +46,15 @@ public class CounterBuilder
 	 */
 	public CounterBuilder(final CounterData counterData)
 	{
+		Preconditions.checkNotNull(counterData);
+
 		this.counterName = counterData.getCounterName();
-		this.counterDescription = counterData.getCounterDescription();
-		this.numShards = counterData.getNumShards();
-		this.counterStatus = counterData.getCounterStatus();
-		this.indexes = counterData.getIndexes();
+
+		this.setCounterDescription(counterData.getCounterDescription());
+		this.setNumShards(counterData.getNumShards());
+		this.setCounterStatus(counterData.getCounterStatus());
+		this.setIndexes(counterData.getIndexes());
+		this.setNegativeCountAllowed(counterData.isNegativeCountAllowed());
 	}
 
 	/**
@@ -57,12 +65,17 @@ public class CounterBuilder
 	 */
 	public CounterBuilder(final Counter counter)
 	{
+		Preconditions.checkNotNull(counter);
+
 		this.counterName = counter.getCounterName();
-		this.counterDescription = counter.getCounterDescription();
-		this.numShards = counter.getNumShards();
-		this.counterStatus = counter.getCounterStatus();
-		this.count = counter.getCount();
-		this.indexes = counter.getIndexes();
+
+		// Use setters to enforce Preconditions...
+		this.setCounterDescription(counter.getCounterDescription());
+		this.setNumShards(counter.getNumShards());
+		this.setCounterStatus(counter.getCounterStatus());
+		this.setCount(counter.getCount());
+		this.setIndexes(counter.getIndexes());
+		this.setNegativeCountAllowed(counter.isNegativeCountAllowed());
 	}
 
 	/**
@@ -73,7 +86,8 @@ public class CounterBuilder
 	public Counter build()
 	{
 		return new Counter(this.getCounterName(), this.getCounterDescription(), this.getNumShards(),
-			this.getCounterStatus(), this.getCount(), this.getIndexes());
+			this.getCounterStatus(), this.getCount(), this.getIndexes(),
+			ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS);
 	}
 
 	/**
@@ -94,6 +108,7 @@ public class CounterBuilder
 	 */
 	public CounterBuilder withNumShards(final int numShards)
 	{
+		Preconditions.checkArgument(numShards > 0);
 		this.setNumShards(numShards);
 		return this;
 	}
@@ -105,6 +120,7 @@ public class CounterBuilder
 	 */
 	public CounterBuilder withCounterStatus(final CounterData.CounterStatus counterStatus)
 	{
+		Preconditions.checkNotNull(counterStatus);
 		this.setCounterStatus(counterStatus);
 		return this;
 	}
@@ -116,11 +132,26 @@ public class CounterBuilder
 	 */
 	public CounterBuilder withCount(final BigInteger count)
 	{
+		Preconditions.checkNotNull(count);
+
 		this.setCount(count);
 		return this;
 	}
 
-	public static final Counter zero(String counterName)
+	/**
+	 * Determines if a counter is allowed to decrement below zero.
+	 * 
+	 * @param negativeCountAllowed if this counter may decrement below zero; {@code false} if the counter's count may
+	 *            not decrement below zero.
+	 * @return
+	 */
+	public CounterBuilder withNegativeCountAllowed(final boolean negativeCountAllowed)
+	{
+		this.negativeCountAllowed = negativeCountAllowed;
+		return this;
+	}
+
+	public static final Counter zero(final String counterName)
 	{
 		return new CounterBuilder(counterName).build();
 	}

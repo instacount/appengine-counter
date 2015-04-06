@@ -558,7 +558,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	{
 		// Make sure there's only 1 shard in the counter so we don't have unpredictable results.
 		final ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
-			.withNumInitialShards(1).build();
+			.withNumInitialShards(1).withNegativeCountAllowed(ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS)
+			.build();
 		impl = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(), config);
 
 		impl.increment(TEST_COUNTER1, 1);

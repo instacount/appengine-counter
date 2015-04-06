@@ -1,11 +1,11 @@
 /**
  * Copyright (C) 2014 UpSwell LLC (developers@theupswell.com)
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
- *
+ * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p/>
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -28,7 +28,7 @@ import com.theupswell.appengine.counter.service.ShardedCounterServiceConfigurati
 
 /**
  * An immutable object that stores count information.
- * 
+ *
  * @author David Fuelling
  */
 @Data
@@ -43,6 +43,7 @@ public class Counter
 	private final CounterData.CounterStatus counterStatus;
 	private final BigInteger count;
 	private final CounterIndexes indexes;
+	private final boolean negativeCountAllowed;
 
 	/**
 	 * Required-args Constructor. Sets the {@code counterStatus} to
@@ -58,7 +59,7 @@ public class Counter
 	/**
 	 * Required-args Constructor. Sets the {@code counterStatus} to
 	 * {@link com.theupswell.appengine.counter.data.CounterData.CounterStatus#AVAILABLE} and the {@code count} to zero.
-	 * 
+	 *
 	 * @param counterName
 	 * @param counterDescription
 	 */
@@ -70,7 +71,7 @@ public class Counter
 
 	/**
 	 * Required-args Constructor. Sets the {@code count} to zero.
-	 * 
+	 *
 	 * @param counterName
 	 * @param counterStatus
 	 * @param numShards
@@ -79,20 +80,23 @@ public class Counter
 	public Counter(final String counterName, final String counterDescription, final int numShards,
 			final CounterData.CounterStatus counterStatus, final CounterIndexes indexes)
 	{
-		this(counterName, counterDescription, numShards, counterStatus, BigInteger.ZERO, indexes);
+		this(counterName, counterDescription, numShards, counterStatus, BigInteger.ZERO, indexes, false);
 	}
 
 	/**
 	 * Required-args Constructor.
-	 * 
+	 *
 	 * @param counterName
 	 * @param counterDescription
 	 * @param counterStatus
 	 * @param count
 	 * @param indexes
+	 * @param negativeCountAllowed Set to {@code true} to allow the counter to decrement past zero; {@code false} to
+	 *            preclude this behavior and stop counter decrements at zero.
 	 */
 	public Counter(final String counterName, final String counterDescription, final int numShards,
-			final CounterStatus counterStatus, final BigInteger count, final CounterIndexes indexes)
+			final CounterStatus counterStatus, final BigInteger count, final CounterIndexes indexes,
+			final boolean negativeCountAllowed)
 	{
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName), "CounterName may not be empty, blank, or null!");
 		Preconditions.checkNotNull(counterStatus);
@@ -105,5 +109,7 @@ public class Counter
 
 		// Set to none if not specified
 		this.indexes = indexes == null ? CounterIndexes.none() : indexes;
+
+		this.negativeCountAllowed = negativeCountAllowed;
 	}
 }

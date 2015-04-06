@@ -24,6 +24,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.appengine.api.memcache.MemcacheService;
+import com.google.appengine.api.memcache.MemcacheServiceFactory;
 import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.CounterOperation;
 import com.theupswell.appengine.counter.CounterOperation.CounterOperationType;
@@ -46,6 +48,11 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 	public void setUp() throws Exception
 	{
 		super.setUp();
+
+		final MemcacheService memcacheService = MemcacheServiceFactory.getMemcacheService();
+		final ShardedCounterServiceConfiguration shardedCounterServiceConfiguration = new ShardedCounterServiceConfiguration.Builder()
+			.withNegativeCountAllowed(ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS).build();
+		shardedCounterService = new ShardedCounterServiceImpl(memcacheService, shardedCounterServiceConfiguration);
 	}
 
 	@After
@@ -149,12 +156,13 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 	}
 
 	@Test
-	public void testDecrementNegative() throws InterruptedException
+	public void testDecrementNegative_AllowedNegative() throws InterruptedException
 	{
 		// Use 3 shards
-		shardedCounterService = initialShardedCounterService(3);
-		shardedCounterService.increment(TEST_COUNTER1, 10);
+		shardedCounterService = initialShardedCounterService(3,
+			ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS);
 
+		shardedCounterService.increment(TEST_COUNTER1, 10);
 		shardedCounterService.increment(TEST_COUNTER2, 10);
 
 		// Decrement 20
@@ -166,6 +174,42 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 
 		assertEquals(BigInteger.valueOf(-10L), shardedCounterService.getCounter(TEST_COUNTER1).getCount());
 		assertEquals(BigInteger.valueOf(-10L), shardedCounterService.getCounter(TEST_COUNTER2).getCount());
+	}
+
+	@Test
+	public void testDecrementNegative_DisallowedNegative() throws InterruptedException
+	{
+		// Use 3 shards
+		shardedCounterService = initialShardedCounterService(3,
+			ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS);
+
+		shardedCounterService.increment(TEST_COUNTER1, 10);
+		shardedCounterService.increment(TEST_COUNTER2, 10);
+
+		// Decrement 20
+		for (int i = 0; i < 20; i++)
+		{
+			try
+			{
+				shardedCounterService.decrement(TEST_COUNTER1, 1);
+			}
+			catch (IllegalArgumentException ae)
+			{
+				// Do nothing.
+			}
+
+			try
+			{
+				shardedCounterService.decrement(TEST_COUNTER2, 1);
+			}
+			catch (IllegalArgumentException ae)
+			{
+				// Do nothing.
+			}
+		}
+
+		assertEquals(BigInteger.valueOf(0L), shardedCounterService.getCounter(TEST_COUNTER1).getCount());
+		assertEquals(BigInteger.valueOf(0L), shardedCounterService.getCounter(TEST_COUNTER2).getCount());
 	}
 
 	// Tests counters with up to 15 shards and excerises each shard
