@@ -75,19 +75,14 @@ public class CounterData
 	@Index
 	private CounterGroupData counterGroupData;
 
-	// ////////////////
-	// @Id -- The counterName is the @Id of this entity, found in AbstractEntity
-	// ////////////////
-
 	// This is necessary to know in order to be able to evenly distribute amongst all shards for a given counterName
 	@Index(IfCounterDataIndexable.class)
-	private int numShards = 1;
+	private int numShards;
 
 	@Index(IfCounterDataIndexable.class)
 	private String counterDescription;
 
-	// This is AVAILABLE by default, which means it can be incremented and
-	// decremented
+	// This is AVAILABLE by default, which means it can be incremented and decremented
 	@Index(IfCounterDataIndexable.class)
 	private CounterStatus counterStatus = CounterStatus.AVAILABLE;
 
@@ -99,7 +94,7 @@ public class CounterData
 	@Deprecated
 	public CounterData()
 	{
-		this(UUID.randomUUID().toString(), 1);
+		this(UUID.randomUUID().toString(), 3);
 	}
 
 	/**
