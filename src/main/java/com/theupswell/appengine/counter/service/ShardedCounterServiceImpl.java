@@ -392,6 +392,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				counterDataInDatastore.setIndexes(incomingCounter.getIndexes() == null ? CounterIndexes.none()
 					: incomingCounter.getIndexes());
 
+				counterDataInDatastore.setNegativeCountAllowed(incomingCounter.isNegativeCountAllowed());
+
 				// Update the counter in the datastore.
 				ObjectifyService.ofy().save().entity(counterDataInDatastore).now();
 

@@ -22,7 +22,6 @@ import com.google.common.base.Preconditions;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration;
 
 @Data
 @RequiredArgsConstructor
@@ -86,8 +85,7 @@ public class CounterBuilder
 	public Counter build()
 	{
 		return new Counter(this.getCounterName(), this.getCounterDescription(), this.getNumShards(),
-			this.getCounterStatus(), this.getCount(), this.getIndexes(),
-			ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS);
+			this.getCounterStatus(), this.getCount(), this.getIndexes(), this.isNegativeCountAllowed());
 	}
 
 	/**
