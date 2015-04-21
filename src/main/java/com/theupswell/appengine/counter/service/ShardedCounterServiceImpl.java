@@ -795,7 +795,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				throw new IllegalArgumentException(msg);
 			}
 
-			// Increments/Decrements can only occur on Counters with a counterStatus of AVAIALBLE.
+			// Increments/Decrements can only occur on Counters with a counterStatus of AVAILABLE.
 			assertCounterAmountMutatable(counterData.getCounterName(), counterData.getCounterStatus());
 
 			final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterData.getTypedKey(),
@@ -998,24 +998,18 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 		final Key<CounterData> counterKey = CounterData.key(counterName);
 
-		// Do this in a transaction to ensure that the CounterData exists or doesn't. No two threads will be able to
-		// execute this operation at the same time, since even GETs inside of a Transaction will fail if the entity has
-		// been updated prior to the commit of the transaction.
-		return ObjectifyService.ofy().transact(new Work<CounterData>()
+		// This is acceptable to perform outside of a transaction. In certain edge cases (e.g., the entity exists in
+		// the session cache -- which is only good for this request -- but has actually had its status changed in
+		// reality, then the increment will still succeed. However, we treat this as an eventually consistent scenario.
+		// This allows us to not have to create a transaction here, which improves performance significantly.
+		CounterData counterData = ObjectifyService.ofy().load().key(counterKey).now();
+		if (counterData == null)
 		{
-			@Override
-			public CounterData run()
-			{
-				CounterData counterData = ObjectifyService.ofy().load().key(counterKey).now();
-				if (counterData == null)
-				{
-					counterData = new CounterData(counterName, config.getNumInitialShards());
-					counterData.setNegativeCountAllowed(config.isNegativeCountAllowed());
-					ObjectifyService.ofy().save().entity(counterData).now();
-				}
-				return counterData;
-			}
-		});
+			counterData = new CounterData(counterName, config.getNumInitialShards());
+			counterData.setNegativeCountAllowed(config.isNegativeCountAllowed());
+			ObjectifyService.ofy().save().entity(counterData).now();
+		}
+		return counterData;
 	}
 
 	private static final int NUM_RETRIES_LIMIT = 10;
