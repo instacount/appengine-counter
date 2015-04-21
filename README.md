@@ -30,10 +30,10 @@ Counter values are cached in memcache for high-performance counter reads, and in
 Increasing the number of shards for a particular counter will increase the number of updates/second that the system can handle.  Using appengine-counter, any counter's shard-count can be adjusted in real-time using the appengine datastore viewer.  The more shards, the higher the throughput for any particular counter.
 
 + <b>Optional Transactionality</b><br/>
-By default, counter increment/decrement operations do not happen in an existing datastore transaction.  Instead, a new transaction is always created, which allows the counter to be atomically incremented without having to worry about XG-transaction limits (currently 5 entity groups per Transaction).  However, sometimes it's necessary to increment a counter inside of an XG transaction, and appengine-counter allows for this.
+By default, counter increment/decrement operations do not happen in an existing datastore transaction.  Instead, a new transaction is always created, which allows the counter to be atomically incremented without having to worry about XG-transaction limits (currently 25 entity groups per Transaction).  However, sometimes it's necessary to increment a counter inside of an XG transaction, and appengine-counter allows for this.
 
 + <b>Async Counter Deletion</b><br/>
-Because some counters may have a large number of counter shards, counter deletion is facilitated in an asynchronous manner using a TaskQueue.  Because of this, counter deletion is eventually consistent, although the counter-status will reflect the fact that it is being deleted, and this information is strongly-consistent.
+Because some counters may have a large number of counter shards, counter deletion is facilitated in an asynchronous manner using a TaskQueue.  Counter deletion is eventually consistent, although the counter-status will reflect the fact that a counter is being deleted.
 
 <b><i><u>Note: The current release of this library is not compatible with Objectify versions prior to version 5.0.3, and it works best with Objectify version 5.1.x.  See the changelog for previous version support.</u></i></b>
 
@@ -44,7 +44,7 @@ Appengine-counter can be found in maven-central.  To use it in your project, inc
     <dependency>
     	<groupId>com.theupswell.appengine.counter</groupId>
 		<artifactId>appengine-counter</artifactId>
-		<version>1.1.1</version>
+		<version>1.2.0</version>
     </dependency>
 
 Sharded counters can be accessed via an implementation of <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterService.java">ShardedCounterService</a>.  
