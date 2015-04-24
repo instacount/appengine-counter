@@ -56,6 +56,13 @@ public interface CounterOperation
 	DateTime getCreationDateTime();
 
 	/**
+	 * Reflects whether or not a new counter was created before exexuting this counter operation.
+	 * 
+	 * @return {@code true} if a new counter was created; {@code false} if the counter already existed.
+	 */
+	boolean newCounterCreated();
+
+	/**
 	 * An enumeration that identifies the type of a {@link CounterOperation}.
 	 */
 	enum CounterOperationType
@@ -84,6 +91,8 @@ public interface CounterOperation
 
 		private final DateTime creationDateTime;
 
+		private final boolean newCounterCreated;
+
 		/**
 		 * Required-args Constructor.
 		 *
@@ -93,10 +102,12 @@ public interface CounterOperation
 		 * @param counterOperationType The {@link CounterOperationType} of this operation.
 		 * @param appliedAmount The appliedAmount of the applied increment or decrement.
 		 * @param creationDateTime The {@link DateTime} representing the date-time this increment was effected.
+		 * @param newCounterCreated {@code true} if a new counter was created before executing this operation;
+		 *            {@code false} if the counter already existed.
 		 */
 		public Impl(final UUID operationUuid, final Key<CounterShardData> counterShardDataKey,
 				final CounterOperationType counterOperationType, final long appliedAmount,
-				final DateTime creationDateTime)
+				final DateTime creationDateTime, final boolean newCounterCreated)
 		{
 			Preconditions.checkNotNull(operationUuid);
 			this.operationUuid = operationUuid;
@@ -112,6 +123,8 @@ public interface CounterOperation
 
 			Preconditions.checkNotNull(creationDateTime);
 			this.creationDateTime = creationDateTime;
+
+			this.newCounterCreated = newCounterCreated;
 		}
 
 		/**
@@ -128,7 +141,30 @@ public interface CounterOperation
 			this.counterOperationType = counterShardOperationData.getCounterOperationType();
 			this.appliedAmount = counterShardOperationData.getMutationAmount();
 			this.creationDateTime = counterShardOperationData.getCreationDateTime();
+			this.newCounterCreated = false;
 		}
 
+		/**
+		 * Copy Constructor.
+		 * 
+		 * @param counterOperation
+		 */
+		public Impl(final CounterOperation counterOperation)
+		{
+			Preconditions.checkNotNull(counterOperation);
+
+			this.operationUuid = counterOperation.getOperationUuid();
+			this.counterShardDataKey = counterOperation.getCounterShardDataKey();
+			this.counterOperationType = counterOperation.getCounterOperationType();
+			this.appliedAmount = counterOperation.getAppliedAmount();
+			this.creationDateTime = counterOperation.getCreationDateTime();
+			this.newCounterCreated = counterOperation.newCounterCreated();
+		}
+
+		@Override
+		public boolean newCounterCreated()
+		{
+			return this.newCounterCreated;
+		}
 	}
 }

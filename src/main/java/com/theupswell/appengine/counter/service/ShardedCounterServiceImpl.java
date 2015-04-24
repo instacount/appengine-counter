@@ -21,6 +21,10 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
@@ -242,7 +246,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 		// We always load the CounterData from the Datastore (or its Objectify
 		// cache), but we sometimes return the cached count value.
-		final CounterData counterData = this.getOrCreateCounterData(counterName);
+		final CounterData counterData = this.getOrCreateCounterData(counterName).getCounterData();
 		// If the counter is DELETING, then its count is always 0 because shards will be in the process of deleting and
 		// the true pre-deletion count will have been lost.
 		if (CounterData.CounterStatus.DELETING == counterData.getCounterStatus())
@@ -357,7 +361,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			{
 				// First, load the incomingCounter from the datastore via transaction get to ensure it has the proper
 				// state.
-				final CounterData counterDataInDatastore = getOrCreateCounterData(incomingCounter.getCounterName());
+				final CounterData counterDataInDatastore = getOrCreateCounterData(incomingCounter.getCounterName())
+					.getCounterData();
 				assertCounterDetailsMutatable(counterDataInDatastore.getCounterName(),
 					counterDataInDatastore.getCounterStatus());
 
@@ -520,7 +525,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			}
 
 			// Last but not least, update the counter status to Available.
-			final CounterData counterData = getOrCreateCounterData(counterName);
+			final CounterData counterData = getOrCreateCounterData(counterName).getCounterData();
 			counterData.setCounterStatus(CounterStatus.AVAILABLE);
 			ObjectifyService.ofy().transact(new VoidWork()
 			{
@@ -556,7 +561,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// to be part of an XG transaction. Since the CounterData isn't expected to mutate that often, we want
 		// increment/decrement operations to be as speedy as possibly. In this way, the IncrementWork can take place in
 		// a non-XG transaction.
-		final CounterData counterData = this.getOrCreateCounterData(counterName);
+		final CounterDataGetCreateContainer counterDataGetCreateContainer = this.getOrCreateCounterData(counterName);
+		final CounterData counterData = counterDataGetCreateContainer.getCounterData();
 
 		// Disallow decrements based upon the configuration of the CounterData, but only if this mutation is for a
 		// negative increment (i.e., a decrement).
@@ -573,7 +579,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// Create the Work to be done for this increment, which will be done inside of a TX. See
 		// "https://developers.google.com/appengine/docs/java/datastore/transactions#Java_Isolation_and_consistency"
 		final Work<CounterOperation> atomicIncrementShardWork = new IncrementShardWork(counterData,
-			incrementOperationId, optShardNumber, amount);
+			incrementOperationId, optShardNumber, amount, counterDataGetCreateContainer.newCounterDataCreated);
 
 		// Note that this operation is idempotent from the perspective of a ConcurrentModificationException. In that
 		// case, the increment operation will fail and will not have been applied. An Objectify retry of the increment
@@ -739,18 +745,21 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		private final UUID counterShardOperationUuid;
 		private final Optional<Integer> optShardNumber;
 		private final long incrementAmount;
+		private final boolean newCounterCreated;
 
 		/**
 		 * Required-Args Constructor.
-		 *
+		 * 
 		 * @param counterData A {@link CounterData} that contains information about the counter being incremented.
 		 * @param counterShardOperationUuid The unique identifier of the job that performed the increment.
 		 * @param optShardNumber An optionally supplied shard number that should an increment/decrement should be
 		 * @param incrementAmount A long representing the amount of the increment to be applied. applied to. If
 		 *            specified as {@link Optional#absent()} , then a random shard will be selected.
+		 * @param newCounterCreated {@code true} if a new counter was created to perform this operation; {@code false}
+		 *            otherwise.
 		 */
 		IncrementShardWork(final CounterData counterData, final UUID counterShardOperationUuid,
-				final Optional<Integer> optShardNumber, final long incrementAmount)
+				final Optional<Integer> optShardNumber, final long incrementAmount, boolean newCounterCreated)
 		{
 			Preconditions.checkNotNull(counterData);
 			this.counterData = counterData;
@@ -764,6 +773,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 			Preconditions.checkNotNull(optShardNumber);
 			this.optShardNumber = optShardNumber;
+
+			this.newCounterCreated = newCounterCreated;
 		}
 
 		/**
@@ -861,7 +872,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			}
 
 			return new CounterOperation.Impl(counterShardOperationUuid, counterShardDataKey, counterOperationType,
-				Math.abs(incrementAmount), counterShardData.getUpdatedDateTime());
+				Math.abs(incrementAmount), counterShardData.getUpdatedDateTime(), newCounterCreated);
 		}
 
 		@VisibleForTesting
@@ -985,7 +996,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 * @throws NullPointerException in the case where no CounterData could be loaded from the Datastore.
 	 */
 	@VisibleForTesting
-	protected CounterData getOrCreateCounterData(final String counterName)
+	protected CounterDataGetCreateContainer getOrCreateCounterData(final String counterName)
 	{
 		// This is the main validation for counter names. All other accessor and mutator methods flow through this
 		// method.
@@ -1008,8 +1019,39 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			counterData = new CounterData(counterName, config.getNumInitialShards());
 			counterData.setNegativeCountAllowed(config.isNegativeCountAllowed());
 			ObjectifyService.ofy().save().entity(counterData).now();
+			return new CounterDataGetCreateContainer(counterData, true);
 		}
-		return counterData;
+		else
+		{
+			return new CounterDataGetCreateContainer(counterData, false);
+		}
+	}
+
+	/**
+	 * A helper object to indicate if a new counter was created after calling {@link #getOrCreateCounterData}.
+	 */
+	@Getter
+	@ToString
+	@EqualsAndHashCode
+	@VisibleForTesting
+	protected static final class CounterDataGetCreateContainer
+	{
+		private final CounterData counterData;
+		private final boolean newCounterDataCreated;
+
+		/**
+		 * Required-args Constructor.
+		 * 
+		 * @param counterData
+		 * @param newCounterDataCreated
+		 */
+		private CounterDataGetCreateContainer(final CounterData counterData, final boolean newCounterDataCreated)
+		{
+			Preconditions.checkNotNull(counterData);
+			this.counterData = counterData;
+
+			this.newCounterDataCreated = newCounterDataCreated;
+		}
 	}
 
 	private static final int NUM_RETRIES_LIMIT = 10;
