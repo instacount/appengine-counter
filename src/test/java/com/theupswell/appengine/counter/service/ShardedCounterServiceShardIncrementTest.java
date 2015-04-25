@@ -84,7 +84,7 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 		shardedCounterService.increment(TEST_COUNTER1, 0);
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void testIncrement_CounterIsBeingDeleted() throws InterruptedException
 	{
 		// Store this in the Datastore to trigger the exception below...
@@ -96,9 +96,9 @@ public class ShardedCounterServiceShardIncrementTest extends AbstractShardedCoun
 		{
 			shardedCounterService.increment(TEST_COUNTER1, 1);
 		}
-		catch (RuntimeException e)
+		catch (IllegalArgumentException e)
 		{
-			assertEquals("Can't mutate the incrementAmount of counter '" + TEST_COUNTER1
+			assertEquals("Can't mutate the amount of counter '" + TEST_COUNTER1
 				+ "' because it's currently in the DELETING state but must be in in the AVAILABLE state!",
 				e.getMessage());
 			throw e;

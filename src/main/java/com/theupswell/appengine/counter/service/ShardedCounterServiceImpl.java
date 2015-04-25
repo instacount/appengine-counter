@@ -384,7 +384,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// shards that would no longer be factored into the #getCount method.
 				if (incomingCounter.getNumShards() < counterDataInDatastore.getNumShards())
 				{
-					throw new RuntimeException(
+					throw new IllegalArgumentException(
 						"Reducing the number of counter shards is not currently allowed!  See https://github.com/theupswell/appengine-counter/issues/4 for more details.");
 				}
 
@@ -508,7 +508,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		}
 		else if (counter.getCounterStatus() != CounterStatus.AVAILABLE)
 		{
-			throw new RuntimeException("Counters must be in the AVAILABLE status before being reset!");
+			throw new IllegalArgumentException("Counters must be in the AVAILABLE status before being reset!");
 		}
 		else
 		{
@@ -702,7 +702,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		{
 			final String msg = String.format(
 				"Can't delete counter '%s' because it is currently not in the DELETING state!", counterName);
-			throw new RuntimeException(msg);
+			throw new IllegalArgumentException(msg);
 		}
 		else
 		{
@@ -1180,9 +1180,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		{
 			final String msg = String
 				.format(
-					"Can't mutate the incrementAmount of counter '%s' because it's currently in the %s state but must be in in the %s state!",
+					"Can't mutate the amount of counter '%s' because it's currently in the %s state but must be in in the %s state!",
 					counterName, counterStatus.name(), CounterStatus.AVAILABLE);
-			throw new RuntimeException(msg);
+			throw new IllegalArgumentException(msg);
 		}
 	}
 
@@ -1203,7 +1203,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				.format(
 					"Can't mutate the details of counter '%s' because it's currently in the %s state but must be in in the %s or %s state!",
 					counterName, counterStatus, CounterStatus.AVAILABLE, CounterStatus.READ_ONLY_COUNT);
-			throw new RuntimeException(msg);
+			throw new IllegalArgumentException(msg);
 		}
 	}
 
