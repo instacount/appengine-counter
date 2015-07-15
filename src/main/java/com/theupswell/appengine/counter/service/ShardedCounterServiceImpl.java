@@ -132,7 +132,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// Helper constant for counterName keys.
 	public static final String COUNTER_NAME = "counterName";
 
-	// This is equivalent to skipCache=false
+	// This indicates that cache should be used, and is equivalent to skipCache=false
 	private static final boolean USE_CACHE = false;
 
 	/**
@@ -237,6 +237,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 * a minute because it performs a load from the datastore.
 	 *
 	 * @param counterName
+	 * @param skipCache A boolean that allows a caller to skip memcache when retrieving a counter. Set to {@code true}
+	 *            to load the counter and all of its shards directly from the Datastore. Set to {@code false} to attempt
+	 *            to load the count from memcache, with fallback to the datastore.
 	 * @return
 	 */
 	@Override
@@ -301,7 +304,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// For added performance, we could spawn multiple threads to wait for each value to be returned from the
 		// DataStore, and then aggregate that way. However, the simple summation below is not very expensive, so
 		// creating multiple threads to get each value would probably be overkill. Just let objectify do this for
-		// us, even though we have to wait for all entities to return before summation begins.
+		// us. Even though we have to wait for all entities to return before summation begins, the summation is a quick
+		// in-memory operation with a relatively small number of shards, so parallelizing it would likely not increase
+		// performance.
 
 		// No TX - get is Strongly consistent by default, and we will exceed the TX limit for high-shard-count
 		// counters if we try to do this in a TX.
@@ -359,7 +364,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			@Override
 			public Void run()
 			{
-				// First, load the incomingCounter from the datastore via transaction get to ensure it has the proper
+				// First, load the incomingCounter from the datastore via transactional get to ensure it has the proper
 				// state.
 				final CounterData counterDataInDatastore = getOrCreateCounterData(incomingCounter.getCounterName())
 					.getCounterData();
@@ -402,7 +407,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// Update the counter in the datastore.
 				ObjectifyService.ofy().save().entity(counterDataInDatastore).now();
 
-				// return this to satisfy Java...
+				// return null to satisfy Java...
 				return null;
 			}
 		});
