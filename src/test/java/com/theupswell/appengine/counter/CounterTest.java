@@ -6,6 +6,8 @@ import static org.hamcrest.core.Is.is;
 
 import java.math.BigInteger;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
@@ -20,6 +22,7 @@ public class CounterTest
 	private static final int NUM_SHARDS = 3;
 	private static final BigInteger COUNT = BigInteger.valueOf(10L);
 	private static final CounterIndexes ALL_INDEXES = CounterIndexes.all();
+	private static final DateTime CREATION_DATE_TIME = DateTime.now(DateTimeZone.UTC);
 
 	@Test
 	public void testConstructors() throws Exception
@@ -48,7 +51,7 @@ public class CounterTest
 		assertThat(actual.getCounterStatus(), is(CounterStatus.AVAILABLE));
 
 		actual = new Counter(TEST_COUNTER_NAME, TEST_COUNTER_DESCRIPTION, NUM_SHARDS, CounterStatus.AVAILABLE, COUNT,
-			ALL_INDEXES, ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS);
+			ALL_INDEXES, ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS, CREATION_DATE_TIME);
 		assertThat(actual, is(not(nullValue())));
 		assertThat(actual.getCounterName(), is(TEST_COUNTER_NAME));
 		assertThat(actual.getCounterDescription(), is(TEST_COUNTER_DESCRIPTION));
@@ -58,7 +61,7 @@ public class CounterTest
 		assertThat(actual.isNegativeCountAllowed(), is(ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS));
 
 		actual = new Counter(TEST_COUNTER_NAME, TEST_COUNTER_DESCRIPTION, NUM_SHARDS, CounterStatus.AVAILABLE, COUNT,
-			ALL_INDEXES, ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS);
+			ALL_INDEXES, ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS, CREATION_DATE_TIME);
 		assertThat(actual, is(not(nullValue())));
 		assertThat(actual.getCounterName(), is(TEST_COUNTER_NAME));
 		assertThat(actual.getCounterDescription(), is(TEST_COUNTER_DESCRIPTION));

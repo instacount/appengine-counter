@@ -6,6 +6,8 @@ import static org.hamcrest.core.Is.is;
 
 import java.math.BigInteger;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.junit.Test;
 
 import com.theupswell.appengine.counter.data.CounterData;
@@ -21,12 +23,13 @@ public class CounterBuilderTest
 	private static final int NUM_SHARDS = 3;
 	private static final BigInteger COUNT = BigInteger.valueOf(10L);
 	private static final CounterIndexes NO_INDEXES = CounterIndexes.none();
+	private static final DateTime CREATION_DATE_TIME = DateTime.now(DateTimeZone.UTC);
 
 	@Test
 	public void testBuildWithCounter() throws Exception
 	{
 		Counter actual = new Counter(TEST_COUNTER_NAME, TEST_COUNTER_DESCRIPTION, NUM_SHARDS, CounterStatus.AVAILABLE,
-			COUNT, NO_INDEXES, ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS);
+			COUNT, NO_INDEXES, ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS, CREATION_DATE_TIME);
 		Counter copy = new CounterBuilder(actual).build();
 		assertThat(actual, is(copy));
 	}
@@ -41,6 +44,7 @@ public class CounterBuilderTest
 		assertThat(copy.getCounterDescription(), is(nullValue()));
 		assertThat(copy.getNumShards(), is(NUM_SHARDS));
 		assertThat(copy.getIndexes(), is(NO_INDEXES));
+		assertThat(copy.getCreationDateTime(), is(actualCounterData.getCreationDateTime()));
 	}
 
 }

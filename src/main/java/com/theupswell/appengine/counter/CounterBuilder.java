@@ -18,6 +18,8 @@ import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 
+import org.joda.time.DateTime;
+
 import com.google.common.base.Preconditions;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
@@ -36,6 +38,7 @@ public class CounterBuilder
 	private BigInteger count;
 	private boolean negativeCountAllowed;
 	private CounterIndexes indexes;
+	private DateTime creationDateTime;
 
 	/**
 	 * Build method for constructing a new Counter.
@@ -54,6 +57,7 @@ public class CounterBuilder
 		this.setCounterStatus(counterData.getCounterStatus());
 		this.setIndexes(counterData.getIndexes());
 		this.setNegativeCountAllowed(counterData.isNegativeCountAllowed());
+		this.setCreationDateTime(counterData.getCreationDateTime());
 	}
 
 	/**
@@ -75,6 +79,7 @@ public class CounterBuilder
 		this.setCount(counter.getCount());
 		this.setIndexes(counter.getIndexes());
 		this.setNegativeCountAllowed(counter.isNegativeCountAllowed());
+		this.setCreationDateTime(counter.getCreationDateTime());
 	}
 
 	/**
@@ -85,7 +90,8 @@ public class CounterBuilder
 	public Counter build()
 	{
 		return new Counter(this.getCounterName(), this.getCounterDescription(), this.getNumShards(),
-			this.getCounterStatus(), this.getCount(), this.getIndexes(), this.isNegativeCountAllowed());
+			this.getCounterStatus(), this.getCount(), this.getIndexes(), this.isNegativeCountAllowed(),
+			this.getCreationDateTime());
 	}
 
 	/**
@@ -131,8 +137,19 @@ public class CounterBuilder
 	public CounterBuilder withCount(final BigInteger count)
 	{
 		Preconditions.checkNotNull(count);
-
 		this.setCount(count);
+		return this;
+	}
+
+	/**
+	 *
+	 * @param creationDateTime
+	 * @return
+	 */
+	public CounterBuilder withCreationDateTime(final DateTime creationDateTime)
+	{
+		Preconditions.checkNotNull(creationDateTime);
+		this.setCreationDateTime(creationDateTime);
 		return this;
 	}
 

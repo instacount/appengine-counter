@@ -19,6 +19,8 @@ import lombok.EqualsAndHashCode;
 import lombok.ToString;
 
 import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import com.google.common.base.Preconditions;
 import com.theupswell.appengine.counter.data.CounterData;
@@ -44,6 +46,7 @@ public class Counter
 	private final BigInteger count;
 	private final CounterIndexes indexes;
 	private final boolean negativeCountAllowed;
+	private final DateTime creationDateTime;
 
 	/**
 	 * Required-args Constructor. Sets the {@code counterStatus} to
@@ -80,24 +83,26 @@ public class Counter
 	public Counter(final String counterName, final String counterDescription, final int numShards,
 			final CounterData.CounterStatus counterStatus, final CounterIndexes indexes)
 	{
-		this(counterName, counterDescription, numShards, counterStatus, BigInteger.ZERO, indexes, false);
+		this(counterName, counterDescription, numShards, counterStatus, BigInteger.ZERO, indexes, false, DateTime
+			.now(DateTimeZone.UTC));
 	}
 
 	/**
 	 * Required-args Constructor.
-	 *
+	 * 
 	 * @param counterName
 	 * @param counterDescription
 	 * @param counterStatus
 	 * @param count
 	 * @param indexes
 	 * @param negativeCountAllowed Set to {@code true} to allow the counter to decrement past zero; {@code false} to
-	 *            preclude this behavior and stop counter decrements at zero.
+	 * @param creationDateTime The {@link DateTime} that this counter was created.
 	 */
 	public Counter(final String counterName, final String counterDescription, final int numShards,
 			final CounterStatus counterStatus, final BigInteger count, final CounterIndexes indexes,
-			final boolean negativeCountAllowed)
+			final boolean negativeCountAllowed, final DateTime creationDateTime)
 	{
+
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName), "CounterName may not be empty, blank, or null!");
 		Preconditions.checkNotNull(counterStatus);
 
@@ -111,5 +116,7 @@ public class Counter
 		this.indexes = indexes == null ? CounterIndexes.none() : indexes;
 
 		this.negativeCountAllowed = negativeCountAllowed;
+
+		this.creationDateTime = creationDateTime;
 	}
 }
