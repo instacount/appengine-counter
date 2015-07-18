@@ -56,7 +56,7 @@ public interface CounterOperation
 	DateTime getCreationDateTime();
 
 	/**
-	 * Reflects whether or not a new counter was created before exexuting this counter operation.
+	 * Reflects whether or not a new counter was created before executing this counter operation.
 	 * 
 	 * @return {@code true} if a new counter was created; {@code false} if the counter already existed.
 	 */

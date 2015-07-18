@@ -167,8 +167,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		assertThat(increment.getAppliedAmount(), is(1L));
 		assertThat(increment.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		assertEquals(BigInteger.valueOf(3L), impl.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(BigInteger.valueOf(4L), impl.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(BigInteger.valueOf(3L), impl.getCounter(TEST_COUNTER1).get().getCount());
+		assertEquals(BigInteger.valueOf(4L), impl.getCounter(TEST_COUNTER2).get().getCount());
 
 		increment = impl.increment(TEST_COUNTER1, 1);
 		assertThat(increment.getAppliedAmount(), is(1L));
@@ -198,8 +198,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		assertThat(increment.getAppliedAmount(), is(1L));
 		assertThat(increment.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		assertEquals(BigInteger.valueOf(6L), impl.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(BigInteger.valueOf(8L), impl.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(BigInteger.valueOf(6L), impl.getCounter(TEST_COUNTER1).get().getCount());
+		assertEquals(BigInteger.valueOf(8L), impl.getCounter(TEST_COUNTER2).get().getCount());
 
 		CounterOperation decrement = impl.decrement(TEST_COUNTER1, 1);
 		assertThat(decrement.getAppliedAmount(), is(1L));
@@ -229,8 +229,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		assertThat(decrement.getAppliedAmount(), is(1L));
 		assertThat(decrement.getCounterShardDataKey(), is(this.testCounterShardData2.getTypedKey()));
 
-		assertEquals(BigInteger.valueOf(3L), impl.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(BigInteger.valueOf(4L), impl.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(BigInteger.valueOf(3L), impl.getCounter(TEST_COUNTER1).get().getCount());
+		assertEquals(BigInteger.valueOf(4L), impl.getCounter(TEST_COUNTER2).get().getCount());
 
 		decrement = impl.decrement(TEST_COUNTER1, 1);
 		assertThat(decrement.getAppliedAmount(), is(1L));
@@ -262,8 +262,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 
 		MemcacheServiceFactory.getMemcacheService().clearAll();
 
-		assertEquals(BigInteger.ZERO, impl.getCounter(TEST_COUNTER1).getCount());
-		assertEquals(BigInteger.ZERO, impl.getCounter(TEST_COUNTER2).getCount());
+		assertEquals(BigInteger.ZERO, impl.getCounter(TEST_COUNTER1).get().getCount());
+		assertEquals(BigInteger.ZERO, impl.getCounter(TEST_COUNTER2).get().getCount());
 
 		decrement = impl.decrement(TEST_COUNTER1, 1);
 		assertThat(decrement.getAppliedAmount(), is(1L));
@@ -294,7 +294,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		final String counterName = UUID.randomUUID().toString();
 		this.singleShardShardedCounterService.increment(counterName, 1);
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BD_ONE));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BD_ONE));
 		this.assertCounterShardValue(counterName, 1L);
 	}
 
@@ -314,7 +314,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 
 		this.clearAllCaches();
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 		this.assertCounterShardValue(counterName, 1L);
 	}
 
@@ -329,7 +330,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		this.impl.getOrCreateCounterData(counterName);
 
 		this.shardedCounterService.increment(counterName, 1L);
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 		this.assertCounterShardValue(counterName, 1L);
 	}
 
@@ -359,7 +361,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			}
 		});
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(),
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
 			is(BigInteger.valueOf(10L)));
 		this.assertCounterShardValue(counterName, 10L);
 	}
@@ -373,7 +375,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 	{
 		final String counterName = UUID.randomUUID().toString();
 		singleShardShardedCounterService.increment(counterName, 1L);
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 
 		this.clearAllCaches();
 
@@ -394,13 +397,13 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			}
 		});
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(),
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
 			is(BigInteger.valueOf(11L)));
 		this.assertCounterShardValue(counterName, 11L);
 
 		this.clearAllCaches();
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(),
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
 			is(BigInteger.valueOf(11L)));
 		this.assertCounterShardValue(counterName, 11L);
 	}
@@ -414,7 +417,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 	{
 		final String counterName = UUID.randomUUID().toString();
 		singleShardShardedCounterService.increment(counterName, 1L);
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 
 		// Perform another increment in a Work, but abort it before it can commit.
 		ObjectifyService.ofy().transactNew(new VoidWork()
@@ -433,7 +437,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			}
 		});
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(),
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
 			is(BigInteger.valueOf(11L)));
 		this.assertCounterShardValue(counterName, 11L);
 	}
@@ -478,7 +482,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			// Eat the Exception.
 		}
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.ZERO));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.ZERO));
 		this.assertCounterShardValue(counterName, null);
 	}
 
@@ -491,7 +495,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 	{
 		final String counterName = UUID.randomUUID().toString();
 		singleShardShardedCounterService.increment(counterName, 1L);
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.ONE));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.ONE));
 		this.assertCounterShardValue(counterName, 1L);
 
 		try
@@ -520,7 +524,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			// Eat the Exception.
 		}
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 		this.assertCounterShardValue(counterName, 1L);
 	}
 
@@ -534,7 +539,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		final String counterName = UUID.randomUUID().toString();
 		singleShardShardedCounterService.increment(counterName, 1L);
 		this.clearAllCaches();
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 		this.assertCounterShardValue(counterName, 1L);
 
 		this.clearAllCaches();
@@ -567,10 +573,12 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 
 		this.clearAllCaches();
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 		this.assertCounterShardValue(counterName, 1L);
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 		this.assertCounterShardValue(counterName, 1L);
 	}
 
@@ -582,7 +590,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 
 		// Increment the counter's 1 shard so it has a count of 1.
 		this.singleShardShardedCounterService.increment(TEST_COUNTER1, 1);
-		assertThat(this.singleShardShardedCounterService.getCounter(TEST_COUNTER1).getCount(),
+		assertThat(this.singleShardShardedCounterService.getCounter(TEST_COUNTER1).get().getCount(),
 			is(BigInteger.valueOf(1L)));
 
 		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(CounterData.key(TEST_COUNTER1), 0);
@@ -604,7 +612,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		counterShard = ObjectifyService.ofy().load().key(counterShardDataKey).now();
 		assertThat(counterShard, is(not(nullValue())));
 		assertThat(counterShard.getCount(), is(11L));
-		assertThat(this.singleShardShardedCounterService.getCounter(TEST_COUNTER1).getCount(),
+		assertThat(this.singleShardShardedCounterService.getCounter(TEST_COUNTER1).get().getCount(),
 			is(BigInteger.valueOf(11L)));
 
 		// Perform another increment in a Work, but abort it before it can commit.
@@ -621,7 +629,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		counterShard = ObjectifyService.ofy().load().key(counterShardDataKey).now();
 		assertThat(counterShard, is(not(nullValue())));
 		assertThat(counterShard.getCount(), is(1L));
-		assertThat(this.singleShardShardedCounterService.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.ONE));
+		assertThat(this.singleShardShardedCounterService.getCounter(TEST_COUNTER1).get().getCount(), is(BigInteger.ONE));
 	}
 
 	// /////////////////////////
@@ -647,7 +655,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		// clear the cache
 		memcache.clearAll();
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(),
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
 			is(BigInteger.valueOf(-1L)));
 		this.assertCounterShardValue(counterName, -1L);
 	}
@@ -666,7 +674,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		memcache.clearAll();
 
 		this.singleShardShardedCounterService.decrement(counterName, 1);
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.ZERO));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.ZERO));
 		this.assertCounterShardValue(counterName, 0L);
 	}
 
@@ -681,11 +689,13 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		this.singleShardShardedCounterService.increment(counterName, 10L);
 
 		this.singleShardShardedCounterService.decrement(counterName, 1L);
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(9L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(9L)));
 		this.assertCounterShardValue(counterName, 9L);
 
 		this.singleShardShardedCounterService.decrement(counterName, 1L);
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(8L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(8L)));
 		this.assertCounterShardValue(counterName, 8L);
 	}
 
@@ -715,7 +725,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			}
 		});
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.TEN));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.TEN));
 		this.assertCounterShardValue(counterName, 10L);
 	}
 
@@ -728,7 +738,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 	{
 		final String counterName = UUID.randomUUID().toString();
 		singleShardShardedCounterService.increment(counterName, 10L);
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.TEN));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.TEN));
 		this.assertCounterShardValue(counterName, 10L);
 
 		// clear the cache.
@@ -746,12 +756,14 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			}
 		});
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(9L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(9L)));
 		this.assertCounterShardValue(counterName, 9L);
 
 		memcache.clearAll();
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(9L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(9L)));
 		this.assertCounterShardValue(counterName, 9L);
 	}
 
@@ -764,7 +776,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 	{
 		final String counterName = UUID.randomUUID().toString();
 		singleShardShardedCounterService.increment(counterName, 10L);
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.TEN));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.TEN));
 		this.assertCounterShardValue(counterName, 10L);
 
 		// Perform another increment in a Work, but abort it before it can commit.
@@ -778,7 +790,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			}
 		});
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(9L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(9L)));
 		this.assertCounterShardValue(counterName, 9L);
 	}
 
@@ -816,7 +829,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			// Eat the Exception.
 		}
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.ZERO));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.ZERO));
 		this.assertCounterShardValue(counterName, null);
 	}
 
@@ -829,7 +842,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 	{
 		final String counterName = UUID.randomUUID().toString();
 		singleShardShardedCounterService.increment(counterName, 1L);
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.ONE));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.ONE));
 		this.assertCounterShardValue(counterName, 1L);
 
 		try
@@ -857,7 +870,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			// Eat the Exception.
 		}
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.ONE));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.ONE));
 		this.assertCounterShardValue(counterName, 1L);
 	}
 
@@ -871,7 +884,8 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		final String counterName = UUID.randomUUID().toString();
 		singleShardShardedCounterService.increment(counterName, 1L);
 		this.clearAllCaches();
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 		this.assertCounterShardValue(counterName, 1L);
 
 		this.clearAllCaches();
@@ -904,10 +918,12 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 
 		this.clearAllCaches();
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 		this.assertCounterShardValue(counterName, 1L);
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(),
+			is(BigInteger.valueOf(1L)));
 		this.assertCounterShardValue(counterName, 1L);
 	}
 

@@ -12,6 +12,7 @@
  */
 package com.theupswell.appengine.counter.service;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 import java.math.BigInteger;
@@ -25,6 +26,7 @@ import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.dev.LocalTaskQueue;
 import com.google.appengine.api.taskqueue.dev.QueueStateInfo;
 import com.google.appengine.tools.development.testing.LocalTaskQueueTestConfig;
+import com.google.common.base.Optional;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.Counter;
@@ -77,12 +79,12 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 	public void testDeleteCounter_NoneExists()
 	{
 		shardedCounterService.delete(TEST_COUNTER1);
-		Counter counter = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter, TEST_COUNTER1, BigInteger.ZERO);
+		final Optional<Counter> optCounter1 = shardedCounterService.getCounter(TEST_COUNTER1);
+		assertThat(optCounter1.isPresent(), is(false));
 
 		shardedCounterService.delete(TEST_COUNTER2);
-		counter = shardedCounterService.getCounter(TEST_COUNTER2);
-		assertCounter(counter, TEST_COUNTER2, BigInteger.ZERO);
+		final Optional<Counter> optCounter2 = shardedCounterService.getCounter(TEST_COUNTER2);
+		assertThat(optCounter2.isPresent(), is(false));
 	}
 
 	@Test
@@ -93,7 +95,7 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 
 		shardedCounterService = new ShardedCounterServiceImpl(memcache, config);
 
-		shardedCounterService.getCounter(TEST_COUNTER1);
+		shardedCounterService.increment(TEST_COUNTER1, 1);
 		shardedCounterService.delete(TEST_COUNTER1);
 		assertPostDeleteCallSuccess(TEST_COUNTER1);
 	}
@@ -115,14 +117,14 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 	public void testDeleteWith1Shard() throws InterruptedException
 	{
 		shardedCounterService.increment(TEST_COUNTER1, 1);
-		final Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1);
+		final Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1).get();
 		assertCounter(counter1, TEST_COUNTER1, BigInteger.valueOf(1L));
 
 		shardedCounterService.delete(TEST_COUNTER1);
 		assertPostDeleteCallSuccess(TEST_COUNTER1);
 
 		shardedCounterService.increment(TEST_COUNTER2, 1);
-		final Counter counter2 = shardedCounterService.getCounter(TEST_COUNTER2);
+		final Counter counter2 = shardedCounterService.getCounter(TEST_COUNTER2).get();
 		assertCounter(counter2, TEST_COUNTER2, BigInteger.valueOf(1L));
 
 		shardedCounterService.delete(TEST_COUNTER2);
@@ -158,10 +160,10 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 			this.memcache.clearAll();
 		}
 
-		Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1);
+		Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1).get();
 		assertCounter(counter1, TEST_COUNTER1, BigInteger.valueOf(21L));
 
-		Counter counter2 = shardedCounterService.getCounter(TEST_COUNTER2);
+		Counter counter2 = shardedCounterService.getCounter(TEST_COUNTER2).get();
 		assertCounter(counter2, TEST_COUNTER2, BigInteger.valueOf(22L));
 
 		// ///////////////
@@ -199,7 +201,7 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 		// Verify CounterData Counts
 		// ///////////////
 
-		Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1);
+		Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1).get();
 		assertCounter(counter1, TEST_COUNTER1, BigInteger.valueOf(50L));
 
 		// ///////////////
@@ -244,7 +246,7 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 	 */
 	private void assertPostDeleteCallSuccess(String counterName) throws InterruptedException
 	{
-		Counter counter = shardedCounterService.getCounter(counterName);
+		Counter counter = shardedCounterService.getCounter(counterName).get();
 		assertEquals(CounterStatus.DELETING, counter.getCounterStatus());
 
 		// See here:

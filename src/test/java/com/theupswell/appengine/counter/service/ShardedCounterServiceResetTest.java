@@ -62,7 +62,7 @@ public class ShardedCounterServiceResetTest extends AbstractShardedCounterServic
 	@Test(expected = RuntimeException.class)
 	public void testResetCounter_WrongStatus_Deleting() throws Exception
 	{
-		final Counter counter = shardedCounterService.getCounter("123");
+		final Counter counter = shardedCounterService.getCounter("123").get();
 
 		Counter readOnlyCounter = new CounterBuilder(counter).withCounterStatus(CounterStatus.DELETING).build();
 		shardedCounterService.updateCounterDetails(readOnlyCounter);
@@ -75,9 +75,10 @@ public class ShardedCounterServiceResetTest extends AbstractShardedCounterServic
 	public void testResetCounter_CountIsCachedInMemcache() throws Exception
 	{
 		final String counterName = UUID.randomUUID().toString();
+		shardedCounterService.createCounter(counterName);
 		this.memcache.put(counterName, BigInteger.TEN);
 
-		Counter counter = shardedCounterService.getCounter(counterName);
+		Counter counter = shardedCounterService.getCounter(counterName).get();
 		assertThat(counter, is(not(nullValue())));
 		assertThat(counter.getCount(), is(BigInteger.TEN));
 	}
@@ -86,9 +87,10 @@ public class ShardedCounterServiceResetTest extends AbstractShardedCounterServic
 	public void testResetCounter_NoCountInMemcache() throws Exception
 	{
 		final String counterName = UUID.randomUUID().toString();
+		shardedCounterService.createCounter(counterName);
 		this.memcache.clearAll();
 
-		Counter counter = shardedCounterService.getCounter(counterName);
+		Counter counter = shardedCounterService.getCounter(counterName).get();
 		assertThat(counter, is(not(nullValue())));
 		assertThat(counter.getCount(), is(BigInteger.ZERO));
 
@@ -103,7 +105,7 @@ public class ShardedCounterServiceResetTest extends AbstractShardedCounterServic
 		this.shardedCounterService.increment("123", 200);
 		this.shardedCounterService.reset("123");
 
-		assertThat(shardedCounterService.getCounter("123").getCount(), is(BigInteger.ZERO));
+		assertThat(shardedCounterService.getCounter("123").get().getCount(), is(BigInteger.ZERO));
 	}
 
 	// ////////////////////////////
@@ -132,7 +134,7 @@ public class ShardedCounterServiceResetTest extends AbstractShardedCounterServic
 	public void testResetCounterWork()
 	{
 		this.shardedCounterService.increment("123", 100L);
-		assertThat(shardedCounterService.getCounter("123").getCount(), is(BigInteger.valueOf(100)));
+		assertThat(shardedCounterService.getCounter("123").get().getCount(), is(BigInteger.valueOf(100)));
 
 		ResetCounterShardWork resetCounterShardWork0 = new ResetCounterShardWork("123", 0);
 		resetCounterShardWork0.vrun();
@@ -144,7 +146,7 @@ public class ShardedCounterServiceResetTest extends AbstractShardedCounterServic
 		resetCounterShardWork2.vrun();
 
 		memcache.clearAll();
-		assertThat(shardedCounterService.getCounter("123").getCount(), is(BigInteger.ZERO));
+		assertThat(shardedCounterService.getCounter("123").get().getCount(), is(BigInteger.ZERO));
 	}
 
 }

@@ -53,8 +53,9 @@ public class ShardedCounterServiceConfiguration
 
 	// Each Counter's count is cached in memcache upon a "get count". Additionally, increments and decrements mutate the
 	// cache, so we expect the memcache version of the count to be highly accurate. If memcache is having problems or is
-	// down, the counter will be loaded from the datastore. Thus, there's a small chance that the cache will go out of
-	// sync, but a 1 hour cache expiration is suitable for an eventual-consistency model.
+	// down, the counter will be loaded from the datastore, repopulating the cache accurately. Thus, there's a small
+	// chance that the cache will go out of sync, but a 1 hour cache expiration is suitable for an
+	// eventually-consistency model.
 	static final Expiration DEFAULT_COUNTER_COUNT_CACHE_EXPIRATION = Expiration
 		.byDeltaSeconds(SIXTY_MINUTES_IN_SECONDS);
 

@@ -59,6 +59,10 @@ import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
 import com.theupswell.appengine.counter.data.CounterShardOperationData;
+import com.theupswell.appengine.counter.exceptions.CounterExistsException;
+import com.theupswell.appengine.counter.exceptions.CounterNotMutableException;
+import com.theupswell.appengine.counter.exceptions.InvalidCounterNameException;
+import com.theupswell.appengine.counter.exceptions.NoCounterExistsException;
 
 /**
  * <p>
@@ -134,6 +138,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 	// This indicates that cache should be used, and is equivalent to skipCache=false
 	private static final boolean USE_CACHE = false;
+	private static final boolean SKIP_CACHE = true;
 
 	/**
 	 * A random number generating, for distributing writes across shards.
@@ -142,6 +147,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 	protected final MemcacheService memcacheService;
 	protected final ShardedCounterServiceConfiguration config;
+	protected final CounterNameValidator counterNameValidator;
 
 	// /////////////////////////////
 	// Constructors
@@ -177,10 +183,22 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	public ShardedCounterServiceImpl(final MemcacheService memcacheService,
 			final ShardedCounterServiceConfiguration config)
 	{
-		Preconditions.checkNotNull(memcacheService, "Invalid memcacheService!");
-		Preconditions.checkNotNull(config);
+		this(memcacheService, config, new DefaultCounterNameValidator());
+	}
 
+	/**
+	 * Default Constructor for Dependency-Injection.
+	 *
+	 * @param memcacheService
+	 * @param config The configuration for this service
+	 */
+	public ShardedCounterServiceImpl(final MemcacheService memcacheService,
+			final ShardedCounterServiceConfiguration config, final CounterNameValidator counterNameValidator)
+	{
+		Preconditions.checkNotNull(memcacheService, "Invalid memcacheService!");
 		this.memcacheService = memcacheService;
+
+		Preconditions.checkNotNull(config);
 		this.config = config;
 
 		Preconditions.checkArgument(config.getNumInitialShards() > 0,
@@ -191,6 +209,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			Preconditions.checkArgument(!StringUtils.isBlank(config.getRelativeUrlPathForDeleteTaskQueue()),
 				"Must be null (for the Default Queue) or a non-blank String!");
 		}
+
+		Preconditions.checkNotNull(counterNameValidator);
+		this.counterNameValidator = counterNameValidator;
 	}
 
 	// /////////////////////////////
@@ -205,7 +226,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 * @return
 	 */
 	@Override
-	public Counter getCounter(final String counterName)
+	public Optional<Counter> getCounter(final String counterName)
 	{
 		return this.getCounter(counterName, USE_CACHE);
 	}
@@ -232,6 +253,13 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		}
 	}
 
+	@Override
+	public Counter createCounter(String counterName)
+	{
+		final CounterData counterData = this.createCounterData(counterName);
+		return new CounterBuilder(counterData).withCount(BigInteger.ZERO).build();
+	}
+
 	/**
 	 * The cache will expire after {@code defaultCounterCountExpiration} seconds, so the counter will be accurate after
 	 * a minute because it performs a load from the datastore.
@@ -243,20 +271,39 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 * @return
 	 */
 	@Override
-	public Counter getCounter(final String counterName, final boolean skipCache)
+	public Optional<Counter> getCounter(final String counterName, final boolean skipCache)
 	{
 		Preconditions.checkNotNull(counterName);
 
-		// We always load the CounterData from the Datastore (or its Objectify
-		// cache), but we sometimes return the cached count value.
-		final CounterData counterData = this.getOrCreateCounterData(counterName).getCounterData();
-		// If the counter is DELETING, then its count is always 0 because shards will be in the process of deleting and
-		// the true pre-deletion count will have been lost.
-		if (CounterData.CounterStatus.DELETING == counterData.getCounterStatus())
+		// This method always load the CounterData from the Datastore (or its Objectify cache), but sometimes returns
+		// the
+		// cached count value.
+
+		// //////////////
+		// ShortCircuit: If nothing is present in the datastore.
+		// //////////////
+		final Optional<CounterData> optCounterData = this.getCounterData(counterName);
+		if (!optCounterData.isPresent())
 		{
-			return new CounterBuilder(counterData).withCount(BigInteger.ZERO).build();
+			logger.log(Level.FINEST, String.format("Counter '%s' was not found in hte Datastore!", counterName));
+			return Optional.absent();
 		}
 
+		final CounterData counterData = optCounterData.get();
+
+		// //////////////
+		// ShortCircuit: If the counter is in an indeterminate state, then return its count as 0.
+		// //////////////
+		if (this.counterStatusYieldsIndeterminateCount(counterData.getCounterStatus()))
+		{
+			logger.log(Level.FINEST,
+				String.format("Counter '%s' was in an indeterminate state.  Returning 0!", counterName));
+			return Optional.of(new CounterBuilder(counterData).withCount(BigInteger.ZERO).build());
+		}
+
+		// //////////////
+		// ShortCircuit: If the counter was found in memcache.
+		// //////////////
 		final String memCacheKey = this.assembleCounterKeyforMemcache(counterName);
 		if (!skipCache)
 		{
@@ -268,7 +315,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// /////////////////////////////////////
 				logger.log(Level.FINEST,
 					String.format("Cache Hit for Counter Named '%s': value=%s", counterName, cachedCounterCount));
-				return new CounterBuilder(counterData).withCount(cachedCounterCount).build();
+				return Optional.of(new CounterBuilder(counterData).withCount(cachedCounterCount).build());
 			}
 			else
 			{
@@ -332,8 +379,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		final BigInteger bdSum = BigInteger.valueOf(sum);
 		try
 		{
-			// We will only get here if there was nothing in Memcache, or if the called asked to skip the cache.
-			// Therefore, we should always replace the value in memcache.
+			// This method will only get here if there was nothing in Memcache, or if the caller requested to skip
+			// reading the Counter count from memcache. In these cases, the value in memcache should always be replaced.
 			memcacheService.put(memCacheKey, bdSum, config.getDefaultCounterCountExpiration(), SetPolicy.SET_ALWAYS);
 		}
 		catch (MemcacheServiceException mse)
@@ -341,7 +388,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			// Do nothing. The method will still return even though memcache is not available.
 		}
 
-		return new CounterBuilder(counterData).withCount(bdSum).build();
+		return Optional.of(new CounterBuilder(counterData).withCount(bdSum).build());
 	}
 
 	/**
@@ -364,10 +411,19 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			@Override
 			public Void run()
 			{
-				// First, load the incomingCounter from the datastore via transactional get to ensure it has the proper
-				// state.
-				final CounterData counterDataInDatastore = getOrCreateCounterData(incomingCounter.getCounterName())
-					.getCounterData();
+				// First, load the incomingCounter from the datastore via a transactional get to ensure it has the
+				// proper state.
+				final Optional<CounterData> optCounterData = getCounterData(incomingCounter.getCounterName());
+
+				// //////////////
+				// ShortCircuit: Can't update a counter that doesn't exist!
+				// //////////////
+				if (!optCounterData.isPresent())
+				{
+					throw new NoCounterExistsException(incomingCounter.getCounterName());
+				}
+
+				final CounterData counterDataInDatastore = optCounterData.get();
 				assertCounterDetailsMutatable(counterDataInDatastore.getCounterName(),
 					counterDataInDatastore.getCounterStatus());
 
@@ -483,6 +539,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName));
 		Preconditions.checkArgument(amount > 0, "Decrement amounts must be positive!");
 
+		// Perform the Decrement
 		final long decrementAmount = amount * -1L;
 		return this.mutateCounterShard(counterName, decrementAmount, Optional.<Integer> absent(), UUID.randomUUID());
 	}
@@ -501,48 +558,186 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		return this.mutateCounterShard(counterName, decrementAmount, Optional.of(shardNumber), decrementOperationUuid);
 	}
 
+	// The following two methods exists for posterity to see one manner in which non-negative counter enforcement might
+	// be accomplished (though imperfectly). These are not used because it's not possible to perfectly (nor easily)
+	// guarantee non-negative semantics in a sharded-counter because all shards need to be retrieved in order to
+	// accurately gauge the count to determine if it will be negative. Since multiple threads may be operating on a
+	// given CounterShardData object, we would need to lock the entire counter to make this check, which would defeat
+	// the purpose of sharding. After some thought, it's not clear that the "can't go negative" requirement exists for
+	// a sharded counter. Additionally, with the #reset method, clients of appengine-counter could enforce this
+	// requirement in their own ways.
+
+	// @Override
+	// public CounterOperation decrement(final String counterName, final long amount)
+	// {
+	// Preconditions.checkNotNull(counterName);
+	// Preconditions.checkArgument(!StringUtils.isBlank(counterName));
+	// Preconditions.checkArgument(amount > 0, "Decrement amounts must be positive!");
+	//
+	// // A Note About Count-Below-Zero Limiting
+	// // --
+	// // The mutateCounterShard operation does not have the ability to determine the count of a counter while it's
+	// // performing it's work. Additionally, since multiple shards might be operating upon the same counter at the
+	// // same time, getting the count of a counter and passing it into the mutateCounterShard operation would not
+	// // accurately stop the counter from going below zero. Instead, we perform a preemptive check here to see if
+	// // the counter is currently at zero, and throw an exception if that's the case and this request is attempting
+	// // to decrement below zero. However, this check may occur while other decrement threads have already made their
+	// // way into the mutateCounterShard method (but not completed). Thus, we perform an additional "negative check"
+	// // after the decrement is applied, and optionally reset the counter if it has become errantly negative.
+	//
+	// // Preemptive Negative Check
+	// this.assertCounterCanDecrementBelowZero(counterName, amount);
+	//
+	// // Perform the Decrement
+	// final long decrementAmount = amount * -1L;
+	// final CounterOperation counterOperation = this.mutateCounterShard(counterName, decrementAmount,
+	// Optional.<Integer> absent(), UUID.randomUUID());
+	//
+	// // Post-Decrement Negative Check
+	// this.resetCounterIfErrantlyNegative(counterName, amount);
+	//
+	// return counterOperation;
+	// }
+
+	// /**
+	// * Helper method to assert that a counter can decrement below zero.
+	// *
+	// * @param counterName The name of a counter being decremented.
+	// * @param amount The amount of the decrement that is about to be applied to a counter.
+	// * @throws CounterNotMutableException If a counter cannot be decremented by the amount specified by {@code
+	// amount}.
+	// */
+	// @VisibleForTesting
+	// protected void assertCounterCanDecrementBelowZero(final String counterName, final long amount)
+	// {
+	// Preconditions.checkNotNull(counterName);
+	//
+	// final Optional<Counter> optCounter = this.getCounter(counterName);
+	// Preconditions.checkArgument(optCounter.isPresent(), "This counter should have existed but didn't!");
+	// final Counter counter = optCounter.get();
+	// if (!counter.isNegativeCountAllowed()
+	// && (counter.getCount().subtract(BigInteger.valueOf(amount))).compareTo(BigInteger.ZERO) < 0)
+	// {
+	// throw new CounterNotMutableException(counterName, String.format("Cannot decrement counter below zero!"));
+	// }
+	// }
+
+	// /**
+	// * Helper method to reset a counter to zero if it has a negative count but is configured to not allow the counter
+	// to
+	// * be negative.
+	// *
+	// * @param counterName The name of a counter being decremented.
+	// * @param amount The amount of the decrement that is about to be applied to a counter.
+	// * @throws CounterNotMutableException If a counter was negative but was reset to zero. This exception is chosen
+	// * because it is assumed that a counter became negative as a part of this request (or at least during
+	// * this request).
+	// */
+	// @VisibleForTesting
+	// protected void resetCounterIfErrantlyNegative(final String counterName, final long amount)
+	// {
+	// Preconditions.checkNotNull(counterName);
+	//
+	// final Optional<Counter> optCounter = this.getCounter(counterName);
+	// Preconditions.checkArgument(optCounter.isPresent(), "This counter should have existed but didn't!");
+	// final Counter counter = optCounter.get();
+	// if (!counter.isNegativeCountAllowed() && counter.getCount().compareTo(BigInteger.ZERO) < 0)
+	// {
+	// this.reset(counterName);
+	// // This exception is chosen because it is assumed that a counter became negative as a part of this request
+	// // (or at least during this request). The above call will set the counter to zero.
+	// throw new CounterNotMutableException(counterName, String.format("Cannot decrement counter below zero!"));
+	// }
+	// }
+
 	@Override
 	public void reset(final String counterName)
 	{
 		Preconditions.checkNotNull(counterName);
-		final Counter counter = this.getCounter(counterName);
-		if (counter == null)
+
+		// Use the cache here if possible, because the first two short-circuits don't really need accurate counts to
+		// work.
+		final Optional<Counter> optCounter = this.getCounter(counterName, USE_CACHE);
+
+		// /////////////
+		// ShortCircuit: Do nothing - there's nothing to return.
+		// /////////////
+		if (!optCounter.isPresent())
 		{
-			// Do nothing - there's nothing to return.
 			return;
 		}
-		else if (counter.getCounterStatus() != CounterStatus.AVAILABLE)
-		{
-			throw new IllegalArgumentException("Counters must be in the AVAILABLE status before being reset!");
-		}
-		else
-		{
-			// Update the Counter to the RESETTING_STATE.
-			final Counter readOnlyCounter = new CounterBuilder(counter).withCounterStatus(CounterStatus.RESETTING)
-				.build();
-			this.updateCounterDetails(readOnlyCounter);
 
-			// For each shard, reset it. Shard Index starts at 0.
-			for (int shardNumber = 0; shardNumber < counter.getNumShards(); shardNumber++)
+		final Counter counter = optCounter.get();
+
+		// Update the Counter in a New TX to the RESETTING_STATE and apply the TX. The #updateCounterDetails will
+		// not succeed if the counter is not in the available state, so no need to double-check that preemptively.
+		// The "new" TX ensures that no other thread nor parent transaction is performing this operation at the
+		// same time, since if that were the case the updateCounter would fail.
+		ObjectifyService.ofy().transactNew(new VoidWork()
+		{
+			@Override
+			public void vrun()
 			{
-				final ResetCounterShardWork resetWork = new ResetCounterShardWork(counterName, shardNumber);
-				ObjectifyService.ofy().transact(resetWork);
-			}
+				// Update the status via updateCounterDetails so that we don't accidentally update a counter that's not
+				// in the Available status.
+				final Counter readOnlyCounter = new CounterBuilder(counter).withCounterStatus(CounterStatus.RESETTING)
+					.build();
 
-			// Last but not least, update the counter status to Available.
-			final CounterData counterData = getOrCreateCounterData(counterName).getCounterData();
-			counterData.setCounterStatus(CounterStatus.AVAILABLE);
-			ObjectifyService.ofy().transact(new VoidWork()
+				// Will throw an exception if the counter status cannot be updated
+				updateCounterDetails(readOnlyCounter);
+			}
+		});
+
+		// Start the try here because if the above fails, we don't want to perform another update the counter, since
+		// that would have been the failing method.
+		try
+		{
+			// Perform all reset operations in same TX to provide atomic rollback. Since Appengine now support up to 25
+			// entities in a transaction, this will work for all counters up to 25 shards.
+			ObjectifyService.ofy().transactNew(new VoidWork()
 			{
 				@Override
 				public void vrun()
 				{
-					ObjectifyService.ofy().save().entity(counterData).now();
+					// For each shard, reset it. Shard Index starts at 0.
+					for (int shardNumber = 0; shardNumber < counter.getNumShards(); shardNumber++)
+					{
+						final ResetCounterShardWork resetWork = new ResetCounterShardWork(counterName, shardNumber);
+						ObjectifyService.ofy().transact(resetWork);
+					}
 				}
 			});
-
+		}
+		finally
+		{
 			// Clear the cache to ensure that future callers get the right count.
-			memcacheSafeDelete(counterName);
+			this.memcacheSafeDelete(counterName);
+
+			// If the reset-shards loop above completes properly, OR if an exception is thrown above, the counter status
+			// needs to be reset to AVAILABLE. In the first case (an exception is thrown) then the reset TX will be
+			// rolled-back, and the counter status needs to become AVAILABLE. In the second case (the counter was
+			// successfully reset) the same counter status update to AVAILABLE needs to occur.
+			ObjectifyService.ofy().transactNew(new VoidWork()
+			{
+				/**
+				 * Updates the {@link CounterData} status to be {@link CounterStatus#AVAILABLE}, but only if the current
+				 * status is {@link CounterStatus#RESETTING}.
+				 */
+				@Override
+				public void vrun()
+				{
+					final Optional<CounterData> optCounterData = getCounterData(counterName);
+					if (optCounter.isPresent())
+					{
+						final CounterData counterData = optCounterData.get();
+						if (counterData.getCounterStatus() == CounterStatus.RESETTING)
+						{
+							counterData.setCounterStatus(CounterStatus.AVAILABLE);
+							ObjectifyService.ofy().save().entity(counterData).now();
+						}
+					}
+				}
+			});
 		}
 	}
 
@@ -554,6 +749,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 * @param amount The amount to mutate a counter shard by. This value will be negative for a decrement, and positive
 	 *            for an increment.
 	 * @param incrementOperationId
+	 * @param optShardNumber An optionally specified shard number to increment. If not specified, a random shard number
+	 *            will be chosen.
 	 * @return An instance of {@link CounterOperation} with information about the increment/decrement.
 	 */
 	private CounterOperation mutateCounterShard(final String counterName, final long amount,
@@ -569,27 +766,16 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		final CounterDataGetCreateContainer counterDataGetCreateContainer = this.getOrCreateCounterData(counterName);
 		final CounterData counterData = counterDataGetCreateContainer.getCounterData();
 
-		// Disallow decrements based upon the configuration of the CounterData, but only if this mutation is for a
-		// negative increment (i.e., a decrement).
-		if (amount < 0 && !counterData.isNegativeCountAllowed())
-		{
-			final Counter counter = getCounter(counterName);
-			if (counter.getCount().compareTo(BigInteger.ZERO) <= 0)
-			{
-				throw new IllegalArgumentException(String.format("Can't mutate counter %s below zero!",
-					counter.getCounterName()));
-			}
-		}
-
 		// Create the Work to be done for this increment, which will be done inside of a TX. See
 		// "https://developers.google.com/appengine/docs/java/datastore/transactions#Java_Isolation_and_consistency"
 		final Work<CounterOperation> atomicIncrementShardWork = new IncrementShardWork(counterData,
-			incrementOperationId, optShardNumber, amount, counterDataGetCreateContainer.newCounterDataCreated);
+			incrementOperationId, optShardNumber, amount, false);
 
 		// Note that this operation is idempotent from the perspective of a ConcurrentModificationException. In that
-		// case, the increment operation will fail and will not have been applied. An Objectify retry of the increment
-		// will occur, however and a successful increment will only ever happen once (if the Appengine
-		// datastore is functioning properly). See the Javadoc in the API about DatastoreTimeoutException or
+		// case, the increment operation will fail and will not have been applied. An Objectify retry of the
+		// increment/decrement will occur, however and a successful increment/decrement will only ever happen once (if
+		// the Appengine datastore is functioning properly). See the Javadoc in the API about DatastoreTimeoutException
+		// or
 		// DatastoreFailureException in cases where transactions have been committed and eventually will be applied
 		// successfully."
 
@@ -740,8 +926,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	// //////////////////////////////////
 
 	/**
-	 * A private implementation of {@link Work} that increments the incrementAmount of a {@link CounterShardData} by a
-	 * specified non-negative {@code incrementAmount}.
+	 * A private implementation of {@link Work} that increments the {@code incrementAmount} of a
+	 * {@link CounterShardData} by a specified non-negative {@code incrementAmount}.
 	 */
 	@VisibleForTesting
 	final class IncrementShardWork implements Work<CounterOperation>
@@ -754,12 +940,12 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 		/**
 		 * Required-Args Constructor.
-		 * 
+		 *
 		 * @param counterData A {@link CounterData} that contains information about the counter being incremented.
-		 * @param counterShardOperationUuid The unique identifier of the job that performed the increment.
+		 * @param counterShardOperationUuid The unique identifier of the job performing the increment.
 		 * @param optShardNumber An optionally supplied shard number that should an increment/decrement should be
-		 * @param incrementAmount A long representing the amount of the increment to be applied. applied to. If
-		 *            specified as {@link Optional#absent()} , then a random shard will be selected.
+		 *            applied to. If specified as {@link Optional#absent()} , then a random shard will be selected.
+		 * @param incrementAmount A long representing the amount of the increment to be applied.
 		 * @param newCounterCreated {@code true} if a new counter was created to perform this operation; {@code false}
 		 *            otherwise.
 		 */
@@ -993,42 +1179,101 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	}
 
 	/**
+	 * Helper method to get the {@link CounterData} associated with the supplied {@code counterName}.
+	 *
+	 * @param counterName
+	 * @return
+	 */
+	@VisibleForTesting
+	protected Optional<CounterData> getCounterData(final String counterName)
+	{
+		Preconditions.checkNotNull(counterName);
+
+		final Key<CounterData> counterKey = CounterData.key(counterName);
+		final CounterData counterData = ObjectifyService.ofy().load().key(counterKey).now();
+
+		return Optional.fromNullable(counterData);
+	}
+
+	/**
+	 * Helper method to create the {@link CounterData} associated with the supplied counter information.
+	 *
+	 * @param counterName
+	 * @return
+	 * @throws IllegalArgumentException If the {@code counterName} is invalid.
+	 * @throws CounterExistsException If the counter with {@code counterName} already exists in the Datastore.
+	 */
+	@VisibleForTesting
+	protected CounterData createCounterData(final String counterName)
+	{
+		this.counterNameValidator.validateCounterName(counterName);
+
+		final Key<CounterData> counterKey = CounterData.key(counterName);
+
+		// Perform a transactional GET to see if the counter exists. If it does, throw an exception. Otherwise, create
+		// the counter in the same TX.
+		return ObjectifyService.ofy().transact(new Work<CounterData>()
+		{
+			@Override
+			public CounterData run()
+			{
+				final CounterData loadedCounterData = ObjectifyService.ofy().load().key(counterKey).now();
+				if (loadedCounterData == null)
+				{
+					final CounterData counterData = new CounterData(counterName, config.getNumInitialShards());
+					counterData.setNegativeCountAllowed(config.isNegativeCountAllowed());
+					ObjectifyService.ofy().save().entity(counterData).now();
+					return counterData;
+				}
+				else
+				{
+					throw new CounterExistsException(counterName);
+				}
+			}
+		});
+	}
+
+	// Used to indicate that, for a given operation, a CounterData already existed, so no new counter was created.
+	private static final boolean COUNTER_EXISTED = false;
+	// Used to indicate that, for a given operation, a new CounterData was created.
+	private static final boolean NEW_COUNTER_CREATED = true;
+
+	/**
 	 * Helper method to get (or create and then get) a {@link CounterData} from the Datastore with a given name. The
 	 * result of this function is guaranteed to be non-null if no exception is thrown.
 	 *
 	 * @param counterName
 	 * @return
-	 * @throws NullPointerException in the case where no CounterData could be loaded from the Datastore.
+	 * @throws NullPointerException if the {@code counterName} is null.
+	 * @throws InvalidCounterNameException If the counter name is too long or too short.
 	 */
 	@VisibleForTesting
 	protected CounterDataGetCreateContainer getOrCreateCounterData(final String counterName)
 	{
-		// This is the main validation for counter names. All other accessor and mutator methods flow through this
-		// method.
-		final String preconditionMessage = "Counter names must not exceed 500 characters, and may not be null, blank, nor empty!";
-		Preconditions.checkArgument(!StringUtils.isBlank(counterName), preconditionMessage);
-		if (StringUtils.length(counterName) > 500)
-		{
-			throw new IllegalArgumentException(preconditionMessage);
-		}
+		// Validation failures will throw an exception. See JavaDoc for details.
+		this.counterNameValidator.validateCounterName(counterName);
 
 		final Key<CounterData> counterKey = CounterData.key(counterName);
 
-		// This is acceptable to perform outside of a transaction. In certain edge cases (e.g., the entity exists in
-		// the session cache -- which is only good for this request -- but has actually had its status changed in
-		// reality, then the increment will still succeed. However, we treat this as an eventually consistent scenario.
-		// This allows us to not have to create a transaction here, which improves performance significantly.
+		// This get/create is acceptable to perform outside of a transaction. In certain edge-cases, it's possible
+		// that two threads might call this operation at the same time, and one or both threads might think (errantly)
+		// that
+		// no CounterData exists in the Datastore when in reality one of the threads (or some other thread) may have
+		// created the CoutnerData already. However, in this case, the two create operations will be the same using
+		// default
+		// data, so even though the "winner" will be random, the result will be the same. In future, this assumption
+		// may need to change.
 		CounterData counterData = ObjectifyService.ofy().load().key(counterKey).now();
 		if (counterData == null)
 		{
 			counterData = new CounterData(counterName, config.getNumInitialShards());
 			counterData.setNegativeCountAllowed(config.isNegativeCountAllowed());
 			ObjectifyService.ofy().save().entity(counterData).now();
-			return new CounterDataGetCreateContainer(counterData, true);
+			return new CounterDataGetCreateContainer(counterData, NEW_COUNTER_CREATED);
 		}
 		else
 		{
-			return new CounterDataGetCreateContainer(counterData, false);
+			return new CounterDataGetCreateContainer(counterData, COUNTER_EXISTED);
 		}
 	}
 
@@ -1046,7 +1291,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 		/**
 		 * Required-args Constructor.
-		 * 
+		 *
 		 * @param counterData
 		 * @param newCounterDataCreated
 		 */
@@ -1204,11 +1449,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	{
 		if (counterStatus != CounterStatus.AVAILABLE && counterStatus != CounterStatus.READ_ONLY_COUNT)
 		{
-			final String msg = String
-				.format(
-					"Can't mutate the details of counter '%s' because it's currently in the %s state but must be in in the %s or %s state!",
-					counterName, counterStatus, CounterStatus.AVAILABLE, CounterStatus.READ_ONLY_COUNT);
-			throw new IllegalArgumentException(msg);
+			final String msg = String.format("Can't mutate with status %s.  Counter must be in in the %s or %s state!",
+				counterStatus, CounterStatus.AVAILABLE, CounterStatus.READ_ONLY_COUNT);
+			throw new CounterNotMutableException(counterName, msg);
 		}
 	}
 
@@ -1217,6 +1460,48 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	{
 		return ObjectifyService.ofy().getTransaction() == null ? false : ObjectifyService.ofy().getTransaction()
 			.isActive();
+	}
+
+	/**
+	 * When a counter is in certain statuses, its count can not be determined for various reasons. For example, if the
+	 * number of shards is contracting from 5 to 4, then the total summation of all shards will not be possible to
+	 * determine since counts from shard 5 may have been applied to shards 5 and 4, whereas the actual "number of
+	 * shards" value in the CoutnerData may not have been updated to indicate this change. Thus, for certain
+	 * {@link CounterStatus} values, we cannot provide a valid count, and instead return {@link BigInteger#ZERO}.
+	 *
+	 * @param counterStatus
+	 * @return
+	 */
+	protected boolean counterStatusYieldsIndeterminateCount(final CounterStatus counterStatus)
+	{
+		Preconditions.checkNotNull(counterStatus);
+		return counterStatus == CounterStatus.DELETING || counterStatus == CounterStatus.CONTRACTING_SHARDS
+			|| counterStatus == CounterStatus.RESETTING || counterStatus == CounterStatus.EXPANDING_SHARDS;
+	}
+
+	/**
+	 * An implementation of {@link CounterNameValidator} that validates counter name existence and length.
+	 */
+	private static class DefaultCounterNameValidator implements CounterNameValidator
+	{
+		/**
+		 * The main validation for counter names. Ensures that a counter name does not exceed 500 characters, but is not
+		 * blank, empty, or null.
+		 *
+		 * @param counterName The name of a counter being operated upon.
+		 * @throws NullPointerException if the {@code counterName} is null.
+		 * @throws InvalidCounterNameException If the counter name is too long or too short.
+		 */
+		@Override
+		public void validateCounterName(final String counterName)
+		{
+			final String preconditionMessage = "Counter names must not exceed 500 characters, and may not be null, blank, nor empty!";
+			Preconditions.checkArgument(!StringUtils.isBlank(counterName), preconditionMessage);
+			if (StringUtils.length(counterName) > 500)
+			{
+				throw new InvalidCounterNameException(preconditionMessage);
+			}
+		}
 	}
 
 }

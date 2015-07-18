@@ -76,7 +76,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		counterData.setCounterStatus(CounterStatus.DELETING);
 		ObjectifyService.ofy().save().entity(counterData).now();
 
-		final Counter counter = impl.getCounter(counterName);
+		final Counter counter = impl.getCounter(counterName).get();
 		assertThat(counter, is(not(nullValue())));
 		assertThat(counter.getCount(), is(BigInteger.ZERO));
 		assertThat(counter.getIndexes(), is(NO_INDEXES));
@@ -86,9 +86,10 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	public void testGetCounter_CountIsCachedInMemcache() throws Exception
 	{
 		final String counterName = UUID.randomUUID().toString();
+		impl.increment(counterName, 1L);
 		this.memcache.put(counterName, BigInteger.TEN);
 
-		Counter counter = impl.getCounter(counterName);
+		final Counter counter = impl.getCounter(counterName).get();
 		assertThat(counter, is(not(nullValue())));
 		assertThat(counter.getCount(), is(BigInteger.TEN));
 		assertThat(counter.getIndexes(), is(NO_INDEXES));
@@ -98,9 +99,10 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	public void testGetCounter_NoCountInMemcache() throws Exception
 	{
 		final String counterName = UUID.randomUUID().toString();
+		shardedCounterService.createCounter(counterName);
 		this.memcache.delete(counterName);
 
-		Counter counter = impl.getCounter(counterName);
+		Counter counter = impl.getCounter(counterName).get();
 		assertThat(counter, is(not(nullValue())));
 		assertThat(counter.getCount(), is(BigInteger.ZERO));
 
@@ -119,13 +121,12 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test
 	public void testUpdateCounterDetails_NoPreExistingCounterInDatastore() throws Exception
 	{
-		// counter. final String counterName, final String counterDescription, final int numShards,
-		// final CounterData.CounterStatus counterStatus
+		shardedCounterService.createCounter(TEST_COUNTER1);
 		Counter updatedCounter = new Counter(TEST_COUNTER1, NEW_DESCRIPTION, 22, CounterStatus.READ_ONLY_COUNT,
 			ALL_INDEXES);
 		impl.updateCounterDetails(updatedCounter);
 
-		Counter dsCounter = impl.getCounter(TEST_COUNTER1);
+		Counter dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
 		assertThat(dsCounter.getCounterName(), is(TEST_COUNTER1));
 		assertThat(dsCounter.getCounterDescription(), is(NEW_DESCRIPTION));
@@ -138,7 +139,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test
 	public void testUpdateCounterDetails_PreExistingCounterInDatastore() throws Exception
 	{
-		Counter dsCounter = impl.getCounter(TEST_COUNTER1);
+		shardedCounterService.createCounter(TEST_COUNTER1);
+		Counter dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
 		// counter. final String counterName, final String counterDescription, final int numShards,
 		// final CounterData.CounterStatus counterStatus
@@ -146,7 +148,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 			CounterStatus.READ_ONLY_COUNT, ALL_INDEXES);
 		impl.updateCounterDetails(updatedCounter);
 
-		dsCounter = impl.getCounter(TEST_COUNTER1);
+		dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
 		assertThat(dsCounter.getCounterName(), is(TEST_COUNTER1));
 		assertThat(dsCounter.getCounterDescription(), is(NEW_DESCRIPTION));
@@ -159,13 +161,14 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test
 	public void testUpdateCounterDetails_ProperCounterStatuses() throws Exception
 	{
-		Counter dsCounter = impl.getCounter(TEST_COUNTER1);
+		shardedCounterService.createCounter(TEST_COUNTER1);
+		Counter dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
 		// Set the counter be in the READ-ONLY state.
 		Counter updatedCounter = new Counter(dsCounter.getCounterName(), NEW_DESCRIPTION, 22,
 			CounterStatus.READ_ONLY_COUNT, ALL_INDEXES);
 		impl.updateCounterDetails(updatedCounter);
-		dsCounter = impl.getCounter(TEST_COUNTER1);
+		dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
 		assertThat(dsCounter.getCounterName(), is(TEST_COUNTER1));
 		assertThat(dsCounter.getCounterDescription(), is(NEW_DESCRIPTION));
@@ -181,7 +184,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 			NO_INDEXES);
 		impl.updateCounterDetails(updatedCounter);
 
-		dsCounter = impl.getCounter(TEST_COUNTER1);
+		dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
 		assertThat(dsCounter.getCounterName(), is(TEST_COUNTER1));
 		assertThat(dsCounter.getCounterDescription(), is(NEW_DESCRIPTION));
@@ -194,13 +197,13 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test(expected = RuntimeException.class)
 	public void testUpdateCounterDetails_InvalidCounterStatuses() throws Exception
 	{
-		Counter dsCounter = impl.getCounter(TEST_COUNTER1);
+		Counter dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
 		// Set the counter be in the READ-ONLY state.
 		Counter updatedCounter = new Counter(dsCounter.getCounterName(), NEW_DESCRIPTION, 22,
 			CounterStatus.CONTRACTING_SHARDS, ALL_INDEXES);
 		impl.updateCounterDetails(updatedCounter);
-		dsCounter = impl.getCounter(TEST_COUNTER1);
+		dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
 		assertThat(dsCounter.getCounterName(), is(TEST_COUNTER1));
 		assertThat(dsCounter.getCounterDescription(), is(NEW_DESCRIPTION));
@@ -231,7 +234,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test(expected = RuntimeException.class)
 	public void testUpdateCounterDetails_ShardReductionNotAllowed() throws Exception
 	{
-		Counter dsCounter = impl.getCounter(TEST_COUNTER1);
+		Counter dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
 		// Set the counter shards to be something high.
 		Counter updatedCounter = new Counter(dsCounter.getCounterName(), NEW_DESCRIPTION, 22, CounterStatus.AVAILABLE,
@@ -294,7 +297,9 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test
 	public void testOnTaskQueueCounterDeletion() throws Exception
 	{
-		Counter counter = impl.getCounter(TEST_COUNTER1);
+		this.shardedCounterService.createCounter(TEST_COUNTER1);
+		impl.increment(TEST_COUNTER1, 1L);
+		Counter counter = impl.getCounter(TEST_COUNTER1).get();
 		impl.increment(TEST_COUNTER1, 20);
 		impl.increment(TEST_COUNTER1, 20);
 
@@ -303,11 +308,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		impl.updateCounterDetails(counter);
 		impl.onTaskQueueCounterDeletion(TEST_COUNTER1);
 
-		counter = impl.getCounter(TEST_COUNTER1);
-		assertThat(counter.getCount(), is(BigInteger.ZERO));
-		assertThat(counter.getIndexes(), is(NO_INDEXES));
-
-		assertThat(new Long(memcache.get(counter.getCounterName()).toString()), is(0L));
+		assertThat(impl.getCounter(TEST_COUNTER1).isPresent(), is(false));
+		assertThat(memcache.get(TEST_COUNTER1), is(nullValue()));
 	}
 
 	// /////////////////////////
@@ -336,7 +338,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	@Test
 	public void testGetOrCreateCounterData_PreExistingCounter() throws Exception
 	{
-		final Counter counter = impl.getCounter(TEST_COUNTER1);
+		shardedCounterService.createCounter(TEST_COUNTER1);
+		final Counter counter = impl.getCounter(TEST_COUNTER1).get();
 
 		final Counter updatedCounter = new Counter(counter.getCounterName(), counter.getCounterDescription(), 30,
 			counter.getCounterStatus(), ALL_INDEXES);
@@ -525,7 +528,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 
 		impl.increment(TEST_COUNTER1, 1);
 
-		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.valueOf(3L)));
+		assertThat(impl.getCounter(TEST_COUNTER1).get().getCount(), is(BigInteger.valueOf(3L)));
 		assertThat(counterDataGetCreateContainer.isNewCounterDataCreated(), is(false));
 	}
 
@@ -549,7 +552,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 
 		impl.increment(TEST_COUNTER1, 1);
 
-		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.valueOf(3L)));
+		assertThat(impl.getCounter(TEST_COUNTER1).get().getCount(), is(BigInteger.valueOf(3L)));
 		assertThat(counterDataGetCreateContainer.isNewCounterDataCreated(), is(false));
 	}
 
@@ -567,7 +570,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		impl = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(), config);
 
 		impl.increment(TEST_COUNTER1, 1);
-		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(impl.getCounter(TEST_COUNTER1).get().getCount(), is(BigInteger.valueOf(1L)));
 
 		final CounterDataGetCreateContainer counterDataGetCreateContainer = impl.getOrCreateCounterData(TEST_COUNTER1);
 		final CounterData counterData = counterDataGetCreateContainer.getCounterData();
@@ -577,9 +580,9 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		assertThat(decrementShardResult.getAppliedAmount(), is(1L));
 
 		// The counter indicates a count of 1 still due to cache.
-		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.valueOf(1L)));
+		assertThat(impl.getCounter(TEST_COUNTER1).get().getCount(), is(BigInteger.valueOf(1L)));
 		MemcacheServiceFactory.getMemcacheService().clearAll();
-		assertThat(impl.getCounter(TEST_COUNTER1).getCount(), is(BigInteger.ZERO));
+		assertThat(impl.getCounter(TEST_COUNTER1).get().getCount(), is(BigInteger.ZERO));
 		assertThat(counterDataGetCreateContainer.isNewCounterDataCreated(), is(false));
 	}
 

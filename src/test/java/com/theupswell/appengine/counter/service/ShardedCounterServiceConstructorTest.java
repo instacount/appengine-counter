@@ -12,14 +12,14 @@
  */
 package com.theupswell.appengine.counter.service;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
-import com.theupswell.appengine.counter.Counter;
-
-import java.math.BigInteger;
 
 /**
  * Constructor Test class for {@link ShardedCounterService}.
@@ -59,7 +59,7 @@ public class ShardedCounterServiceConstructorTest extends AbstractShardedCounter
 	@Test(expected = IllegalArgumentException.class)
 	public void testShardedCounterServiceConstructor_ValidMemcache_0Shards()
 	{
-		ShardedCounterServiceConfiguration.Builder builder = new ShardedCounterServiceConfiguration.Builder();
+		final ShardedCounterServiceConfiguration.Builder builder = new ShardedCounterServiceConfiguration.Builder();
 		builder.withNumInitialShards(0);
 
 		shardedCounterService = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(),
@@ -69,7 +69,7 @@ public class ShardedCounterServiceConstructorTest extends AbstractShardedCounter
 	@Test(expected = RuntimeException.class)
 	public void testShardedCounterServiceConstructor_ValidMemcache_NegativeShards()
 	{
-		ShardedCounterServiceConfiguration.Builder builder = new ShardedCounterServiceConfiguration.Builder();
+		final ShardedCounterServiceConfiguration.Builder builder = new ShardedCounterServiceConfiguration.Builder();
 		builder.withNumInitialShards(-10);
 
 		shardedCounterService = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(),
@@ -80,33 +80,30 @@ public class ShardedCounterServiceConstructorTest extends AbstractShardedCounter
 	public void testShardedCounterServiceConstructor_DefaultShards()
 	{
 		shardedCounterService = new ShardedCounterServiceImpl();
-		Counter counter = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter, TEST_COUNTER1, BigInteger.ZERO);
+		assertThat(shardedCounterService.getCounter(TEST_COUNTER1).isPresent(), is(false));
 	}
 
 	@Test
 	public void testShardedCounterServiceConstructor_NoRelativeUrlPath()
 	{
-		ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
+		final ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
 			.withDeleteCounterShardQueueName(DELETE_COUNTER_SHARD_QUEUE_NAME).build();
 
 		shardedCounterService = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(), config);
 
-		Counter counter = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter, TEST_COUNTER1, BigInteger.ZERO);
+		assertThat(shardedCounterService.getCounter(TEST_COUNTER1).isPresent(), is(false));
 	}
 
 	@Test
 	public void testShardedCounterServiceConstructorFull()
 	{
-		ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
+		final ShardedCounterServiceConfiguration config = new ShardedCounterServiceConfiguration.Builder()
 			.withDeleteCounterShardQueueName(DELETE_COUNTER_SHARD_QUEUE_NAME).withNumInitialShards(10)
 			.withRelativeUrlPathForDeleteTaskQueue("RELATIVE-URL-PATH-FOR-DELETE-QUEUE").build();
 
 		shardedCounterService = new ShardedCounterServiceImpl(MemcacheServiceFactory.getMemcacheService(), config);
 
-		Counter counter = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertCounter(counter, TEST_COUNTER1, BigInteger.ZERO);
+		assertThat(shardedCounterService.getCounter(TEST_COUNTER1).isPresent(), is(false));
 	}
 
 }
