@@ -1,6 +1,7 @@
 appengine-counter (A Sharded Counter for Google Appengine)
 ===========================
 [![Build Status](https://travis-ci.org/theupswell/appengine-counter.png)](https://travis-ci.org/theupswell/appengine-counter)
+[![Codeship Status for theupswell/appengine-counter](https://codeship.com/projects/13f33da0-92cc-0132-c24c-66933f4492d6/status?branch=master)](https://codeship.com/projects/62009)
 [![Coverage Status](https://coveralls.io/repos/theupswell/appengine-counter/badge.png?branch=master)](https://coveralls.io/r/theupswell/appengine-counter?branch=master)
 
 Appengine-counter is a ShardedCounter implementation for use in Google Appengine.  It offers strongly consistent increment/decrement functionality while maintaining high-throughput via on-the-fly shard configuration.  Appengine-counter uses memcache for fast counter retrieval, all the while being fully backed by the GAE Datastore for incredible durability and availability.<br/><br/>Appengine-counter is patterned off of the following <a href="https://developers.google.com/appengine/articles/sharding_counters">article</a> from developer.google.com, but uses Objectify for improved maintainability.<br/><br/>The rationale for a ShardedCounter is as follows (quoted from the above linked Google article):
@@ -274,13 +275,14 @@ Change Log
 ----------
 **Version 2.0.0**
 + [Issue #20](https://github.com/theupswell/appengine-counter/issues/20) Introduced CounterService.create() to create a counter without having to increment it.
++ Adjusted CounterService.getCounter to return an Optional.absent() if the counter doesn't exist.
 + Introduced CounterService.reset() to reset all counter shards to 0.
 + Changes to sharding implementation to unify increment and decrement.
 + Counter.java now holds a BigInteger instead of a long since the aggregation of multiple shards may exceed (Long.MAX_VALUE - 1).
 + Better failure handling in the event of a memcache failure.
 + Default counter memcache settings reduced to 60 seconds.
 + Improvements around Objectify's session cache handling of CounterShards.
-+ Allow Counter configuration to preclude negative counts.
++
 
 **Version 1.2.0**
 + Remove AbstractEntity, and more tightly enforce that CounterData may not have null ids.
