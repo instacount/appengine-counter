@@ -2,7 +2,6 @@ package com.theupswell.appengine.counter.exceptions;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.Setter;
 import lombok.ToString;
 
@@ -15,18 +14,13 @@ import lombok.ToString;
 @ToString(callSuper = true)
 public class InvalidCounterNameException extends RuntimeException
 {
-	@NonNull
-	private String counterName;
-
 	/**
 	 * Required-args constructor.
 	 *
-	 * @param counterName The name of the counter that cannot be mutated.
 	 * @param message The exception message.
 	 */
-	public InvalidCounterNameException(final String counterName, final String message)
+	public InvalidCounterNameException(final String message)
 	{
 		super(message);
-		this.counterName = counterName;
 	}
 }

@@ -1221,7 +1221,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				if (loadedCounterData == null)
 				{
 					final CounterData counterData = new CounterData(counterName, config.getNumInitialShards());
-					counterData.setNegativeCountAllowed(config.isNegativeCountAllowed());
+					//counterData.setNegativeCountAllowed(config.isNegativeCountAllowed());
 					ObjectifyService.ofy().save().entity(counterData).now();
 					return counterData;
 				}
@@ -1267,7 +1267,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		if (counterData == null)
 		{
 			counterData = new CounterData(counterName, config.getNumInitialShards());
-			counterData.setNegativeCountAllowed(config.isNegativeCountAllowed());
+			//counterData.setNegativeCountAllowed(config.isNegativeCountAllowed());
 			ObjectifyService.ofy().save().entity(counterData).now();
 			return new CounterDataGetCreateContainer(counterData, NEW_COUNTER_CREATED);
 		}

@@ -482,7 +482,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			// Eat the Exception.
 		}
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.ZERO));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).isPresent(), is(false));
 		this.assertCounterShardValue(counterName, null);
 	}
 
@@ -829,7 +829,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 			// Eat the Exception.
 		}
 
-		assertThat(this.singleShardShardedCounterService.getCounter(counterName).get().getCount(), is(BigInteger.ZERO));
+		assertThat(this.singleShardShardedCounterService.getCounter(counterName).isPresent(), is(false));
 		this.assertCounterShardValue(counterName, null);
 	}
 

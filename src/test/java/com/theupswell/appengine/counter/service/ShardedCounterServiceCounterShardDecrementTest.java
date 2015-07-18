@@ -22,6 +22,7 @@ import java.util.logging.Logger;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.appengine.api.memcache.MemcacheService;
@@ -176,7 +177,15 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 		assertEquals(BigInteger.valueOf(-10L), shardedCounterService.getCounter(TEST_COUNTER2).get().getCount());
 	}
 
+	/**
+	 * Disallowed negative counts are no longer a feature of the library.
+	 * 
+	 * @throws InterruptedException
+	 * @deprecated
+	 */
 	@Test
+	@Ignore
+	@Deprecated
 	public void testDecrementNegative_DisallowedNegative() throws InterruptedException
 	{
 		// Use 3 shards
@@ -257,7 +266,8 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 		// Reset the counter
 		// /////////////////////////
 		shardedCounterService.increment(counterName + "-1", numIterations);
-		assertEquals(BigInteger.valueOf(numIterations), shardedCounterService.getCounter(counterName + "-1").get().getCount());
+		assertEquals(BigInteger.valueOf(numIterations), shardedCounterService.getCounter(counterName + "-1").get()
+			.getCount());
 
 		// ////////////////////////
 		// No Memcache Caching
@@ -281,7 +291,8 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 		// Reset the counter
 		// /////////////////////////
 		shardedCounterService.increment(counterName + "-1", numIterations);
-		assertEquals(BigInteger.valueOf(numIterations), shardedCounterService.getCounter(counterName + "-1").get().getCount());
+		assertEquals(BigInteger.valueOf(numIterations), shardedCounterService.getCounter(counterName + "-1").get()
+			.getCount());
 
 		// ////////////////////////
 		// Memcache Cleared BEFORE Decrement Only
@@ -301,7 +312,8 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 		// Reset the counter
 		// /////////////////////////
 		shardedCounterService.increment(counterName + "-1", numIterations);
-		assertEquals(BigInteger.valueOf(numIterations), shardedCounterService.getCounter(counterName + "-1").get().getCount());
+		assertEquals(BigInteger.valueOf(numIterations), shardedCounterService.getCounter(counterName + "-1").get()
+			.getCount());
 
 		// ////////////////////////
 		// Memcache Cleared AFTER Decrement Only

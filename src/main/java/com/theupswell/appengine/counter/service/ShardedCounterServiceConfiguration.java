@@ -78,7 +78,7 @@ public class ShardedCounterServiceConfiguration
 	private final String relativeUrlPathForDeleteTaskQueue;
 
 	// Set to true to allow counter counts to decrement below zero.
-	private final boolean negativeCountAllowed;
+	//private final boolean negativeCountAllowed;
 
 	/**
 	 * The default constructor for building a ShardedCounterService configuration class. Private so that only the
@@ -93,7 +93,7 @@ public class ShardedCounterServiceConfiguration
 		this.deleteCounterShardQueueName = builder.deleteCounterShardQueueName;
 		this.relativeUrlPathForDeleteTaskQueue = builder.relativeUrlPathForDeleteTaskQueue;
 		this.defaultCounterCountExpiration = builder.getDefaultCounterCountExpiration();
-		this.negativeCountAllowed = builder.isNegativeCountAllowed();
+		//this.negativeCountAllowed = builder.isNegativeCountAllowed();
 	}
 
 	/**
