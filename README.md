@@ -45,7 +45,7 @@ Appengine-counter can be found in maven-central.  To use it in your project, inc
     <dependency>
     	<groupId>com.theupswell.appengine.counter</groupId>
 		<artifactId>appengine-counter</artifactId>
-		<version>1.2.0</version>
+		<version>2.0.0</version>
     </dependency>
 
 Sharded counters can be accessed via an implementation of <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterService.java">ShardedCounterService</a>.  
