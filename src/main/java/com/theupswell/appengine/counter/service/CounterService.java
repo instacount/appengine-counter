@@ -24,6 +24,7 @@ import com.theupswell.appengine.counter.CounterOperation;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.exceptions.CounterExistsException;
 
 /**
  * A Counter Service that can retrieve, increment, decrement, and delete a named {@link Counter}.
@@ -37,6 +38,7 @@ public interface CounterService
 	 *
 	 * @param counterName A {@link String} representing the name of the counter to create.
 	 * @return
+	 * @throws CounterExistsException If a counter with the indicated {@code counterName} already exists.
 	 */
 	Counter createCounter(final String counterName);
 
