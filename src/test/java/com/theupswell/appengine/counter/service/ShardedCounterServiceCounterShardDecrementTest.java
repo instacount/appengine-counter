@@ -52,7 +52,7 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 
 		final MemcacheService memcacheService = MemcacheServiceFactory.getMemcacheService();
 		final ShardedCounterServiceConfiguration shardedCounterServiceConfiguration = new ShardedCounterServiceConfiguration.Builder()
-			.withNegativeCountAllowed(ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS).build();
+			.build();
 		shardedCounterService = new ShardedCounterServiceImpl(memcacheService, shardedCounterServiceConfiguration);
 	}
 
@@ -160,8 +160,7 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 	public void testDecrementNegative_AllowedNegative() throws InterruptedException
 	{
 		// Use 3 shards
-		shardedCounterService = initialShardedCounterService(3,
-			ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS);
+		shardedCounterService = initialShardedCounterService(3);
 
 		shardedCounterService.increment(TEST_COUNTER1, 10);
 		shardedCounterService.increment(TEST_COUNTER2, 10);
@@ -175,50 +174,6 @@ public class ShardedCounterServiceCounterShardDecrementTest extends
 
 		assertEquals(BigInteger.valueOf(-10L), shardedCounterService.getCounter(TEST_COUNTER1).get().getCount());
 		assertEquals(BigInteger.valueOf(-10L), shardedCounterService.getCounter(TEST_COUNTER2).get().getCount());
-	}
-
-	/**
-	 * Disallowed negative counts are no longer a feature of the library.
-	 * 
-	 * @throws InterruptedException
-	 * @deprecated
-	 */
-	@Test
-	@Ignore
-	@Deprecated
-	public void testDecrementNegative_DisallowedNegative() throws InterruptedException
-	{
-		// Use 3 shards
-		shardedCounterService = initialShardedCounterService(3,
-			ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS);
-
-		shardedCounterService.increment(TEST_COUNTER1, 10);
-		shardedCounterService.increment(TEST_COUNTER2, 10);
-
-		// Decrement 20
-		for (int i = 0; i < 20; i++)
-		{
-			try
-			{
-				shardedCounterService.decrement(TEST_COUNTER1, 1);
-			}
-			catch (IllegalArgumentException ae)
-			{
-				// Do nothing.
-			}
-
-			try
-			{
-				shardedCounterService.decrement(TEST_COUNTER2, 1);
-			}
-			catch (IllegalArgumentException ae)
-			{
-				// Do nothing.
-			}
-		}
-
-		assertEquals(BigInteger.valueOf(0L), shardedCounterService.getCounter(TEST_COUNTER1).get().getCount());
-		assertEquals(BigInteger.valueOf(0L), shardedCounterService.getCounter(TEST_COUNTER2).get().getCount());
 	}
 
 	// Tests counters with up to 15 shards and excerises each shard

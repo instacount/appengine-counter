@@ -45,7 +45,6 @@ public class Counter
 	private final CounterData.CounterStatus counterStatus;
 	private final BigInteger count;
 	private final CounterIndexes indexes;
-	private final boolean negativeCountAllowed;
 	private final DateTime creationDateTime;
 
 	/**
@@ -83,7 +82,7 @@ public class Counter
 	public Counter(final String counterName, final String counterDescription, final int numShards,
 			final CounterData.CounterStatus counterStatus, final CounterIndexes indexes)
 	{
-		this(counterName, counterDescription, numShards, counterStatus, BigInteger.ZERO, indexes, false, DateTime
+		this(counterName, counterDescription, numShards, counterStatus, BigInteger.ZERO, indexes, DateTime
 			.now(DateTimeZone.UTC));
 	}
 
@@ -95,12 +94,12 @@ public class Counter
 	 * @param counterStatus
 	 * @param count
 	 * @param indexes
-	 * @param negativeCountAllowed Set to {@code true} to allow the counter to decrement past zero; {@code false} to
 	 * @param creationDateTime The {@link DateTime} that this counter was created.
 	 */
 	public Counter(final String counterName, final String counterDescription, final int numShards,
 			final CounterStatus counterStatus, final BigInteger count, final CounterIndexes indexes,
-			final boolean negativeCountAllowed, final DateTime creationDateTime)
+			// final boolean negativeCountAllowed,
+			final DateTime creationDateTime)
 	{
 
 		Preconditions.checkArgument(!StringUtils.isBlank(counterName), "CounterName may not be empty, blank, or null!");
@@ -115,7 +114,7 @@ public class Counter
 		// Set to none if not specified
 		this.indexes = indexes == null ? CounterIndexes.none() : indexes;
 
-		this.negativeCountAllowed = negativeCountAllowed;
+		// this.negativeCountAllowed = negativeCountAllowed;
 
 		this.creationDateTime = creationDateTime;
 	}

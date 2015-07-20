@@ -59,9 +59,6 @@ public class ShardedCounterServiceConfiguration
 	static final Expiration DEFAULT_COUNTER_COUNT_CACHE_EXPIRATION = Expiration
 		.byDeltaSeconds(SIXTY_MINUTES_IN_SECONDS);
 
-	public static final boolean ALLOW_NEGATIVE_COUNTS = true;
-	public static final boolean DISALLOW_NEGATIVE_COUNTS = !ALLOW_NEGATIVE_COUNTS;
-
 	// The number of counter shards to create when a new counter is created. The default value is 3.
 	private final int numInitialShards;
 
@@ -78,7 +75,7 @@ public class ShardedCounterServiceConfiguration
 	private final String relativeUrlPathForDeleteTaskQueue;
 
 	// Set to true to allow counter counts to decrement below zero.
-	//private final boolean negativeCountAllowed;
+	// private final boolean negativeCountAllowed;
 
 	/**
 	 * The default constructor for building a ShardedCounterService configuration class. Private so that only the
@@ -93,7 +90,7 @@ public class ShardedCounterServiceConfiguration
 		this.deleteCounterShardQueueName = builder.deleteCounterShardQueueName;
 		this.relativeUrlPathForDeleteTaskQueue = builder.relativeUrlPathForDeleteTaskQueue;
 		this.defaultCounterCountExpiration = builder.getDefaultCounterCountExpiration();
-		//this.negativeCountAllowed = builder.isNegativeCountAllowed();
+		// this.negativeCountAllowed = builder.isNegativeCountAllowed();
 	}
 
 	/**
@@ -133,10 +130,6 @@ public class ShardedCounterServiceConfiguration
 		@Setter
 		private String relativeUrlPathForDeleteTaskQueue;
 
-		@Getter
-		@Setter
-		private boolean negativeCountAllowed;
-
 		/**
 		 * Default Constructor. Sets up this buildr with 1 shard by default.
 		 */
@@ -145,9 +138,6 @@ public class ShardedCounterServiceConfiguration
 			this.numInitialShards = DEFAULT_NUM_COUNTER_SHARDS;
 			// The default expiration for Counter counts in memcache. See comment with variable declaration.
 			this.defaultCounterCountExpiration = DEFAULT_COUNTER_COUNT_CACHE_EXPIRATION;
-
-			// The default is to not allow the counter to decrement below zero.
-			this.negativeCountAllowed = false;
 		}
 
 		public Builder withNumInitialShards(int numInitialShards)
@@ -169,12 +159,6 @@ public class ShardedCounterServiceConfiguration
 		{
 			Preconditions.checkArgument(!StringUtils.isBlank(relativeUrlPathForDeleteTaskQueue));
 			this.relativeUrlPathForDeleteTaskQueue = relativeUrlPathForDeleteTaskQueue;
-			return this;
-		}
-
-		public Builder withNegativeCountAllowed(final boolean negativeCountAllowed)
-		{
-			this.negativeCountAllowed = negativeCountAllowed;
 			return this;
 		}
 

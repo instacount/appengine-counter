@@ -12,7 +12,6 @@ import org.junit.Test;
 
 import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration;
 
 public class CounterTest
 {
@@ -51,24 +50,19 @@ public class CounterTest
 		assertThat(actual.getCounterStatus(), is(CounterStatus.AVAILABLE));
 
 		actual = new Counter(TEST_COUNTER_NAME, TEST_COUNTER_DESCRIPTION, NUM_SHARDS, CounterStatus.AVAILABLE, COUNT,
-			ALL_INDEXES, ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS, CREATION_DATE_TIME);
+			ALL_INDEXES, CREATION_DATE_TIME);
 		assertThat(actual, is(not(nullValue())));
 		assertThat(actual.getCounterName(), is(TEST_COUNTER_NAME));
 		assertThat(actual.getCounterDescription(), is(TEST_COUNTER_DESCRIPTION));
 		assertThat(actual.getNumShards(), is(NUM_SHARDS));
 		assertThat(actual.getCounterStatus(), is(CounterStatus.AVAILABLE));
-		assertThat(actual.isNegativeCountAllowed(), is(true));
-		assertThat(actual.isNegativeCountAllowed(), is(ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS));
 
 		actual = new Counter(TEST_COUNTER_NAME, TEST_COUNTER_DESCRIPTION, NUM_SHARDS, CounterStatus.AVAILABLE, COUNT,
-			ALL_INDEXES, ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS, CREATION_DATE_TIME);
+			ALL_INDEXES, CREATION_DATE_TIME);
 		assertThat(actual, is(not(nullValue())));
 		assertThat(actual.getCounterName(), is(TEST_COUNTER_NAME));
 		assertThat(actual.getCounterDescription(), is(TEST_COUNTER_DESCRIPTION));
 		assertThat(actual.getNumShards(), is(NUM_SHARDS));
 		assertThat(actual.getCounterStatus(), is(CounterStatus.AVAILABLE));
-		assertThat(actual.isNegativeCountAllowed(), is(false));
-		assertThat(actual.isNegativeCountAllowed(), is(ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS));
-
 	}
 }

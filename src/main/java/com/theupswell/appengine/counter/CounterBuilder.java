@@ -78,7 +78,6 @@ public class CounterBuilder
 		this.setCounterStatus(counter.getCounterStatus());
 		this.setCount(counter.getCount());
 		this.setIndexes(counter.getIndexes());
-		this.setNegativeCountAllowed(counter.isNegativeCountAllowed());
 		this.setCreationDateTime(counter.getCreationDateTime());
 	}
 
@@ -90,8 +89,7 @@ public class CounterBuilder
 	public Counter build()
 	{
 		return new Counter(this.getCounterName(), this.getCounterDescription(), this.getNumShards(),
-			this.getCounterStatus(), this.getCount(), this.getIndexes(), this.isNegativeCountAllowed(),
-			this.getCreationDateTime());
+			this.getCounterStatus(), this.getCount(), this.getIndexes(), this.getCreationDateTime());
 	}
 
 	/**

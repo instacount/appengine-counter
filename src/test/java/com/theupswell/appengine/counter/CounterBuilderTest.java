@@ -13,7 +13,6 @@ import org.junit.Test;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
-import com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration;
 
 public class CounterBuilderTest
 {
@@ -29,7 +28,7 @@ public class CounterBuilderTest
 	public void testBuildWithCounter() throws Exception
 	{
 		Counter actual = new Counter(TEST_COUNTER_NAME, TEST_COUNTER_DESCRIPTION, NUM_SHARDS, CounterStatus.AVAILABLE,
-			COUNT, NO_INDEXES, ShardedCounterServiceConfiguration.DISALLOW_NEGATIVE_COUNTS, CREATION_DATE_TIME);
+			COUNT, NO_INDEXES, CREATION_DATE_TIME);
 		Counter copy = new CounterBuilder(actual).build();
 		assertThat(actual, is(copy));
 	}

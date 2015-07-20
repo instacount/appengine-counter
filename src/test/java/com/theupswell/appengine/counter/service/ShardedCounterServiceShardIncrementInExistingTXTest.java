@@ -55,8 +55,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 	{
 		super.setUp();
 
-		final ShardedCounterServiceConfiguration config = new Builder().withNumInitialShards(1)
-			.withNegativeCountAllowed(ShardedCounterServiceConfiguration.ALLOW_NEGATIVE_COUNTS).build();
+		final ShardedCounterServiceConfiguration config = new Builder().withNumInitialShards(1).build();
 		this.singleShardShardedCounterService = new ShardedCounterServiceTxWrapper(super.memcache, config);
 		impl = (ShardedCounterServiceImpl) this.singleShardShardedCounterService;
 
