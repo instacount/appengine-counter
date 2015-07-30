@@ -36,7 +36,6 @@ public class CounterBuilder
 	private int numShards;
 	private CounterStatus counterStatus = CounterStatus.AVAILABLE;
 	private BigInteger count;
-	private boolean negativeCountAllowed;
 	private CounterIndexes indexes;
 	private DateTime creationDateTime;
 
@@ -56,7 +55,6 @@ public class CounterBuilder
 		this.setNumShards(counterData.getNumShards());
 		this.setCounterStatus(counterData.getCounterStatus());
 		this.setIndexes(counterData.getIndexes());
-		this.setNegativeCountAllowed(counterData.isNegativeCountAllowed());
 		this.setCreationDateTime(counterData.getCreationDateTime());
 	}
 
@@ -148,19 +146,6 @@ public class CounterBuilder
 	{
 		Preconditions.checkNotNull(creationDateTime);
 		this.setCreationDateTime(creationDateTime);
-		return this;
-	}
-
-	/**
-	 * Determines if a counter is allowed to decrement below zero.
-	 * 
-	 * @param negativeCountAllowed if this counter may decrement below zero; {@code false} if the counter's count may
-	 *            not decrement below zero.
-	 * @return
-	 */
-	public CounterBuilder withNegativeCountAllowed(final boolean negativeCountAllowed)
-	{
-		this.negativeCountAllowed = negativeCountAllowed;
 		return this;
 	}
 

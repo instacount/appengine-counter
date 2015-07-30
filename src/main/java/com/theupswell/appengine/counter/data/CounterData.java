@@ -82,10 +82,6 @@ public class CounterData
 	@Index(IfCounterDataIndexable.class)
 	private String counterDescription;
 
-	// false by default, but by setting to true allows the counter to go negative.
-	@Unindex
-	private boolean negativeCountAllowed;
-
 	// This is AVAILABLE by default, which means it can be incremented and decremented
 	@Index(IfCounterDataIndexable.class)
 	private CounterStatus counterStatus = CounterStatus.AVAILABLE;

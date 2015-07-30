@@ -98,7 +98,6 @@ public class Counter
 	 */
 	public Counter(final String counterName, final String counterDescription, final int numShards,
 			final CounterStatus counterStatus, final BigInteger count, final CounterIndexes indexes,
-			// final boolean negativeCountAllowed,
 			final DateTime creationDateTime)
 	{
 
@@ -110,12 +109,9 @@ public class Counter
 		this.numShards = numShards;
 		this.counterStatus = counterStatus;
 		this.count = count;
+		this.creationDateTime = creationDateTime;
 
 		// Set to none if not specified
 		this.indexes = indexes == null ? CounterIndexes.none() : indexes;
-
-		// this.negativeCountAllowed = negativeCountAllowed;
-
-		this.creationDateTime = creationDateTime;
 	}
 }
