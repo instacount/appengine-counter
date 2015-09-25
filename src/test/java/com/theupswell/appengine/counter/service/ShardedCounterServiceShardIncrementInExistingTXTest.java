@@ -744,7 +744,7 @@ public class ShardedCounterServiceShardIncrementInExistingTXTest extends Sharded
 		memcache.clearAll();
 
 		// Perform another increment in a Work, but abort it before it can commit.
-		ObjectifyService.ofy().transactNew(0, new VoidWork()
+		ObjectifyService.ofy().transactNew(1, new VoidWork()
 		{
 			@Override
 			public void vrun()
