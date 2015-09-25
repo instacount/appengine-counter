@@ -31,7 +31,7 @@ public class CounterDataIndexQueryTests extends AbstractShardedCounterServiceTes
 	{
 		counterData1 = new CounterData("Counter1", 1);
 		counterData1.setCounterStatus(CounterStatus.AVAILABLE);
-		counterData1.setCounterDescription("Abc Description");
+		counterData1.setDescription("Abc Description");
 		counterData1.setIndexes(CounterIndexes.all());
 		counterData1.setCounterGroupData(new CounterGroupData());
 		counterData1.getCounterGroupData().setEventuallyConsistentCount(1);
@@ -39,7 +39,7 @@ public class CounterDataIndexQueryTests extends AbstractShardedCounterServiceTes
 
 		counterData2 = new CounterData("Counter2", 2);
 		counterData2.setCounterStatus(CounterStatus.CONTRACTING_SHARDS);
-		counterData2.setCounterDescription("Bcd Description");
+		counterData2.setDescription("Bcd Description");
 		counterData2.setIndexes(CounterIndexes.all());
 		counterData2.setCounterGroupData(new CounterGroupData());
 		counterData2.getCounterGroupData().setEventuallyConsistentCount(2);
@@ -47,7 +47,7 @@ public class CounterDataIndexQueryTests extends AbstractShardedCounterServiceTes
 
 		counterData3 = new CounterData("Counter3", 3);
 		counterData3.setCounterStatus(CounterStatus.READ_ONLY_COUNT);
-		counterData3.setCounterDescription("Cde Description");
+		counterData3.setDescription("Cde Description");
 		counterData3.setIndexes(CounterIndexes.all());
 		counterData3.setCounterGroupData(new CounterGroupData());
 		counterData3.getCounterGroupData().setEventuallyConsistentCount(3);
@@ -80,14 +80,14 @@ public class CounterDataIndexQueryTests extends AbstractShardedCounterServiceTes
 		// ///////////////////////
 
 		// Description Descending
-		countersList = ObjectifyService.ofy().load().type(CounterData.class).order("counterDescription").list();
+		countersList = ObjectifyService.ofy().load().type(CounterData.class).order("description").list();
 		assertThat(countersList.size(), is(3));
 		assertThat(countersList.get(0), is(counterData1));
 		assertThat(countersList.get(1), is(counterData2));
 		assertThat(countersList.get(2), is(counterData3));
 
 		// Description Ascending
-		countersList = ObjectifyService.ofy().load().type(CounterData.class).order("-counterDescription").list();
+		countersList = ObjectifyService.ofy().load().type(CounterData.class).order("-description").list();
 		assertThat(countersList.size(), is(3));
 		assertThat(countersList.get(0), is(counterData3));
 		assertThat(countersList.get(1), is(counterData2));

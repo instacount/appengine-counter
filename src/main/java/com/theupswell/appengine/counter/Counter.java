@@ -38,8 +38,8 @@ import com.theupswell.appengine.counter.service.ShardedCounterServiceConfigurati
 @ToString
 public class Counter
 {
-	private final String counterName;
-	private final String counterDescription;
+	private final String name;
+	private final String description;
 	// The number of shards available for this counter.
 	private final int numShards;
 	private final CounterData.CounterStatus counterStatus;
@@ -51,61 +51,61 @@ public class Counter
 	 * Required-args Constructor. Sets the {@code counterStatus} to
 	 * {@link com.theupswell.appengine.counter.data.CounterData.CounterStatus#AVAILABLE} and the {@code count} to zero.
 	 *
-	 * @param counterName
+	 * @param name
 	 */
-	public Counter(final String counterName)
+	public Counter(final String name)
 	{
-		this(counterName, null);
+		this(name, null);
 	}
 
 	/**
 	 * Required-args Constructor. Sets the {@code counterStatus} to
 	 * {@link com.theupswell.appengine.counter.data.CounterData.CounterStatus#AVAILABLE} and the {@code count} to zero.
 	 *
-	 * @param counterName
-	 * @param counterDescription
+	 * @param name
+	 * @param description
 	 */
-	public Counter(final String counterName, final String counterDescription)
+	public Counter(final String name, final String description)
 	{
-		this(counterName, counterDescription, ShardedCounterServiceConfiguration.DEFAULT_NUM_COUNTER_SHARDS,
+		this(name, description, ShardedCounterServiceConfiguration.DEFAULT_NUM_COUNTER_SHARDS,
 			CounterData.CounterStatus.AVAILABLE, CounterIndexes.none());
 	}
 
 	/**
 	 * Required-args Constructor. Sets the {@code count} to zero.
 	 *
-	 * @param counterName
+	 * @param name
 	 * @param counterStatus
 	 * @param numShards
 	 * @param counterStatus
 	 */
-	public Counter(final String counterName, final String counterDescription, final int numShards,
+	public Counter(final String name, final String description, final int numShards,
 			final CounterData.CounterStatus counterStatus, final CounterIndexes indexes)
 	{
-		this(counterName, counterDescription, numShards, counterStatus, BigInteger.ZERO, indexes, DateTime
+		this(name, description, numShards, counterStatus, BigInteger.ZERO, indexes, DateTime
 			.now(DateTimeZone.UTC));
 	}
 
 	/**
 	 * Required-args Constructor.
 	 * 
-	 * @param counterName
-	 * @param counterDescription
+	 * @param name
+	 * @param description
 	 * @param counterStatus
 	 * @param count
 	 * @param indexes
 	 * @param creationDateTime The {@link DateTime} that this counter was created.
 	 */
-	public Counter(final String counterName, final String counterDescription, final int numShards,
+	public Counter(final String name, final String description, final int numShards,
 			final CounterStatus counterStatus, final BigInteger count, final CounterIndexes indexes,
 			final DateTime creationDateTime)
 	{
 
-		Preconditions.checkArgument(!StringUtils.isBlank(counterName), "CounterName may not be empty, blank, or null!");
+		Preconditions.checkArgument(!StringUtils.isBlank(name), "CounterName may not be empty, blank, or null!");
 		Preconditions.checkNotNull(counterStatus);
 
-		this.counterName = counterName;
-		this.counterDescription = counterDescription;
+		this.name = name;
+		this.description = description;
 		this.numShards = numShards;
 		this.counterStatus = counterStatus;
 		this.count = count;

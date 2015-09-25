@@ -34,7 +34,7 @@ public class IfCounterDataIndexableTest
 
 		this.numShardsField = CounterData.class.getDeclaredField("numShards");
 		this.counterStatusField = CounterData.class.getDeclaredField("counterStatus");
-		this.counterDescriptionField = CounterData.class.getDeclaredField("counterDescription");
+		this.counterDescriptionField = CounterData.class.getDeclaredField("description");
 		this.counterCountField = CounterGroupData.class.getDeclaredField("eventuallyConsistentCount");
 
 		this.counterData = new CounterData("testCounterName", 3);

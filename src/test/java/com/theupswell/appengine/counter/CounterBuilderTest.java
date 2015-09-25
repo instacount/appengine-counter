@@ -38,9 +38,9 @@ public class CounterBuilderTest
 	{
 		CounterData actualCounterData = new CounterData(TEST_COUNTER_NAME, NUM_SHARDS);
 		Counter copy = new CounterBuilder(actualCounterData).build();
-		assertThat(copy.getCounterName(), is(TEST_COUNTER_NAME));
+		assertThat(copy.getName(), is(TEST_COUNTER_NAME));
 		assertThat(copy.getCounterStatus(), is(CounterStatus.AVAILABLE));
-		assertThat(copy.getCounterDescription(), is(nullValue()));
+		assertThat(copy.getDescription(), is(nullValue()));
 		assertThat(copy.getNumShards(), is(NUM_SHARDS));
 		assertThat(copy.getIndexes(), is(NO_INDEXES));
 		assertThat(copy.getCreationDateTime(), is(actualCounterData.getCreationDateTime()));

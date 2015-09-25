@@ -30,9 +30,9 @@ import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 public class CounterBuilder
 {
 	@NonNull
-	private final String counterName;
+	private final String name;
 
-	private String counterDescription;
+	private String description;
 	private int numShards;
 	private CounterStatus counterStatus = CounterStatus.AVAILABLE;
 	private BigInteger count;
@@ -49,9 +49,9 @@ public class CounterBuilder
 	{
 		Preconditions.checkNotNull(counterData);
 
-		this.counterName = counterData.getCounterName();
+		this.name = counterData.getName();
 
-		this.setCounterDescription(counterData.getCounterDescription());
+		this.setDescription(counterData.getDescription());
 		this.setNumShards(counterData.getNumShards());
 		this.setCounterStatus(counterData.getCounterStatus());
 		this.setIndexes(counterData.getIndexes());
@@ -68,10 +68,10 @@ public class CounterBuilder
 	{
 		Preconditions.checkNotNull(counter);
 
-		this.counterName = counter.getCounterName();
+		this.name = counter.getName();
 
 		// Use setters to enforce Preconditions...
-		this.setCounterDescription(counter.getCounterDescription());
+		this.setDescription(counter.getDescription());
 		this.setNumShards(counter.getNumShards());
 		this.setCounterStatus(counter.getCounterStatus());
 		this.setCount(counter.getCount());
@@ -86,7 +86,7 @@ public class CounterBuilder
 	 */
 	public Counter build()
 	{
-		return new Counter(this.getCounterName(), this.getCounterDescription(), this.getNumShards(),
+		return new Counter(this.getName(), this.getDescription(), this.getNumShards(),
 			this.getCounterStatus(), this.getCount(), this.getIndexes(), this.getCreationDateTime());
 	}
 
@@ -97,7 +97,7 @@ public class CounterBuilder
 	 */
 	public CounterBuilder withCounterDescription(final String counterDescription)
 	{
-		this.setCounterDescription(counterDescription);
+		this.setDescription(counterDescription);
 		return this;
 	}
 

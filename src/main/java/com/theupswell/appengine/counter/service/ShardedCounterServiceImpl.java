@@ -254,7 +254,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	}
 
 	@Override
-	public Counter createCounter(String counterName)
+	public Counter createCounter(final String counterName)
 	{
 		this.createCounterData(counterName);
 		// Call #getCounter instead of building here so that the cache can be warmed up! We can skip the cache because
@@ -336,7 +336,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 		logger.log(Level.FINE,
 			String.format("Aggregating counts from '%s' CounterDataShards for CounterData named '%s'!",
-				counterData.getNumShards(), counterData.getCounterName()));
+				counterData.getNumShards(), counterData.getName()));
 
 		// ///////////////////
 		// Assemble a List of CounterShardData Keys to retrieve in parallel!
@@ -371,7 +371,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 		logger.log(Level.FINE,
 			String.format("The Datastore is reporting a count of %s for CounterData '%s' count.  Resetting memcache "
-				+ "count to %s for this counter name.", sum, counterData.getCounterName(), sum));
+				+ "count to %s for this counter name.", sum, counterData.getName(), sum));
 
 		final BigInteger bdSum = BigInteger.valueOf(sum);
 		try
@@ -410,18 +410,18 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			{
 				// First, load the incomingCounter from the datastore via a transactional get to ensure it has the
 				// proper state.
-				final Optional<CounterData> optCounterData = getCounterData(incomingCounter.getCounterName());
+				final Optional<CounterData> optCounterData = getCounterData(incomingCounter.getName());
 
 				// //////////////
 				// ShortCircuit: Can't update a counter that doesn't exist!
 				// //////////////
 				if (!optCounterData.isPresent())
 				{
-					throw new NoCounterExistsException(incomingCounter.getCounterName());
+					throw new NoCounterExistsException(incomingCounter.getName());
 				}
 
 				final CounterData counterDataInDatastore = optCounterData.get();
-				assertCounterDetailsMutatable(counterDataInDatastore.getCounterName(),
+				assertCounterDetailsMutatable(counterDataInDatastore.getName(),
 					counterDataInDatastore.getCounterStatus());
 
 				// NOTE: READ_ONLY_COUNT status means the count can't be incremented/decremented. However, it's details
@@ -430,7 +430,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// NOTE: The counterName/counterId may not change!
 
 				// Update the Description
-				counterDataInDatastore.setCounterDescription(incomingCounter.getCounterDescription());
+				counterDataInDatastore.setDescription(incomingCounter.getDescription());
 
 				// Update the numShards. Aside from setting this value, nothing explicitly needs to happen in the
 				// datastore since shards will be created when a counter in incremented (if the shard doesn't already
@@ -974,7 +974,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		@Override
 		public CounterOperation run()
 		{
-			final String counterName = counterData.getCounterName();
+			final String counterName = counterData.getName();
 
 			// Callers may specify a random shard number. If not specified, then choose the shard randomly from the
 			// available shards.
@@ -993,7 +993,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			}
 
 			// Increments/Decrements can only occur on Counters with a counterStatus of AVAILABLE.
-			assertCounterAmountMutatable(counterData.getCounterName(), counterData.getCounterStatus());
+			assertCounterAmountMutatable(counterData.getName(), counterData.getCounterStatus());
 
 			final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterData.getTypedKey(),
 				shardNumber);
@@ -1048,7 +1048,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 					String.format(
 						"Counter Shard Mutation '%s' for Shard Number %s on Counter '%s' may or may not have "
 							+ "completed!  Error: %s",
-						counterShardOperationUuid, shardNumber, counterData.getCounterName(), dse.getMessage()),
+						counterShardOperationUuid, shardNumber, counterData.getName(), dse.getMessage()),
 					dse);
 				// Throw this for now. In the future, we may implement retry logic.
 				throw dse;

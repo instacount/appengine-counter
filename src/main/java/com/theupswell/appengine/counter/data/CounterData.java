@@ -14,6 +14,7 @@ package com.theupswell.appengine.counter.data;
 
 import java.util.UUID;
 
+import com.googlecode.objectify.annotation.AlsoLoad;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -80,7 +81,8 @@ public class CounterData
 	private int numShards;
 
 	@Index(IfCounterDataIndexable.class)
-	private String counterDescription;
+	@AlsoLoad("counterDescription")
+	private String description;
 
 	// This is AVAILABLE by default, which means it can be incremented and decremented
 	@Index(IfCounterDataIndexable.class)
@@ -124,7 +126,7 @@ public class CounterData
 	/**
 	 * @return The name of this counter
 	 */
-	public String getCounterName()
+	public String getName()
 	{
 		return this.getId();
 	}
@@ -163,7 +165,7 @@ public class CounterData
 	 */
 	public Key<CounterData> getTypedKey()
 	{
-		return Key.create(CounterData.class, this.getCounterName());
+		return Key.create(CounterData.class, this.getName());
 	}
 
 	/**

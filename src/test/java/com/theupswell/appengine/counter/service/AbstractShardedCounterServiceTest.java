@@ -148,7 +148,7 @@ public abstract class AbstractShardedCounterServiceTest
 	{
 		assertTrue(counter != null);
 		assertEquals(expectedCounterCount, counter.getCount());
-		assertEquals(expectedCounterName, counter.getCounterName());
+		assertEquals(expectedCounterName, counter.getName());
 	}
 
 	/**

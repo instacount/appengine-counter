@@ -28,40 +28,40 @@ public class CounterTest
 	{
 		Counter actual = new Counter(TEST_COUNTER_NAME);
 		assertThat(actual, is(not(nullValue())));
-		assertThat(actual.getCounterName(), is(TEST_COUNTER_NAME));
-		assertThat(actual.getCounterDescription(), is(nullValue()));
+		assertThat(actual.getName(), is(TEST_COUNTER_NAME));
+		assertThat(actual.getDescription(), is(nullValue()));
 		assertThat(actual.getNumShards(), is(3));
 		assertThat(actual.getCounterStatus(), is(CounterStatus.AVAILABLE));
 		assertThat(actual, is(actual));
 
 		actual = new Counter(TEST_COUNTER_NAME, TEST_COUNTER_DESCRIPTION);
 		assertThat(actual, is(not(nullValue())));
-		assertThat(actual.getCounterName(), is(TEST_COUNTER_NAME));
-		assertThat(actual.getCounterDescription(), is(TEST_COUNTER_DESCRIPTION));
+		assertThat(actual.getName(), is(TEST_COUNTER_NAME));
+		assertThat(actual.getDescription(), is(TEST_COUNTER_DESCRIPTION));
 		assertThat(actual.getNumShards(), is(NUM_SHARDS));
 		assertThat(actual.getCounterStatus(), is(CounterStatus.AVAILABLE));
 
 		actual = new Counter(TEST_COUNTER_NAME, TEST_COUNTER_DESCRIPTION, NUM_SHARDS, CounterStatus.AVAILABLE,
 			ALL_INDEXES);
 		assertThat(actual, is(not(nullValue())));
-		assertThat(actual.getCounterName(), is(TEST_COUNTER_NAME));
-		assertThat(actual.getCounterDescription(), is(TEST_COUNTER_DESCRIPTION));
+		assertThat(actual.getName(), is(TEST_COUNTER_NAME));
+		assertThat(actual.getDescription(), is(TEST_COUNTER_DESCRIPTION));
 		assertThat(actual.getNumShards(), is(NUM_SHARDS));
 		assertThat(actual.getCounterStatus(), is(CounterStatus.AVAILABLE));
 
 		actual = new Counter(TEST_COUNTER_NAME, TEST_COUNTER_DESCRIPTION, NUM_SHARDS, CounterStatus.AVAILABLE, COUNT,
 			ALL_INDEXES, CREATION_DATE_TIME);
 		assertThat(actual, is(not(nullValue())));
-		assertThat(actual.getCounterName(), is(TEST_COUNTER_NAME));
-		assertThat(actual.getCounterDescription(), is(TEST_COUNTER_DESCRIPTION));
+		assertThat(actual.getName(), is(TEST_COUNTER_NAME));
+		assertThat(actual.getDescription(), is(TEST_COUNTER_DESCRIPTION));
 		assertThat(actual.getNumShards(), is(NUM_SHARDS));
 		assertThat(actual.getCounterStatus(), is(CounterStatus.AVAILABLE));
 
 		actual = new Counter(TEST_COUNTER_NAME, TEST_COUNTER_DESCRIPTION, NUM_SHARDS, CounterStatus.AVAILABLE, COUNT,
 			ALL_INDEXES, CREATION_DATE_TIME);
 		assertThat(actual, is(not(nullValue())));
-		assertThat(actual.getCounterName(), is(TEST_COUNTER_NAME));
-		assertThat(actual.getCounterDescription(), is(TEST_COUNTER_DESCRIPTION));
+		assertThat(actual.getName(), is(TEST_COUNTER_NAME));
+		assertThat(actual.getDescription(), is(TEST_COUNTER_DESCRIPTION));
 		assertThat(actual.getNumShards(), is(NUM_SHARDS));
 		assertThat(actual.getCounterStatus(), is(CounterStatus.AVAILABLE));
 	}

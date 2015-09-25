@@ -55,7 +55,7 @@ public class IfCounterDataIndexable extends PojoIf<CounterData> implements Initi
 					return counterData.getIndexes().isCounterStatusIndexable();
 				}
 				// Field found in CounterData.class
-				else if (StringUtils.equals(fieldName, "counterDescription"))
+				else if (StringUtils.equals(fieldName, "description"))
 				{
 					return counterData.getIndexes().isDescriptionIndexable();
 				}
