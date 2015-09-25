@@ -237,8 +237,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// Load the counterOperationData
 		final Key<CounterData> counterDataKey = CounterData.key(counterName);
 		final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, shardNumber);
-		final Key<CounterShardOperationData> counterShardOperationDataKey = CounterShardOperationData.key(
-			counterShardDataKey, counterOperationId);
+		final Key<CounterShardOperationData> counterShardOperationDataKey = CounterShardOperationData
+			.key(counterShardDataKey, counterOperationId);
 
 		final CounterShardOperationData counterShardOperationData = ObjectifyService.ofy().load()
 			.key(counterShardOperationDataKey).now();
@@ -256,8 +256,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	@Override
 	public Counter createCounter(String counterName)
 	{
-		final CounterData counterData = this.createCounterData(counterName);
-		return new CounterBuilder(counterData).withCount(BigInteger.ZERO).build();
+		this.createCounterData(counterName);
+		// Call #getCounter instead of building here so that the cache can be warmed up! We can skip the cache because
+		// the counter was just created.
+		return this.getCounter(counterName, SKIP_CACHE).get();
 	}
 
 	/**
@@ -319,9 +321,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			}
 			else
 			{
-				logger.log(Level.FINE, String.format(
-					"Cache Miss for CounterData Named '%s': value='%s'.  Checking Datastore instead!", counterName,
-					cachedCounterCount));
+				logger.log(Level.FINE,
+					String.format("Cache Miss for CounterData Named '%s': value='%s'.  Checking Datastore instead!",
+						counterName, cachedCounterCount));
 			}
 		}
 
@@ -332,8 +334,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// Note: No Need to clear the Objectify session cache here because it will be cleared automatically and
 		// repopulated upon every request.
 
-		logger.log(
-			Level.FINE,
+		logger.log(Level.FINE,
 			String.format("Aggregating counts from '%s' CounterDataShards for CounterData named '%s'!",
 				counterData.getNumShards(), counterData.getCounterName()));
 
@@ -368,13 +369,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			}
 		}
 
-		logger
-			.log(
-				Level.FINE,
-				String
-					.format(
-						"The Datastore is reporting a count of %s for CounterData '%s' count.  Resetting memcache count to %s for this counter name.",
-						sum, counterData.getCounterName(), sum));
+		logger.log(Level.FINE,
+			String.format("The Datastore is reporting a count of %s for CounterData '%s' count.  Resetting memcache "
+				+ "count to %s for this counter name.", sum, counterData.getCounterName(), sum));
 
 		final BigInteger bdSum = BigInteger.valueOf(sum);
 		try
@@ -455,8 +452,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				counterDataInDatastore.setCounterStatus(incomingCounter.getCounterStatus());
 
 				// Update the CounterDataIndexes
-				counterDataInDatastore.setIndexes(incomingCounter.getIndexes() == null ? CounterIndexes.none()
-					: incomingCounter.getIndexes());
+				counterDataInDatastore.setIndexes(
+					incomingCounter.getIndexes() == null ? CounterIndexes.none() : incomingCounter.getIndexes());
 
 				// Update the counter in the datastore.
 				ObjectifyService.ofy().save().entity(counterDataInDatastore).now();
@@ -889,8 +886,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		}
 		else if (counterData.getCounterStatus() != CounterData.CounterStatus.DELETING)
 		{
-			final String msg = String.format(
-				"Can't delete counter '%s' because it is currently not in the DELETING state!", counterName);
+			final String msg = String
+				.format("Can't delete counter '%s' because it is currently not in the DELETING state!", counterName);
 			throw new IllegalArgumentException(msg);
 		}
 		else
@@ -988,10 +985,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			// operation. In fact, they're the exact same entity.
 			if (counterShardOperationAlreadyExists(counterData.getTypedKey(), shardNumber))
 			{
-				final String msg = String
-					.format(
-						"CounterShardOperation '%s' for CounterShard %s on Counter '%s' already exists and will not be applied again!  CounterData was: %s",
-						counterShardOperationUuid, shardNumber, counterName, counterData);
+				final String msg = String.format(
+					"CounterShardOperation '%s' for CounterShard %s on Counter '%s' already exists and will not be"
+						+ " applied again!  CounterData was: %s",
+					counterShardOperationUuid, shardNumber, counterName, counterData);
 				throw new IllegalArgumentException(msg);
 			}
 
@@ -1018,9 +1015,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			counterShardData.setUpdatedDateTime(DateTime.now(DateTimeZone.UTC));
 
 			final String msg = String
-				.format(
-					"About to update CounterShardData (%s-->Shard-%s) with current incrementAmount %s and new incrementAmount %s",
-					counterName, shardNumber, counterShardData.getCount(), newAmount);
+				.format("About to update CounterShardData (%s-->Shard-%s) with current incrementAmount %s and new "
+					+ "incrementAmount %s", counterName, shardNumber, counterShardData.getCount(), newAmount);
 			getLogger().log(Level.FINE, msg);
 
 			// Save Both CounterShardData and CounterShardOperationData together in the same TX.
@@ -1048,14 +1044,12 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			}
 			catch (DatastoreFailureException | DatastoreTimeoutException dse)
 			{
-				logger
-					.log(
-						Level.SEVERE,
-						String
-							.format(
-								"Counter Shard Mutation '%s' for Shard Number %s on Counter '%s' may or may not have completed!  Error: %s",
-								counterShardOperationUuid, shardNumber, counterData.getCounterName(), dse.getMessage()),
-						dse);
+				logger.log(Level.SEVERE,
+					String.format(
+						"Counter Shard Mutation '%s' for Shard Number %s on Counter '%s' may or may not have "
+							+ "completed!  Error: %s",
+						counterShardOperationUuid, shardNumber, counterData.getCounterName(), dse.getMessage()),
+					dse);
 				// Throw this for now. In the future, we may implement retry logic.
 				throw dse;
 			}
@@ -1071,8 +1065,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 			Preconditions.checkArgument(shardNumber >= 0);
 
 			final Key<CounterShardData> counterShardDataKey = CounterShardData.key(counterDataKey, shardNumber);
-			final Key<CounterShardOperationData> counterShardOperationDataKey = CounterShardOperationData.key(
-				counterShardDataKey, counterShardOperationUuid);
+			final Key<CounterShardOperationData> counterShardOperationDataKey = CounterShardOperationData
+				.key(counterShardDataKey, counterShardOperationUuid);
 
 			// See "https://groups.google.com/forum/#!searchin/objectify-appengine/exist/objectify-appengine/zFI2YWP5DTI
 			// /BpwFNlVQo1UJ". This methodolody will be less expensive, and strongly-consistent, but will be slightly
@@ -1254,12 +1248,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 
 		// This get/create is acceptable to perform outside of a transaction. In certain edge-cases, it's possible
 		// that two threads might call this operation at the same time, and one or both threads might think (errantly)
-		// that
-		// no CounterData exists in the Datastore when in reality one of the threads (or some other thread) may have
-		// created the CoutnerData already. However, in this case, the two create operations will be the same using
-		// default
-		// data, so even though the "winner" will be random, the result will be the same. In future, this assumption
-		// may need to change.
+		// that no CounterData exists in the Datastore when in reality one of the threads (or some other thread) may
+		// have created the CoutnerData already. However, in this case, the two create operations will be the same using
+		// default data, so even though the "winner" will be random, the result will be the same. In future, this
+		// assumption may need to change.
 		CounterData counterData = ObjectifyService.ofy().load().key(counterKey).now();
 		if (counterData == null)
 		{
@@ -1357,9 +1349,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				}
 				else
 				{
-					logger.log(Level.WARNING, String.format(
-						"Unable to update memcache counter atomically.  Retrying %s more times...",
-						(NUM_RETRIES_LIMIT - currentRetry)));
+					logger.log(Level.WARNING,
+						String.format("Unable to update memcache counter atomically.  Retrying %s more times...",
+							(NUM_RETRIES_LIMIT - currentRetry)));
 					continue;
 				}
 			}
@@ -1368,9 +1360,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// Check and post-decrement the numRetries counter in one step
 				if ((currentRetry + 1) < NUM_RETRIES_LIMIT)
 				{
-					logger.log(Level.WARNING, String.format(
-						"Unable to update memcache counter atomically.  Retrying %s more times...",
-						(NUM_RETRIES_LIMIT - currentRetry)));
+					logger.log(Level.WARNING,
+						String.format("Unable to update memcache counter atomically.  Retrying %s more times...",
+							(NUM_RETRIES_LIMIT - currentRetry)));
 
 					// Keep trying...
 					continue;
@@ -1425,10 +1417,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	{
 		if (counterStatus != CounterStatus.AVAILABLE)
 		{
-			final String msg = String
-				.format(
-					"Can't mutate the amount of counter '%s' because it's currently in the %s state but must be in in the %s state!",
-					counterName, counterStatus.name(), CounterStatus.AVAILABLE);
+			final String msg = String.format(
+				"Can't mutate the amount of counter '%s' because it's currently in the %s state but must be in in "
+					+ "the %s state!",
+				counterName, counterStatus.name(), CounterStatus.AVAILABLE);
 			throw new IllegalArgumentException(msg);
 		}
 	}
@@ -1455,8 +1447,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	@VisibleForTesting
 	protected boolean isParentTransactionActive()
 	{
-		return ObjectifyService.ofy().getTransaction() == null ? false : ObjectifyService.ofy().getTransaction()
-			.isActive();
+		return ObjectifyService.ofy().getTransaction() == null ? false
+			: ObjectifyService.ofy().getTransaction().isActive();
 	}
 
 	/**
