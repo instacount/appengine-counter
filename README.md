@@ -11,7 +11,7 @@ Appengine-counter is a ShardedCounter implementation for use in Google Appengine
 Thus, when a datastore-backed counter is required (i.e., for counter consistency, redundancy, and availability) we can increment random Counter shards in parallel and achieve a high-throughput counter without sacrificing consistency or availability.  For example, if a particular counter needs to support 100 increments per second, then the application supporting this counter could create the counter with approximately 20 shards, and the throughput could be sustained (this is because, per the above quote, any particular entity group in the appengine HRD can support ~5 updates/second).
 
 Features
-------
+--------
 + <b>Durable</b><br/>
 Counter values are stored in the Google Appengine <a href="https://developers.google.com/appengine/docs/python/datastore/structuring_for_strong_consistency">HRD Datastore</a> for data durability and redundancy.  Once an increment or decrement is recorded by the datastore, it's there for good.
 
@@ -282,7 +282,6 @@ Change Log
 + Better failure handling in the event of a memcache failure.
 + Default counter memcache settings reduced to 60 seconds.
 + Improvements around Objectify's session cache handling of CounterShards.
-+
 
 **Version 1.2.0**
 + Remove AbstractEntity, and more tightly enforce that CounterData may not have null ids.

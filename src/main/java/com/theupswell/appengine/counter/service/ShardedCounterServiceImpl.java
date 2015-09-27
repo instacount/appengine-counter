@@ -256,10 +256,11 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	@Override
 	public Counter createCounter(final String counterName)
 	{
-		this.createCounterData(counterName);
-		// Call #getCounter instead of building here so that the cache can be warmed up! We can skip the cache because
-		// the counter was just created.
-		return this.getCounter(counterName, SKIP_CACHE).get();
+		final CounterData counterData = this.createCounterData(counterName);
+		// No need to call call #getCounter here. The count will be zero, and so we don't need to perform any cache
+		// warm-up (this will be performed on the first read) and performing #getCounter here will load all counter
+		// shards, which is wasteful since they're likely 0. This will be extra wasteful for large-shard counters.
+		return new CounterBuilder(counterData).withCount(BigInteger.ZERO).build();
 	}
 
 	/**
