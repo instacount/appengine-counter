@@ -591,13 +591,13 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	// assertCounterAmountMutatable
 	// /////////////////////////
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = CounterNotMutableException.class)
 	public void testAssertCounterAmountMutatable_ContractingShards_CONTRACTING_SHARDS() throws Exception
 	{
 		impl.assertCounterAmountMutatable(TEST_COUNTER1, CounterStatus.CONTRACTING_SHARDS);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = CounterNotMutableException.class)
 	public void testAssertCounterAmountMutatable_ContractingShards_DELETING() throws Exception
 	{
 		impl.assertCounterAmountMutatable(TEST_COUNTER1, CounterStatus.DELETING);
@@ -609,13 +609,13 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		impl.assertCounterAmountMutatable(TEST_COUNTER1, CounterStatus.AVAILABLE);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = CounterNotMutableException.class)
 	public void testAssertCounterAmountMutatable_ContractingShards_EXPANDING_SHARDS() throws Exception
 	{
 		impl.assertCounterAmountMutatable(TEST_COUNTER1, CounterStatus.EXPANDING_SHARDS);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
+	@Test(expected = CounterNotMutableException.class)
 	public void testAssertCounterAmountMutatable_ContractingShards_READ_ONLY_COUNT() throws Exception
 	{
 		impl.assertCounterAmountMutatable(TEST_COUNTER1, CounterStatus.READ_ONLY_COUNT);
