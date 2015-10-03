@@ -18,6 +18,7 @@ import org.junit.Test;
 import com.google.appengine.api.memcache.MemcacheServiceFactory;
 import com.google.appengine.repackaged.com.google.common.math.LongMath;
 import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.Counter;
@@ -28,6 +29,7 @@ import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
 import com.theupswell.appengine.counter.exceptions.CounterExistsException;
+import com.theupswell.appengine.counter.exceptions.CounterNotMutableException;
 import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.CounterDataGetCreateContainer;
 
 public class ShardedCounterServiceImplTest extends AbstractShardedCounterServiceTest
@@ -203,8 +205,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 
 		// counter. final String counterName, final String description, final int numShards,
 		// final CounterData.CounterStatus counterStatus
-		Counter updatedCounter = new Counter(dsCounter.getName(), NEW_DESCRIPTION, 22,
-			CounterStatus.READ_ONLY_COUNT, ALL_INDEXES);
+		Counter updatedCounter = new Counter(dsCounter.getName(), NEW_DESCRIPTION, 22, CounterStatus.READ_ONLY_COUNT,
+			ALL_INDEXES);
 		impl.updateCounterDetails(updatedCounter);
 
 		dsCounter = impl.getCounter(TEST_COUNTER1).get();
@@ -224,8 +226,8 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		Counter dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
 		// Set the counter be in the READ-ONLY state.
-		Counter updatedCounter = new Counter(dsCounter.getName(), NEW_DESCRIPTION, 22,
-			CounterStatus.READ_ONLY_COUNT, ALL_INDEXES);
+		Counter updatedCounter = new Counter(dsCounter.getName(), NEW_DESCRIPTION, 22, CounterStatus.READ_ONLY_COUNT,
+			ALL_INDEXES);
 		impl.updateCounterDetails(updatedCounter);
 		dsCounter = impl.getCounter(TEST_COUNTER1).get();
 
@@ -239,8 +241,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		// //////////////////
 		// Try to update the state to be AVAILABLE and the CounterDataIndexes to none().
 		// //////////////////
-		updatedCounter = new Counter(dsCounter.getName(), NEW_DESCRIPTION, 22, CounterStatus.AVAILABLE,
-			NO_INDEXES);
+		updatedCounter = new Counter(dsCounter.getName(), NEW_DESCRIPTION, 22, CounterStatus.AVAILABLE, NO_INDEXES);
 		impl.updateCounterDetails(updatedCounter);
 
 		dsCounter = impl.getCounter(TEST_COUNTER1).get();
@@ -253,38 +254,166 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		assertThat(dsCounter.getIndexes(), is(NO_INDEXES));
 	}
 
-	@Test(expected = RuntimeException.class)
-	public void testUpdateCounterDetails_InvalidCounterStatuses() throws Exception
+	///////////////////////////////////
+	// VALID INCOMING, INVALID EXISTING
+	///////////////////////////////////
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testUpdateCounterDetails_ValidIncomingCounterStatuseInvalidExistingStatus_CONTRACTING_SHARDS()
+			throws Exception
 	{
-		Counter dsCounter = impl.getCounter(TEST_COUNTER1).get();
-
-		// Set the counter be in the READ-ONLY state.
-		Counter updatedCounter = new Counter(dsCounter.getName(), NEW_DESCRIPTION, 22,
-			CounterStatus.CONTRACTING_SHARDS, ALL_INDEXES);
-		impl.updateCounterDetails(updatedCounter);
-		dsCounter = impl.getCounter(TEST_COUNTER1).get();
-
-		assertThat(dsCounter.getName(), is(TEST_COUNTER1));
-		assertThat(dsCounter.getDescription(), is(NEW_DESCRIPTION));
-		assertThat(dsCounter.getNumShards(), is(22));
-		assertThat(dsCounter.getCount(), is(BigInteger.ZERO));
-		assertThat(dsCounter.getCounterStatus(), is(CounterStatus.CONTRACTING_SHARDS));
-		assertThat(dsCounter.getIndexes(), is(ALL_INDEXES));
-
-		// //////////////////
-		// Try to update the state to be AVAILABLE.
-		// //////////////////
-		updatedCounter = new Counter(dsCounter.getName(), NEW_DESCRIPTION, 22, CounterStatus.AVAILABLE,
-			ALL_INDEXES);
 		try
 		{
+			createCounterWithStatus(CounterStatus.CONTRACTING_SHARDS);
+
+			final Counter updatedCounter = new Counter(TEST_COUNTER1, NEW_DESCRIPTION, 1, CounterStatus.AVAILABLE,
+				NO_INDEXES);
 			impl.updateCounterDetails(updatedCounter);
-			fail();
 		}
-		catch (RuntimeException re)
+		catch (CounterNotMutableException re)
 		{
 			assertThat(re.getMessage(), is(
-				"Can't mutate the details of counter 'test-counter1' because it's currently in the CONTRACTING_SHARDS state but must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+				"Can't mutate with status CONTRACTING_SHARDS.  Counter must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+			throw re;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testUpdateCounterDetails_ValidIncomingCounterStatuseInvalidExistingStatus_EXPANDING_SHARDS()
+			throws Exception
+	{
+		try
+		{
+			createCounterWithStatus(CounterStatus.EXPANDING_SHARDS);
+
+			final Counter updatedCounter = new Counter(TEST_COUNTER1, NEW_DESCRIPTION, 1, CounterStatus.AVAILABLE,
+				NO_INDEXES);
+			impl.updateCounterDetails(updatedCounter);
+		}
+		catch (CounterNotMutableException re)
+		{
+			assertThat(re.getMessage(), is(
+				"Can't mutate with status EXPANDING_SHARDS.  Counter must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+			throw re;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testUpdateCounterDetails_ValidIncomingCounterStatuseInvalidExistingStatus_RESETTING() throws Exception
+	{
+		try
+		{
+			createCounterWithStatus(CounterStatus.RESETTING);
+
+			final Counter updatedCounter = new Counter(TEST_COUNTER1, NEW_DESCRIPTION, 1, CounterStatus.AVAILABLE,
+				NO_INDEXES);
+			impl.updateCounterDetails(updatedCounter);
+		}
+		catch (CounterNotMutableException re)
+		{
+			assertThat(re.getMessage(), is(
+				"Can't mutate with status RESETTING.  Counter must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+			throw re;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testUpdateCounterDetails_ValidIncomingCounterStatuseInvalidExistingStatus_DELETING() throws Exception
+	{
+		try
+		{
+			createCounterWithStatus(CounterStatus.DELETING);
+
+			final Counter updatedCounter = new Counter(TEST_COUNTER1, NEW_DESCRIPTION, 1, CounterStatus.AVAILABLE,
+				NO_INDEXES);
+			impl.updateCounterDetails(updatedCounter);
+		}
+		catch (CounterNotMutableException re)
+		{
+			assertThat(re.getMessage(), is(
+				"Can't mutate with status DELETING.  Counter must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+			throw re;
+		}
+	}
+
+	///////////////////////////////////
+	// INVALID INCOMING, VALID EXISTING
+	///////////////////////////////////
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testUpdateCounterDetails_InvalidIncomingCounterStatuseValidExistingStatus_DELETING() throws Exception
+	{
+		this.createCounterWithStatus(CounterStatus.AVAILABLE);
+
+		try
+		{
+			final Counter updatedCounter = new Counter(TEST_COUNTER1, NEW_DESCRIPTION, 1, CounterStatus.DELETING,
+				NO_INDEXES);
+			impl.updateCounterDetails(updatedCounter);
+		}
+		catch (CounterNotMutableException re)
+		{
+			assertThat(re.getMessage(), is(
+				"This Counter can only be put into the AVAILABLE or READ_ONLY_COUNT status!  DELETING is not allowed."));
+			throw re;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testUpdateCounterDetails_InvalidIncomingCounterStatuseValidExistingStatus_EXPANDING_SHARDS()
+			throws Exception
+	{
+		this.createCounterWithStatus(CounterStatus.AVAILABLE);
+
+		try
+		{
+			final Counter updatedCounter = new Counter(TEST_COUNTER1, NEW_DESCRIPTION, 1,
+				CounterStatus.EXPANDING_SHARDS, NO_INDEXES);
+			impl.updateCounterDetails(updatedCounter);
+		}
+		catch (CounterNotMutableException re)
+		{
+			assertThat(re.getMessage(), is(
+				"This Counter can only be put into the AVAILABLE or READ_ONLY_COUNT status!  EXPANDING_SHARDS is not allowed."));
+			throw re;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testUpdateCounterDetails_InvalidIncomingCounterStatuseValidExistingStatus_CONTRACTING_SHARDS()
+			throws Exception
+	{
+		this.createCounterWithStatus(CounterStatus.AVAILABLE);
+
+		try
+		{
+			final Counter updatedCounter = new Counter(TEST_COUNTER1, NEW_DESCRIPTION, 1,
+				CounterStatus.CONTRACTING_SHARDS, NO_INDEXES);
+			impl.updateCounterDetails(updatedCounter);
+		}
+		catch (CounterNotMutableException re)
+		{
+			assertThat(re.getMessage(), is(
+				"This Counter can only be put into the AVAILABLE or READ_ONLY_COUNT status!  CONTRACTING_SHARDS is not allowed."));
+			throw re;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testUpdateCounterDetails_InvalidIncomingCounterStatuseValidExistingStatus_RESETTING() throws Exception
+	{
+		this.createCounterWithStatus(CounterStatus.AVAILABLE);
+
+		try
+		{
+			final Counter updatedCounter = new Counter(TEST_COUNTER1, NEW_DESCRIPTION, 1, CounterStatus.RESETTING,
+				NO_INDEXES);
+			impl.updateCounterDetails(updatedCounter);
+		}
+		catch (CounterNotMutableException re)
+		{
+			assertThat(re.getMessage(), is(
+				"This Counter can only be put into the AVAILABLE or READ_ONLY_COUNT status!  RESETTING is not allowed."));
 			throw re;
 		}
 	}
@@ -300,13 +429,11 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		impl.updateCounterDetails(updatedCounter);
 
 		// Reduce the number of counter shards
-		updatedCounter = new Counter(dsCounter.getName(), NEW_DESCRIPTION, 20, CounterStatus.AVAILABLE,
-			ALL_INDEXES);
+		updatedCounter = new Counter(dsCounter.getName(), NEW_DESCRIPTION, 20, CounterStatus.AVAILABLE, ALL_INDEXES);
 
 		try
 		{
 			impl.updateCounterDetails(updatedCounter);
-			fail();
 		}
 		catch (Exception e)
 		{
@@ -314,7 +441,6 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 				"Reducing the number of counter shards is not currently allowed!  See https://github.com/theupswell/appengine-counter/issues/4 for more details."));
 			throw e;
 		}
-
 	}
 
 	// /////////////////////////
@@ -356,13 +482,13 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	{
 		this.shardedCounterService.createCounter(TEST_COUNTER1);
 		impl.increment(TEST_COUNTER1, 1L);
-		Counter counter = impl.getCounter(TEST_COUNTER1).get();
 		impl.increment(TEST_COUNTER1, 20);
 		impl.increment(TEST_COUNTER1, 20);
 
-		counter = new Counter(counter.getName(), counter.getDescription(), 5, CounterStatus.DELETING,
-			ALL_INDEXES);
-		impl.updateCounterDetails(counter);
+		final CounterData counterData = impl.getCounterData(TEST_COUNTER1).get();
+		counterData.setCounterStatus(CounterStatus.DELETING);
+		ObjectifyService.ofy().save().entity(counterData).now();
+
 		impl.onTaskQueueCounterDeletion(TEST_COUNTER1);
 
 		assertThat(impl.getCounter(TEST_COUNTER1).isPresent(), is(false));
@@ -465,13 +591,13 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	// assertCounterAmountMutatable
 	// /////////////////////////
 
-	@Test(expected = RuntimeException.class)
+	@Test(expected = CounterNotMutableException.class)
 	public void testAssertCounterAmountMutatable_ContractingShards_CONTRACTING_SHARDS() throws Exception
 	{
 		impl.assertCounterAmountMutatable(TEST_COUNTER1, CounterStatus.CONTRACTING_SHARDS);
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test(expected = CounterNotMutableException.class)
 	public void testAssertCounterAmountMutatable_ContractingShards_DELETING() throws Exception
 	{
 		impl.assertCounterAmountMutatable(TEST_COUNTER1, CounterStatus.DELETING);
@@ -483,13 +609,13 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		impl.assertCounterAmountMutatable(TEST_COUNTER1, CounterStatus.AVAILABLE);
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test(expected = CounterNotMutableException.class)
 	public void testAssertCounterAmountMutatable_ContractingShards_EXPANDING_SHARDS() throws Exception
 	{
 		impl.assertCounterAmountMutatable(TEST_COUNTER1, CounterStatus.EXPANDING_SHARDS);
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test(expected = CounterNotMutableException.class)
 	public void testAssertCounterAmountMutatable_ContractingShards_READ_ONLY_COUNT() throws Exception
 	{
 		impl.assertCounterAmountMutatable(TEST_COUNTER1, CounterStatus.READ_ONLY_COUNT);
@@ -741,7 +867,7 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 	}
 
 	// ///////////////////
-	//
+	// test determineRandomShardNumber
 	// ///////////////////
 
 	@Test(expected = NullPointerException.class)
@@ -795,8 +921,15 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		long left = Long.MAX_VALUE;
 		long right = 1L;
 
-		LongMath.checkedAdd(left, right);
-		fail();
+		try
+		{
+			LongMath.checkedAdd(left, right);
+		}
+		catch (ArithmeticException e)
+		{
+			assertThat(e.getMessage(), is("overflow"));
+			throw e;
+		}
 	}
 
 	// Adding a negative 1 to Long.MIN_VALUE should underflow.
@@ -806,8 +939,208 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		long left = Long.MIN_VALUE;
 		long right = -1L;
 
-		LongMath.checkedAdd(left, right);
-		fail();
+		try
+		{
+			LongMath.checkedAdd(left, right);
+		}
+		catch (ArithmeticException e)
+		{
+			assertThat(e.getMessage(), is("overflow"));
+			throw e;
+		}
+	}
+
+	// ///////////////////
+	// Test assertCounterDetailsMutatable
+	// ///////////////////
+
+	@Test(expected = NullPointerException.class)
+	public void testAssertCounterDetailsMutable_NullCounterName()
+	{
+		this.impl.assertCounterDetailsMutatable(null, CounterStatus.RESETTING);
+	}
+
+	@Test(expected = NullPointerException.class)
+	public void testAssertCounterDetailsMutable_NullCounterStatus()
+	{
+		this.impl.assertCounterDetailsMutatable(TEST_COUNTER1, null);
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testAssertCounterDetailsMutable_CONTRACTING_SHARDS()
+	{
+		try
+		{
+			this.impl.assertCounterDetailsMutatable(TEST_COUNTER1, CounterStatus.CONTRACTING_SHARDS);
+		}
+		catch (CounterNotMutableException e)
+		{
+			assertThat(e.getMessage(), is(
+				"Can't mutate with status CONTRACTING_SHARDS.  Counter must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+			throw e;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testAssertCounterDetailsMutable_RESETTING()
+	{
+		try
+		{
+			this.impl.assertCounterDetailsMutatable(TEST_COUNTER1, CounterStatus.RESETTING);
+		}
+		catch (CounterNotMutableException e)
+		{
+			assertThat(e.getMessage(), is(
+				"Can't mutate with status RESETTING.  Counter must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+			throw e;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testAssertCounterDetailsMutable_DELETING()
+	{
+		try
+		{
+			this.impl.assertCounterDetailsMutatable(TEST_COUNTER1, CounterStatus.DELETING);
+		}
+		catch (CounterNotMutableException e)
+		{
+			assertThat(e.getMessage(), is(
+				"Can't mutate with status DELETING.  Counter must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+			throw e;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testAssertCounterDetailsMutable_EXPANDING_SHARDS()
+	{
+		try
+		{
+			this.impl.assertCounterDetailsMutatable(TEST_COUNTER1, CounterStatus.EXPANDING_SHARDS);
+		}
+		catch (CounterNotMutableException e)
+		{
+			assertThat(e.getMessage(), is(
+				"Can't mutate with status EXPANDING_SHARDS.  Counter must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+			throw e;
+		}
+	}
+
+	@Test
+	public void testAssertCounterDetailsMutable_AVAILABLE()
+	{
+		this.impl.assertCounterDetailsMutatable(TEST_COUNTER1, CounterStatus.AVAILABLE);
+	}
+
+	@Test
+	public void testAssertCounterDetailsMutable_READ_ONLY_COUNT()
+	{
+		this.impl.assertCounterDetailsMutatable(TEST_COUNTER1, CounterStatus.READ_ONLY_COUNT);
+	}
+
+	// ///////////////////
+	// Test assertValidExternalCounterStatus
+	// ///////////////////
+
+	@Test(expected = NullPointerException.class)
+	public void testAssertValidExternalCounterStatus_NullCounterName()
+	{
+		this.impl.assertValidExternalCounterStatus(null, CounterStatus.RESETTING);
+	}
+
+	@Test(expected = NullPointerException.class)
+	public void testAssertValidExternalCounterStatus_NullCounterStatus()
+	{
+		this.impl.assertValidExternalCounterStatus(TEST_COUNTER1, null);
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testAssertValidExternalCounterStatus_CONTRACTING_SHARDS()
+	{
+		try
+		{
+			this.impl.assertValidExternalCounterStatus(TEST_COUNTER1, CounterStatus.CONTRACTING_SHARDS);
+		}
+		catch (CounterNotMutableException e)
+		{
+			assertThat(e.getMessage(), is(
+				"This Counter can only be put into the AVAILABLE or READ_ONLY_COUNT status!  CONTRACTING_SHARDS is not allowed."));
+			throw e;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testAssertValidExternalCounterStatus_RESETTING()
+	{
+		try
+		{
+			this.impl.assertValidExternalCounterStatus(TEST_COUNTER1, CounterStatus.RESETTING);
+		}
+		catch (CounterNotMutableException e)
+		{
+			assertThat(e.getMessage(), is(
+				"This Counter can only be put into the AVAILABLE or READ_ONLY_COUNT status!  RESETTING is not allowed."));
+			throw e;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testAssertValidExternalCounterStatus_DELETING()
+	{
+		try
+		{
+			this.impl.assertValidExternalCounterStatus(TEST_COUNTER1, CounterStatus.DELETING);
+		}
+		catch (CounterNotMutableException e)
+		{
+			assertThat(e.getMessage(), is(
+				"This Counter can only be put into the AVAILABLE or READ_ONLY_COUNT status!  DELETING is not allowed."));
+			throw e;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
+	public void testAssertValidExternalCounterStatus_EXPANDING_SHARDS()
+	{
+		try
+		{
+			this.impl.assertValidExternalCounterStatus(TEST_COUNTER1, CounterStatus.EXPANDING_SHARDS);
+		}
+		catch (CounterNotMutableException e)
+		{
+			assertThat(e.getMessage(), is(
+				"This Counter can only be put into the AVAILABLE or READ_ONLY_COUNT status!  EXPANDING_SHARDS is not allowed."));
+			throw e;
+		}
+	}
+
+	@Test
+	public void testAssertValidExternalCounterStatus_AVAILABLE()
+	{
+		this.impl.assertValidExternalCounterStatus(TEST_COUNTER1, CounterStatus.AVAILABLE);
+	}
+
+	@Test
+	public void testAssertValidExternalCounterStatus_READ_ONLY_COUNT()
+	{
+		this.impl.assertValidExternalCounterStatus(TEST_COUNTER1, CounterStatus.READ_ONLY_COUNT);
+	}
+
+	/////////////////
+	// Helper Methods
+	/////////////////
+
+	private void createCounterWithStatus(final CounterStatus counterStatus)
+	{
+		Preconditions.checkNotNull(counterStatus);
+
+		impl.createCounter(TEST_COUNTER1);
+		final CounterData counterData = impl.getCounterData(TEST_COUNTER1).get();
+		counterData.setCounterStatus(counterStatus);
+		ObjectifyService.ofy().save().entity(counterData).now();
+
+		final Counter dsCounter = impl.getCounter(TEST_COUNTER1).get();
+		assertThat(dsCounter.getCounterStatus(), is(counterStatus));
 	}
 
 }

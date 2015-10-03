@@ -1,6 +1,5 @@
 package com.theupswell.appengine.counter.service;
 
-import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -12,9 +11,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.Counter;
-import com.theupswell.appengine.counter.CounterBuilder;
+import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
+import com.theupswell.appengine.counter.exceptions.CounterNotMutableException;
+import com.theupswell.appengine.counter.exceptions.NoCounterExistsException;
 import com.theupswell.appengine.counter.service.ShardedCounterServiceImpl.ResetCounterShardWork;
 
 /**
@@ -59,16 +61,38 @@ public class ShardedCounterServiceResetTest extends AbstractShardedCounterServic
 		shardedCounterService.reset("  ");
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test(expected = NoCounterExistsException.class)
+	public void testResetCounter_NoCounterExists() throws Exception
+	{
+		try
+		{
+			shardedCounterService.reset(TEST_COUNTER1);
+		}
+		catch (NoCounterExistsException e)
+		{
+			assertThat(e.getCounterName(), is(TEST_COUNTER1));
+			throw e;
+		}
+	}
+
+	@Test(expected = CounterNotMutableException.class)
 	public void testResetCounter_WrongStatus_Deleting() throws Exception
 	{
-		final Counter counter = shardedCounterService.getCounter("123").get();
-
-		Counter readOnlyCounter = new CounterBuilder(counter).withCounterStatus(CounterStatus.DELETING).build();
-		shardedCounterService.updateCounterDetails(readOnlyCounter);
-
-		shardedCounterService.reset("123");
-		fail();
+		try
+		{
+			shardedCounterService.createCounter(TEST_COUNTER1);
+			final CounterData counterData = shardedCounterServiceImpl.getCounterData(TEST_COUNTER1).get();
+			counterData.setCounterStatus(CounterStatus.DELETING);
+			ObjectifyService.ofy().save().entity(counterData).now();
+			shardedCounterService.reset(TEST_COUNTER1);
+		}
+		catch (CounterNotMutableException e)
+		{
+			assertThat(e.getCounterName(), is(TEST_COUNTER1));
+			assertThat(e.getMessage(), is(
+				"Can't mutate with status DELETING.  Counter must be in in the AVAILABLE or READ_ONLY_COUNT state!"));
+			throw e;
+		}
 	}
 
 	@Test

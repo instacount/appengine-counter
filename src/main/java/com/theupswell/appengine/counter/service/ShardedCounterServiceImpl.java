@@ -422,8 +422,12 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				}
 
 				final CounterData counterDataInDatastore = optCounterData.get();
-				assertCounterDetailsMutatable(counterDataInDatastore.getName(),
-					counterDataInDatastore.getCounterStatus());
+
+				// Make sure the stored counter is currently in an updatable state!
+				assertCounterDetailsMutatable(incomingCounter.getName(), counterDataInDatastore.getCounterStatus());
+
+				// Make sure the incoming counter status is a validly settable status
+				assertValidExternalCounterStatus(incomingCounter.getName(), incomingCounter.getCounterStatus());
 
 				// NOTE: READ_ONLY_COUNT status means the count can't be incremented/decremented. However, it's details
 				// can still be mutated.
@@ -438,7 +442,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// exist). However, if the number of shards is being reduced, then throw an exception since this
 				// requires counter shard reduction and some extra thinking. We can't allow the shard-count to go down
 				// unless we collapse the entire counter's shards into a single shard or zero, and it's ambiguous if
-				// this is even required. Note that if we allow this the numShards value to decrease without capturing
+				// this is even required. Note that if we allow this numShards value to decrease without capturing
 				// the count from any of the shards that might no longer be used, then we might lose counts from the
 				// shards that would no longer be factored into the #getCount method.
 				if (incomingCounter.getNumShards() < counterDataInDatastore.getNumShards())
@@ -651,52 +655,57 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	{
 		Preconditions.checkNotNull(counterName);
 
-		// Use the cache here if possible, because the first two short-circuits don't really need accurate counts to
-		// work.
-		final Optional<Counter> optCounter = this.getCounter(counterName, USE_CACHE);
-
-		// /////////////
-		// ShortCircuit: Do nothing - there's nothing to return.
-		// /////////////
-		if (!optCounter.isPresent())
-		{
-			return;
-		}
-
-		final Counter counter = optCounter.get();
-
-		// Update the Counter in a New TX to the RESETTING_STATE and apply the TX. The #updateCounterDetails will
-		// not succeed if the counter is not in the available state, so no need to double-check that preemptively.
-		// The "new" TX ensures that no other thread nor parent transaction is performing this operation at the
-		// same time, since if that were the case the updateCounter would fail.
-		ObjectifyService.ofy().transactNew(new VoidWork()
-		{
-			@Override
-			public void vrun()
-			{
-				// Update the status via updateCounterDetails so that we don't accidentally update a counter that's not
-				// in the Available status.
-				final Counter readOnlyCounter = new CounterBuilder(counter).withCounterStatus(CounterStatus.RESETTING)
-					.build();
-
-				// Will throw an exception if the counter status cannot be updated
-				updateCounterDetails(readOnlyCounter);
-			}
-		});
-
-		// Start the try here because if the above fails, we don't want to perform another update the counter, since
-		// that would have been the failing method.
 		try
 		{
-			// Perform all reset operations in same TX to provide atomic rollback. Since Appengine now support up to 25
-			// entities in a transaction, this will work for all counters up to 25 shards.
+			// Update the Counter's Status in a New TX to the RESETTING_STATE and apply the TX.
+			// The "new" TX ensures that no other thread nor parent transaction is performing this operation at the
+			// same time, since if that were the case the updateCounter would fail. This Work returns the number of
+			// counter shards that existed for the counter. Capture the number of shards that exist in the counter
+			// so that the datastore doesn't need to be hit again.
+			final Integer numCounterShards = ObjectifyService.ofy().transactNew(new Work<Integer>()
+			{
+				@Override
+				public Integer run()
+				{
+					// Use the cache here if possible, because the first two short-circuits don't really need accurate
+					// counts to work.
+					final Optional<CounterData> optCounterData = getCounterData(counterName);
+
+					// /////////////
+					// ShortCircuit: Do nothing - there's nothing to return.
+					// /////////////
+					if (!optCounterData.isPresent())
+					{
+						// The counter was not found, so we can't reset it.
+						throw new NoCounterExistsException(counterName);
+					}
+					else
+					{
+						final CounterData counterData = optCounterData.get();
+						// Make sure the counter can be put into the RESETTING state!
+						assertCounterDetailsMutatable(counterName, counterData.getCounterStatus());
+						counterData.setCounterStatus(CounterStatus.RESETTING);
+						ObjectifyService.ofy().save().entity(counterData);
+						return counterData.getNumShards();
+					}
+				}
+			});
+
+			// TODO: Refactor the below code into a transactional enqueing mechansim that either encodes all shards, or
+			// else creates a single task that re-enqueues itself with a decrementing number so that it will run on
+			// every shard and then reset the status of the counter. In this way, "reset" can be async, and work for
+			// shards larger than 25, but since the counter is in the RESETTING state, it won't be allowed to be
+			// mutated.
+
+			// For now, perform all reset operations in same TX to provide atomic rollback. Since Appengine now support
+			// up to 25 entities in a transaction, this will work for all counters up to 25 shards.
 			ObjectifyService.ofy().transactNew(new VoidWork()
 			{
 				@Override
 				public void vrun()
 				{
 					// For each shard, reset it. Shard Index starts at 0.
-					for (int shardNumber = 0; shardNumber < counter.getNumShards(); shardNumber++)
+					for (int shardNumber = 0; shardNumber < numCounterShards; shardNumber++)
 					{
 						final ResetCounterShardWork resetWork = new ResetCounterShardWork(counterName, shardNumber);
 						ObjectifyService.ofy().transact(resetWork);
@@ -723,7 +732,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				public void vrun()
 				{
 					final Optional<CounterData> optCounterData = getCounterData(counterName);
-					if (optCounter.isPresent())
+					if (optCounterData.isPresent())
 					{
 						final CounterData counterData = optCounterData.get();
 						if (counterData.getCounterStatus() == CounterStatus.RESETTING)
@@ -828,8 +837,10 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				final CounterData counterData = ObjectifyService.ofy().load().key(counterDataKey).now();
 				if (counterData == null)
 				{
-					// Nothing to delete...
-					return;
+					// We throw an exception here so that callers can be aware that the deletion failed. In the
+					// task-queue, however, no exception is thrown since failing to delete something that's not there
+					// can be treated the same as succeeding at deleting something that's there.
+					throw new NoCounterExistsException(counterName);
 				}
 
 				Queue queue;
@@ -1008,9 +1019,9 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				counterShardData = new CounterShardData(counterName, shardNumber);
 			}
 
-			// Increment the count by {incrementAmount}, but only if there will be no overflow/underflow, since If it
+			// Increment the count by {incrementAmount}, but only if there will be no overflow/underflow, since if it
 			// overflows, it goes back to the minimum value and continues from there. If it underflows, it goes back to
-			// the maximum value and continues from there..
+			// the maximum value and continues from there.
 			final long newAmount = LongMath.checkedAdd(counterShardData.getCount(), incrementAmount);
 			counterShardData.setCount(newAmount);
 			counterShardData.setUpdatedDateTime(DateTime.now(DateTimeZone.UTC));
@@ -1070,7 +1081,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				.key(counterShardDataKey, counterShardOperationUuid);
 
 			// See "https://groups.google.com/forum/#!searchin/objectify-appengine/exist/objectify-appengine/zFI2YWP5DTI
-			// /BpwFNlVQo1UJ". This methodolody will be less expensive, and strongly-consistent, but will be slightly
+			// /BpwFNlVQo1UJ". This methodology will be less expensive, and strongly-consistent, but will be slightly
 			// slower than a simple index query since it loads the entire entity.
 			return ObjectifyService.ofy().load().key(counterShardOperationDataKey).now() != null;
 		}
@@ -1422,7 +1433,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				"Can't mutate the amount of counter '%s' because it's currently in the %s state but must be in in "
 					+ "the %s state!",
 				counterName, counterStatus.name(), CounterStatus.AVAILABLE);
-			throw new IllegalArgumentException(msg);
+			throw new CounterNotMutableException(counterName, msg);
 		}
 	}
 
@@ -1430,17 +1441,43 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	 * Helper method to determine if a counter's incrementAmount can be mutated (incremented or decremented). In order
 	 * for that to happen, the counter's status must be {@link CounterStatus#AVAILABLE}.
 	 *
-	 * @param counterName
-	 * @param counterStatus
+	 * @param counterName The name of the counter.
+	 * @param counterStatus The {@link CounterStatus} of a counter that is currently stored in the Datastore.
 	 * @return
 	 */
 	@VisibleForTesting
 	protected void assertCounterDetailsMutatable(final String counterName, final CounterStatus counterStatus)
 	{
+		Preconditions.checkNotNull(counterName);
+		Preconditions.checkNotNull(counterStatus);
+
 		if (counterStatus != CounterStatus.AVAILABLE && counterStatus != CounterStatus.READ_ONLY_COUNT)
 		{
 			final String msg = String.format("Can't mutate with status %s.  Counter must be in in the %s or %s state!",
 				counterStatus, CounterStatus.AVAILABLE, CounterStatus.READ_ONLY_COUNT);
+			throw new CounterNotMutableException(counterName, msg);
+		}
+	}
+
+	/**
+	 * Helper method to determine if a counter can be put into the {@code incomingCounterStatus} by an external caller.
+	 * Currently, external callers may only put a Counter into the AVAILABLE or READ_ONLY status.
+	 * 
+	 * @param counterName The name of the counter.
+	 * @param incomingCounterStatus The status of an incoming counter that is being updated by an external counter.
+	 * @return
+	 */
+	@VisibleForTesting
+	protected void assertValidExternalCounterStatus(final String counterName, final CounterStatus incomingCounterStatus)
+	{
+		Preconditions.checkNotNull(counterName);
+		Preconditions.checkNotNull(incomingCounterStatus);
+
+		if (incomingCounterStatus != CounterStatus.AVAILABLE && incomingCounterStatus != CounterStatus.READ_ONLY_COUNT)
+		{
+			final String msg = String.format(
+				"This Counter can only be put into the %s or %s status!  %s is not allowed.", CounterStatus.AVAILABLE,
+				CounterStatus.READ_ONLY_COUNT, incomingCounterStatus);
 			throw new CounterNotMutableException(counterName, msg);
 		}
 	}

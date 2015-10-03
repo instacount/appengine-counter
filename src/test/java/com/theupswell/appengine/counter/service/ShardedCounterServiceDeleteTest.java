@@ -26,13 +26,13 @@ import com.google.appengine.api.taskqueue.QueueFactory;
 import com.google.appengine.api.taskqueue.dev.LocalTaskQueue;
 import com.google.appengine.api.taskqueue.dev.QueueStateInfo;
 import com.google.appengine.tools.development.testing.LocalTaskQueueTestConfig;
-import com.google.common.base.Optional;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.ObjectifyService;
 import com.theupswell.appengine.counter.Counter;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
+import com.theupswell.appengine.counter.exceptions.NoCounterExistsException;
 
 /**
  * Unit tests for deleting a counter via {@link com.theupswell.appengine.counter.service.ShardedCounterServiceImpl}.
@@ -75,16 +75,18 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 		shardedCounterService.delete(" ");
 	}
 
-	@Test
+	@Test(expected = NoCounterExistsException.class)
 	public void testDeleteCounter_NoneExists()
 	{
-		shardedCounterService.delete(TEST_COUNTER1);
-		final Optional<Counter> optCounter1 = shardedCounterService.getCounter(TEST_COUNTER1);
-		assertThat(optCounter1.isPresent(), is(false));
-
-		shardedCounterService.delete(TEST_COUNTER2);
-		final Optional<Counter> optCounter2 = shardedCounterService.getCounter(TEST_COUNTER2);
-		assertThat(optCounter2.isPresent(), is(false));
+		try
+		{
+			shardedCounterService.delete(TEST_COUNTER1);
+		}
+		catch (NoCounterExistsException e)
+		{
+			assertThat(e.getCounterName(), is(TEST_COUNTER1));
+			throw e;
+		}
 	}
 
 	@Test
@@ -232,8 +234,8 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 	private void assertNumTasksInQueue(int numExpectedTasksInQueue)
 	{
 		LocalTaskQueue ltq = LocalTaskQueueTestConfig.getLocalTaskQueue();
-		QueueStateInfo qsi = ltq.getQueueStateInfo().get(
-			QueueFactory.getQueue(DELETE_COUNTER_SHARD_QUEUE_NAME).getQueueName());
+		QueueStateInfo qsi = ltq.getQueueStateInfo()
+			.get(QueueFactory.getQueue(DELETE_COUNTER_SHARD_QUEUE_NAME).getQueueName());
 		assertEquals(numExpectedTasksInQueue, qsi.getTaskInfo().size());
 	}
 
@@ -290,8 +292,8 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 		if (numCounterShardsToGet == 0)
 		{
 			// Assert that no counterShards exists
-			Key<CounterShardData> shardKey = Key.create(CounterShardData.class, counterName + "-"
-				+ numCounterShardsToGet);
+			Key<CounterShardData> shardKey = Key.create(CounterShardData.class,
+				counterName + "-" + numCounterShardsToGet);
 			CounterShardData counterShardData = ObjectifyService.ofy().load().key(shardKey).now();
 			assertTrue(counterShardData == null);
 		}
@@ -299,8 +301,8 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 		{
 			// Assert that no more shards exist for this counterShard starting
 			// at {@code numCounterShardsToGet}
-			Key<CounterShardData> shardKey = Key.create(CounterShardData.class, counterName + "-"
-				+ numCounterShardsToGet);
+			Key<CounterShardData> shardKey = Key.create(CounterShardData.class,
+				counterName + "-" + numCounterShardsToGet);
 			CounterShardData counterShardData = ObjectifyService.ofy().load().key(shardKey).now();
 			assertTrue(counterShardData == null);
 		}
