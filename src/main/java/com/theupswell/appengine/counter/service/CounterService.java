@@ -25,6 +25,7 @@ import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
 import com.theupswell.appengine.counter.data.CounterShardData;
 import com.theupswell.appengine.counter.exceptions.CounterExistsException;
+import com.theupswell.appengine.counter.exceptions.NoCounterExistsException;
 
 /**
  * A Counter Service that can retrieve, increment, decrement, and delete a named {@link Counter}.
@@ -68,6 +69,7 @@ public interface CounterService
 	 * counter's "count" can not occur via this method. Instead, use {@link #increment} or {@link #decrement} instead.
 	 *
 	 * @param counter An instance of {@link Counter} whose details should be updated in the datastore.
+	 * @throws NoCounterExistsException If the counter with {@code counterName} doesn't already exist.
 	 * @throws DatastoreFailureException Thrown when any unknown error occurs while communicating with the data store.
 	 *             Note that despite receiving this exception, it's possible that the datastore actually committed data
 	 *             properly. Thus, clients should not attempt to retry after receiving this exception without checking
@@ -284,6 +286,7 @@ public interface CounterService
 	 *
 	 * @throws NullPointerException if the {@code counterName} is null.
 	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
+	 * @throws NoCounterExistsException If the counter with {@code counterName} doesn't already exist.
 	 * @throws DatastoreFailureException Thrown when any unknown error occurs while communicating with the data store.
 	 *             Note that despite receiving this exception, it's possible that the datastore actually committed data
 	 *             properly. Thus, clients should not attempt to retry after receiving this exception without checking
@@ -303,7 +306,7 @@ public interface CounterService
 	 * fail.
 	 *
 	 * @throws NullPointerException if the {@code counterName} is null.
-	 * @throws IllegalArgumentException if the {@code counterName} is "blank" (i.e., null, empty, or empty spaces).
+	 * @throws NoCounterExistsException If the counter with {@code counterName} doesn't already exist.
 	 * @throws DatastoreFailureException Thrown when any unknown error occurs while communicating with the data store.
 	 *             Note that despite receiving this exception, it's possible that the datastore actually committed data
 	 *             properly. Thus, clients should not attempt to retry after receiving this exception without checking
