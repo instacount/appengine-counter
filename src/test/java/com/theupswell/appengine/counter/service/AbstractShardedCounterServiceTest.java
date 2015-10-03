@@ -53,6 +53,7 @@ public abstract class AbstractShardedCounterServiceTest
 	protected static final String TEST_COUNTER2 = "test-counter2";
 
 	protected ShardedCounterService shardedCounterService;
+	protected ShardedCounterServiceImpl shardedCounterServiceImpl;
 
 	protected LocalTaskQueueTestConfig.TaskCountDownLatch countdownLatch;
 
@@ -120,7 +121,8 @@ public abstract class AbstractShardedCounterServiceTest
 		ObjectifyService.factory().register(CounterShardData.class);
 		ObjectifyService.factory().register(CounterShardOperationData.class);
 
-		shardedCounterService = new ShardedCounterServiceImpl();
+		shardedCounterServiceImpl = new ShardedCounterServiceImpl();
+		this.shardedCounterService = shardedCounterServiceImpl;
 	}
 
 	// New Objectify 5.1 Way. See https://groups.google.com/forum/#!topic/objectify-appengine/O4FHC_i7EGk
