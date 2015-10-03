@@ -921,8 +921,15 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		long left = Long.MAX_VALUE;
 		long right = 1L;
 
-		LongMath.checkedAdd(left, right);
-		fail();
+		try
+		{
+			LongMath.checkedAdd(left, right);
+		}
+		catch (ArithmeticException e)
+		{
+			assertThat(e.getMessage(), is("overflow"));
+			throw e;
+		}
 	}
 
 	// Adding a negative 1 to Long.MIN_VALUE should underflow.
@@ -932,8 +939,15 @@ public class ShardedCounterServiceImplTest extends AbstractShardedCounterService
 		long left = Long.MIN_VALUE;
 		long right = -1L;
 
-		LongMath.checkedAdd(left, right);
-		fail();
+		try
+		{
+			LongMath.checkedAdd(left, right);
+		}
+		catch (ArithmeticException e)
+		{
+			assertThat(e.getMessage(), is("overflow"));
+			throw e;
+		}
 	}
 
 	// ///////////////////
