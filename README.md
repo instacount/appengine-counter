@@ -273,7 +273,7 @@ Finally, wire everything together in the configure() method of one of your Guice
 
 Change Log
 ----------
-**Version 2.0.0**
+**Version 2.0.1**
 + Fix [#24](https://github.com/theupswell/appengine-counter/issues/24) Invalid CounterStatus is allowed when creating or updating a counter.
 
 **Version 2.0.0**
