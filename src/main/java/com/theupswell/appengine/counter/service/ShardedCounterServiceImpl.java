@@ -456,6 +456,8 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 				// The Exception above disallows any invalid states.
 				counterDataInDatastore.setCounterStatus(incomingCounter.getCounterStatus());
 
+				counterDataInDatastore.setAdditionalAttributes(incomingCounter.getAdditionalAttributes());
+
 				// Update the CounterDataIndexes
 				counterDataInDatastore.setIndexes(
 					incomingCounter.getIndexes() == null ? CounterIndexes.none() : incomingCounter.getIndexes());
@@ -780,8 +782,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// case, the increment operation will fail and will not have been applied. An Objectify retry of the
 		// increment/decrement will occur, however and a successful increment/decrement will only ever happen once (if
 		// the Appengine datastore is functioning properly). See the Javadoc in the API about DatastoreTimeoutException
-		// or
-		// DatastoreFailureException in cases where transactions have been committed and eventually will be applied
+		// or DatastoreFailureException in cases where transactions have been committed and eventually will be applied
 		// successfully."
 
 		// We use the "counterShardOperationInTx" to force this thread to wait until the work inside of

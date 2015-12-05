@@ -13,6 +13,7 @@
 package com.theupswell.appengine.counter;
 
 import java.math.BigInteger;
+import java.util.Map;
 
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -22,7 +23,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import com.google.appengine.api.datastore.EmbeddedEntity;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.theupswell.appengine.counter.data.CounterData;
 import com.theupswell.appengine.counter.data.CounterData.CounterIndexes;
 import com.theupswell.appengine.counter.data.CounterData.CounterStatus;
@@ -46,6 +49,7 @@ public class Counter
 	private final BigInteger count;
 	private final CounterIndexes indexes;
 	private final DateTime creationDateTime;
+	private final Map<String, EmbeddedEntity> additionalAttributes;
 
 	/**
 	 * Required-args Constructor. Sets the {@code counterStatus} to
@@ -82,8 +86,8 @@ public class Counter
 	public Counter(final String name, final String description, final int numShards,
 			final CounterData.CounterStatus counterStatus, final CounterIndexes indexes)
 	{
-		this(name, description, numShards, counterStatus, BigInteger.ZERO, indexes, DateTime
-			.now(DateTimeZone.UTC));
+		this(name, description, numShards, counterStatus, BigInteger.ZERO, indexes, DateTime.now(DateTimeZone.UTC),
+			ImmutableMap.<String, EmbeddedEntity> of());
 	}
 
 	/**
@@ -96,9 +100,9 @@ public class Counter
 	 * @param indexes
 	 * @param creationDateTime The {@link DateTime} that this counter was created.
 	 */
-	public Counter(final String name, final String description, final int numShards,
-			final CounterStatus counterStatus, final BigInteger count, final CounterIndexes indexes,
-			final DateTime creationDateTime)
+	public Counter(final String name, final String description, final int numShards, final CounterStatus counterStatus,
+			final BigInteger count, final CounterIndexes indexes, final DateTime creationDateTime,
+			final Map<String, EmbeddedEntity> additionalAttributes)
 	{
 
 		Preconditions.checkArgument(!StringUtils.isBlank(name), "CounterName may not be empty, blank, or null!");
@@ -110,6 +114,7 @@ public class Counter
 		this.counterStatus = counterStatus;
 		this.count = count;
 		this.creationDateTime = creationDateTime;
+		this.additionalAttributes = additionalAttributes;
 
 		// Set to none if not specified
 		this.indexes = indexes == null ? CounterIndexes.none() : indexes;

@@ -12,9 +12,11 @@
  */
 package com.theupswell.appengine.counter.data;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
-import com.googlecode.objectify.annotation.AlsoLoad;
+import com.google.appengine.api.datastore.EmbeddedEntity;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -29,6 +31,7 @@ import org.joda.time.DateTimeZone;
 
 import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
+import com.googlecode.objectify.annotation.AlsoLoad;
 import com.googlecode.objectify.annotation.Cache;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
@@ -88,6 +91,10 @@ public class CounterData
 	@Index(IfCounterDataIndexable.class)
 	private CounterStatus counterStatus = CounterStatus.AVAILABLE;
 
+	// Allows for adding additional information into this CounterData object.
+	@Index(IfCounterDataIndexable.class)
+	private Map<String, EmbeddedEntity> additionalAttributes;
+
 	/**
 	 * Default Constructor for Objectify
 	 * 
@@ -117,6 +124,7 @@ public class CounterData
 		this.creationDateTime = DateTime.now(DateTimeZone.UTC);
 		this.updatedDateTime = DateTime.now(DateTimeZone.UTC);
 		this.indexes = CounterIndexes.none();
+		this.additionalAttributes = new HashMap<>();
 	}
 
 	// //////////////////////////////
@@ -190,13 +198,29 @@ public class CounterData
 	@EqualsAndHashCode
 	public static class CounterIndexes
 	{
+		public static final boolean INDEXED = true;
+		public static final boolean NOT_INDEXED = false;
+
+		// Determines if the CreationDateTime is indexed in the Datastore. Default is false.
 		private boolean creationDateTimeIndexable;
+
+		// Determines if the UpdateDateTime indexed in the Datastore. Default is false.
 		private boolean updateDateTimeIndexable;
 
+		// Determines if the Number of Shards is indexed in the Datastore. Default is false.
 		private boolean numShardsIndexable;
+
+		// Determines if the counterStatus is indexed in the Datastore. Default is false.
 		private boolean counterStatusIndexable;
+
+		// Determines if a Counter's counter is indexed in the Datastore. Default is false.
 		private boolean countIndexable;
+
+		// Determines if a Counter's description is indexed in the Datastore. Default is false.
 		private boolean descriptionIndexable;
+
+		// Determines if a Counter's additional attributes are indexed in the Datastore. Default is false.
+		private boolean additionalAttributesIndexable;
 
 		/**
 		 * Helper method to return an instance of {@link CounterIndexes} that have all property indexes enabled.
@@ -205,9 +229,9 @@ public class CounterData
 		 */
 		public static CounterIndexes all()
 		{
-			return new CounterIndexes().withNumShardsIndexable(true).withCounterStatusIndexable(true)
-				.withCountIndexable(true).withDescriptionIndexable(true).withCreationDateTimeIndexable(true)
-				.withUpdateDateTimeIndexable(true);
+			return new CounterIndexes().withNumShardsIndexable(INDEXED).withCounterStatusIndexable(INDEXED)
+				.withCountIndexable(INDEXED).withDescriptionIndexable(INDEXED).withCreationDateTimeIndexable(INDEXED)
+				.withUpdateDateTimeIndexable(INDEXED).withAdditionalAttributesIndexable(INDEXED);
 		}
 
 		/**
@@ -221,17 +245,18 @@ public class CounterData
 		}
 
 		/**
-		 * Helper method to return an instance of {@link CounterIndexes} that has sensible default valuse chosen. This
-		 * indexes all Counter information except for the Description, which is probably better off indexed via the
-		 * Search service.
+		 * Helper method to return an instance of {@link CounterIndexes} that has sensible default values chosen for
+		 * indexing in the Datastore. This indexes all Counter information except for the Description, which is probably
+		 * better off indexed via the Search service.
 		 *
 		 * @return
 		 */
 		public static CounterIndexes sensibleDefaults()
 		{
-			return new CounterIndexes().withNumShardsIndexable(true).withCounterStatusIndexable(true)
-				.withCountIndexable(true).withDescriptionIndexable(false).withCreationDateTimeIndexable(true)
-				.withUpdateDateTimeIndexable(false);
+			return new CounterIndexes().withNumShardsIndexable(INDEXED).withCounterStatusIndexable(INDEXED)
+				.withCountIndexable(INDEXED).withDescriptionIndexable(NOT_INDEXED)
+				.withCreationDateTimeIndexable(INDEXED).withUpdateDateTimeIndexable(NOT_INDEXED)
+				.withAdditionalAttributesIndexable(NOT_INDEXED);
 		}
 	}
 

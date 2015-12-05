@@ -13,7 +13,9 @@
 package com.theupswell.appengine.counter;
 
 import java.math.BigInteger;
+import java.util.Map;
 
+import com.google.appengine.api.datastore.EmbeddedEntity;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ public class CounterBuilder
 	private CounterStatus counterStatus = CounterStatus.AVAILABLE;
 	private BigInteger count;
 	private CounterIndexes indexes;
+	private Map<String, EmbeddedEntity> additionalAttributes;
 	private DateTime creationDateTime;
 
 	/**
@@ -56,6 +59,7 @@ public class CounterBuilder
 		this.setCounterStatus(counterData.getCounterStatus());
 		this.setIndexes(counterData.getIndexes());
 		this.setCreationDateTime(counterData.getCreationDateTime());
+		this.setAdditionalAttributes(counterData.getAdditionalAttributes());
 	}
 
 	/**
@@ -77,6 +81,7 @@ public class CounterBuilder
 		this.setCount(counter.getCount());
 		this.setIndexes(counter.getIndexes());
 		this.setCreationDateTime(counter.getCreationDateTime());
+		this.setAdditionalAttributes(counter.getAdditionalAttributes());
 	}
 
 	/**
@@ -86,8 +91,8 @@ public class CounterBuilder
 	 */
 	public Counter build()
 	{
-		return new Counter(this.getName(), this.getDescription(), this.getNumShards(),
-			this.getCounterStatus(), this.getCount(), this.getIndexes(), this.getCreationDateTime());
+		return new Counter(this.getName(), this.getDescription(), this.getNumShards(), this.getCounterStatus(),
+			this.getCount(), this.getIndexes(), this.getCreationDateTime(), this.getAdditionalAttributes());
 	}
 
 	/**
@@ -146,6 +151,30 @@ public class CounterBuilder
 	{
 		Preconditions.checkNotNull(creationDateTime);
 		this.setCreationDateTime(creationDateTime);
+		return this;
+	}
+
+	/**
+	 *
+	 * @param additionalAttributes
+	 * @return
+	 */
+	public CounterBuilder withAdditionalAttributes(final Map<String, EmbeddedEntity> additionalAttributes)
+	{
+		Preconditions.checkNotNull(additionalAttributes);
+		this.setAdditionalAttributes(additionalAttributes);
+		return this;
+	}
+
+	/**
+	 *
+	 * @param counterIndexes
+	 * @return
+	 */
+	public CounterBuilder withCounterIndexes(final CounterIndexes counterIndexes)
+	{
+		Preconditions.checkNotNull(counterIndexes);
+		this.setIndexes(counterIndexes);
 		return this;
 	}
 

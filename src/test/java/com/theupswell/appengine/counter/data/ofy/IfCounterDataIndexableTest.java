@@ -24,6 +24,7 @@ public class IfCounterDataIndexableTest
 	private Field counterStatusField;
 	private Field counterDescriptionField;
 	private Field counterCountField;
+	private Field additionalAttributesField;
 
 	private CounterData counterData;
 
@@ -36,7 +37,7 @@ public class IfCounterDataIndexableTest
 		this.counterStatusField = CounterData.class.getDeclaredField("counterStatus");
 		this.counterDescriptionField = CounterData.class.getDeclaredField("description");
 		this.counterCountField = CounterGroupData.class.getDeclaredField("eventuallyConsistentCount");
-
+		this.additionalAttributesField = CounterData.class.getDeclaredField("additionalAttributes");
 		this.counterData = new CounterData("testCounterName", 3);
 	}
 
@@ -219,6 +220,42 @@ public class IfCounterDataIndexableTest
 		final IfCounterDataIndexable ifCounterDataIndexable = constructIfCounterData(counterCountField);
 		this.counterData.setIndexes(new CounterIndexes().withCounterStatusIndexable(false)
 			.withNumShardsIndexable(false).withDescriptionIndexable(true).withCountIndexable(true));
+		assertThat(ifCounterDataIndexable.matchesPojo(this.counterData), is(true));
+	}
+
+	// ///////////////////////////////
+	// AdditionalAttributes Field
+	// ///////////////////////////////
+
+	@Test
+	public void testMatchesPojo_AdditionalAttributes_NotIndexable_All() throws Exception
+	{
+		final IfCounterDataIndexable ifCounterDataIndexable = constructIfCounterData(additionalAttributesField);
+		this.counterData.setIndexes(CounterIndexes.all());
+		assertThat(ifCounterDataIndexable.matchesPojo(this.counterData), is(true));
+	}
+
+	@Test
+	public void testMatchesPojo_AdditionalAttributes_Indexable_None() throws Exception
+	{
+		final IfCounterDataIndexable ifCounterDataIndexable = constructIfCounterData(additionalAttributesField);
+		this.counterData.setIndexes(CounterIndexes.none());
+		assertThat(ifCounterDataIndexable.matchesPojo(this.counterData), is(false));
+	}
+
+	@Test
+	public void testMatchesPojo_AdditionalAttributes_NotIndexable_SensibleDefaults() throws Exception
+	{
+		final IfCounterDataIndexable ifCounterDataIndexable = constructIfCounterData(additionalAttributesField);
+		this.counterData.setIndexes(CounterIndexes.sensibleDefaults());
+		assertThat(ifCounterDataIndexable.matchesPojo(this.counterData), is(false));
+	}
+
+	@Test
+	public void testMatchesPojo_AdditionalAttributes_Indexable_Only() throws Exception
+	{
+		final IfCounterDataIndexable ifCounterDataIndexable = constructIfCounterData(additionalAttributesField);
+		this.counterData.setIndexes(new CounterIndexes().withAdditionalAttributesIndexable(true));
 		assertThat(ifCounterDataIndexable.matchesPojo(this.counterData), is(true));
 	}
 

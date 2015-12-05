@@ -192,10 +192,11 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 		// Use 10 shards
 		shardedCounterService = initialShardedCounterService(10);
 		// Fill in multiple shards
-		for (int i = 0; i < 50; i++)
+		for (int i = 0; i < 5000; i++)
 		{
-			// Ensures that, statistically, 10 shards will be created with ~5
-			// each
+			// Ensures that, statistically, 10 shards will be created with ~500 each. Setting the loop value too low
+			// will make this test fail occasionally in the build environment due to statistical randomness of Shard
+			// creation.
 			shardedCounterService.increment(TEST_COUNTER1, 1);
 		}
 
@@ -204,7 +205,7 @@ public class ShardedCounterServiceDeleteTest extends AbstractShardedCounterServi
 		// ///////////////
 
 		Counter counter1 = shardedCounterService.getCounter(TEST_COUNTER1).get();
-		assertCounter(counter1, TEST_COUNTER1, BigInteger.valueOf(50L));
+		assertCounter(counter1, TEST_COUNTER1, BigInteger.valueOf(5000L));
 
 		// ///////////////
 		// Assert that 10 CounterShards Exist
