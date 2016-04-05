@@ -1,8 +1,7 @@
 appengine-counter (A Sharded Counter for Google Appengine)
 ===========================
-[![Build Status](https://travis-ci.org/theupswell/appengine-counter.png)](https://travis-ci.org/theupswell/appengine-counter)
-[![Codeship Status for theupswell/appengine-counter](https://codeship.com/projects/13f33da0-92cc-0132-c24c-66933f4492d6/status?branch=master)](https://codeship.com/projects/62009)
-[![Coverage Status](https://coveralls.io/repos/theupswell/appengine-counter/badge.png?branch=master)](https://coveralls.io/r/theupswell/appengine-counter?branch=master)
+[![Build Status](https://travis-ci.org/instacount/appengine-counter.png)](https://travis-ci.org/instacount/appengine-counter)
+[![Coverage Status](https://coveralls.io/repos/instacount/appengine-counter/badge.png?branch=master)](https://coveralls.io/r/instacount/appengine-counter?branch=master)
 
 Appengine-counter is a ShardedCounter implementation for use in Google Appengine.  It offers strongly consistent increment/decrement functionality while maintaining high-throughput via on-the-fly shard configuration.  Appengine-counter uses memcache for fast counter retrieval, all the while being fully backed by the GAE Datastore for incredible durability and availability.<br/><br/>Appengine-counter is patterned off of the following <a href="https://developers.google.com/appengine/articles/sharding_counters">article</a> from developer.google.com, but uses Objectify for improved maintainability.<br/><br/>The rationale for a ShardedCounter is as follows (quoted from the above linked Google article):
 
@@ -43,13 +42,13 @@ Getting Started
 Appengine-counter can be found in maven-central.  To use it in your project, include the following dependency information:
 
     <dependency>
-    	<groupId>com.theupswell.appengine.counter</groupId>
+    	<groupId>io.instacount.appengine.counter</groupId>
 		<artifactId>appengine-counter</artifactId>
 		<version>2.0.0</version>
     </dependency>
 
-Sharded counters can be accessed via an implementation of <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterService.java">ShardedCounterService</a>.  
-Currently, the only implementation is <a href="https://github.com/theupswell/appengine-counter/blob/master/src/main/java/com/theupswell/appengine/counter/service/ShardedCounterServiceImpl.java">ShardedCounterServiceImpl<a/>, which requires a TaskQueue (the "/default" queue is used by default) if Counter deletion is required.
+Sharded counters can be accessed via an implementation of <a href="https://github.com/instacount/appengine-counter/blob/master/src/main/java/io/instacount/appengine/counter/service/ShardedCounterService.java">ShardedCounterService</a>.  
+Currently, the only implementation is <a href="https://github.com/instacount/appengine-counter/blob/master/src/main/java/io/instacount/appengine/counter/service/ShardedCounterServiceImpl.java">ShardedCounterServiceImpl<a/>, which requires a TaskQueue (the "/default" queue is used by default) if Counter deletion is required.
 
 Queue Configuration
 ----------
@@ -61,7 +60,7 @@ Queue Configuration
 	</queue-entries>
 
 Don't forget to add a URL mapping for the default queue, or for the queue mapping you specify below!  By default, the ShardedCounterService uses the default queue URL.  See <a href="https://developers.google.com/appengine/docs/java/taskqueue/overview-push#URL_Endpoints">here</a> for how to configure your push queue URL endpoints.
-This project includes a default implementation of a servlet that can handle counter deletion, but you must wire it into your web framework in order for it to function properly.  See [here for an example](https://github.com/theupswell/appengine-counter/tree/master/src/main/java/com/theupswell/appengine/counter/ext/DefaultDeletionTaskHandler.java).
+This project includes a default implementation of a servlet that can handle counter deletion, but you must wire it into your web framework in order for it to function properly.  See [here for an example](https://github.com/instacount/appengine-counter/tree/master/src/main/java/io/instacount/appengine/counter/ext/DefaultDeletionTaskHandler.java).
 
 <i><b>Note that this queue is not required to be defined if Counter deletion won't be utilized by your application.</b></i>.
 
@@ -83,7 +82,7 @@ Spring: Default Setup
 To utilize the ShardedCounterService with Spring, using the following glue code to provide a default configuration:
 
 	<bean id="shardedCounterService"
-		class="com.theupswell.appengine.counter.service.ShardedCounterServiceImpl">
+		class="ShardedCounterServiceImpl">
 	</bean>
 
 Spring: Custom Configuration
@@ -91,7 +90,7 @@ Spring: Custom Configuration
 If you want to control the configuration of the ShardedCounterService, you will need to configure an instance of <b>ShardedCounterServiceConfiguration.Builder</b> as follows:
 
 	<bean id="shardedCounterServiceConfigurationBuilder"
-		class="com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration.Builder">
+		class="ShardedCounterServiceConfiguration.Builder">
 
 		<!-- The number of shards to create when a new counter is created -->
 		<property name="numInitialShards">
@@ -117,7 +116,7 @@ If you want to control the configuration of the ShardedCounterService, you will 
 Next, use the builder defined above to populate a <b>ShardedCounterServiceConfiguration</b>:
 
 	<bean id="shardedCounterServiceConfiguration"
-		class="com.theupswell.appengine.counter.service.ShardedCounterServiceConfiguration">
+		class="ShardedCounterServiceConfiguration">
 
 		<constructor-arg>
 			<ref bean="shardedCounterServiceConfigurationBuilder" />
@@ -133,7 +132,7 @@ Finally, use the configuration defined above to create a <b>ShardedCounterServic
 	</bean>
 
 	<bean id="shardedCounterService"
-		class="com.theupswell.appengine.counter.service.ShardedCounterService">
+		class="ShardedCounterService">
 
 		<constructor-arg>
 			<ref bean="memcacheService" />
@@ -273,11 +272,11 @@ Finally, wire everything together in the configure() method of one of your Guice
 
 Change Log
 ----------
-**Version 2.0.1**
-+ Fix [#24](https://github.com/theupswell/appengine-counter/issues/24) Invalid CounterStatus is allowed when creating or updating a counter.
 
 **Version 2.0.0**
-+ Fix [#20](https://github.com/theupswell/appengine-counter/issues/20) Introduced CounterService.create() to create a counter without having to increment it.
++ Package naming change from com.theupswell to io.instacount.
++ Fix [#24](https://github.com/instacount/appengine-counter/issues/24) Invalid CounterStatus is allowed when creating or updating a counter.
++ Fix [#20](https://github.com/instacount/appengine-counter/issues/20) Introduced CounterService.create() to create a counter without having to increment it.
 + Adjusted CounterService.getCounter to return an Optional.absent() if the counter doesn't exist.
 + Introduced CounterService.reset() to reset all counter shards to 0.
 + Changes to sharding implementation to unify increment and decrement.
@@ -295,23 +294,23 @@ Change Log
 + Improved unit test coverage.
 
 **Version 1.1.1**
-+ Fix [Issue #18](https://github.com/theupswell/appengine-counter/issues/18) Add ability to specify indexing in CounterData Entity class
++ Fix [Issue #18](https://github.com/instacount/appengine-counter/issues/18) Add ability to specify indexing in CounterData Entity class
 + Remove unused Guava dependency
 + Increment Appengine dependency
 
 **Version 1.1.0**
 + Improve Transaction semantics for parent-transactions
 + Simplify CounterService interface (no longer returns Counter count; must specify increment/decrement appliedAmount)
-+ Fix [Issue #7](https://github.com/theupswell/appengine-counter/issues/7) numRetries doesn't get decremented in ShardedCounterServiceImpl.incrementMemcacheAtomic
-+ Fix [Issue #11](https://github.com/theupswell/appengine-counter/issues/11) Default Delete Implementation (see [here](https://github.com/theupswell/appengine-counter/tree/master/src/main/java/com/theupswell/appengine/counter/ext/DefaultDeletionTaskHandler.java)).
-+ Fix [Issue #16](https://github.com/theupswell/appengine-counter/issues/16) Remove redundant counterShard datastore put in ShardedCounterServiceImpl#increment
-+ Fix [Issue #17](https://github.com/theupswell/appengine-counter/issues/17) Enhance the interface of CounterService to not return a count when incrementing/decrementing.
++ Fix [Issue #7](https://github.com/instacount/appengine-counter/issues/7) numRetries doesn't get decremented in ShardedCounterServiceImpl.incrementMemcacheAtomic
++ Fix [Issue #11](https://github.com/instacount/appengine-counter/issues/11) Default Delete Implementation (see [here](https://github.com/instacount/appengine-counter/tree/master/src/main/java/io/instacount/appengine/counter/ext/DefaultDeletionTaskHandler.java)).
++ Fix [Issue #16](https://github.com/instacount/appengine-counter/issues/16) Remove redundant counterShard datastore put in ShardedCounterServiceImpl#increment
++ Fix [Issue #17](https://github.com/instacount/appengine-counter/issues/17) Enhance the interface of CounterService to not return a count when incrementing/decrementing.
 + Improve unit tests for new functionality.
 + Update default Objectify to 5.1.x.
 + Remove dependency on objectify-utils
 
 **Version 1.0.2**
-+ Fix [Issue #17](https://github.com/theupswell/appengine-counter/issues/17) Increments in an existing Transaction may populate Memcache incorrectly
++ Fix [Issue #17](https://github.com/instacount/appengine-counter/issues/17) Increments in an existing Transaction may populate Memcache incorrectly
 + Improved unit test coverage
 + Improved Javadoc in CounterService and its descendants.
 
@@ -328,17 +327,17 @@ Change Log
 Authors
 -------
 
-**UpSwell LLC**
+**Instacount Inc.**
 **David Fuelling**
 
-+ http://twitter.com/theupswell
-+ http://github.com/theupswell
++ http://twitter.com/instacount_io
++ http://github.com/instacount
 
 
 Copyright and License
 ---------------------
 
-Copyright 2015 UpSwell LLC
+Copyright 2016 Instacount Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

@@ -1,6 +1,6 @@
 <!--
 
-    Copyright (C) 2014 - 2015 UpSwell LLC (developers@theupswell.com)
+    Copyright (C) 2014 - 2016 Instacount Inc. (developers@instacount.io)
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.theupswell.appengine.counter</groupId>
+    <groupId>io.instacount.appengine.counter</groupId>
     <artifactId>appengine-counter</artifactId>
     <version>2.0.2-SNAPSHOT</version>
 
     <name>appengine-counter</name>
-    <description>A sharded-counter implementation for Google Appengine from UpSwell</description>
-    <url>https://github.com/theupswell/appengine-counter</url>
+    <description>A sharded-counter implementation for Google Appengine from Instacount</description>
+    <url>https://github.com/instacount/appengine-counter</url>
     <packaging>jar</packaging>
 
     <inceptionYear>2014</inceptionYear>
@@ -42,8 +42,8 @@
         </license>
     </licenses>
     <organization>
-        <name>UpSwell LLC</name>
-        <url>http://developer.theupswell.com</url>
+        <name>Instacount Inc.</name>
+        <url>http://www.instacount.io</url>
     </organization>
 
     <developers>
@@ -53,9 +53,9 @@
     </developers>
 
     <scm>
-        <connection>scm:git:git://github.com/theupswell/appengine-counter.git</connection>
-        <developerConnection>scm:git:git@github.com:theupswell/appengine-counter.git</developerConnection>
-        <url>http://github.com/theupswell/appengine-counter</url>
+        <connection>scm:git:git://github.com/instacount/appengine-counter.git</connection>
+        <developerConnection>scm:git:git@github.com:instacount/appengine-counter.git</developerConnection>
+        <url>http://github.com/instacount/appengine-counter</url>
     </scm>
 
     <properties>
@@ -72,12 +72,12 @@
 
     <distributionManagement>
         <snapshotRepository>
-            <id>sonatype-nexus-snapshots-theupswell</id>
+            <id>sonatype-nexus-snapshots-instacount</id>
             <name>Sonatype Nexus snapshot repository</name>
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
         <repository>
-            <id>sonatype-nexus-staging-theupswell</id>
+            <id>sonatype-nexus-staging-instacount</id>
             <name>Sonatype Nexus release repository</name>
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
@@ -214,9 +214,9 @@
                 <configuration>
                     <header>com/mycila/maven/plugin/license/templates/APACHE-2.txt</header>
                     <properties>
-                        <owner>UpSwell LLC</owner>
+                        <owner>Instacount Inc.</owner>
                         <year>${project.inceptionYear}</year>
-                        <email>developers@theupswell.com</email>
+                        <email>developers@instacount.io</email>
                     </properties>
                     <excludes>
                         <exclude>**/README</exclude>
