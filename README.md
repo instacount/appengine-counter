@@ -1,7 +1,7 @@
 appengine-counter (A Sharded Counter for Google Appengine)
 ===========================
 [![Build Status](https://travis-ci.org/instacount/appengine-counter.png)](https://travis-ci.org/instacount/appengine-counter)
-[![Coverage Status](https://coveralls.io/repos/instacount/appengine-counter/badge.png?branch=master)](https://coveralls.io/r/instacount/appengine-counter?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/instacount/appengine-counter/badge.svg?branch=master)](https://coveralls.io/github/instacount/appengine-counter?branch=master)
 
 Appengine-counter is a ShardedCounter implementation for use in Google Appengine.  It offers strongly consistent increment/decrement functionality while maintaining high-throughput via on-the-fly shard configuration.  Appengine-counter uses memcache for fast counter retrieval, all the while being fully backed by the GAE Datastore for incredible durability and availability.<br/><br/>Appengine-counter is patterned off of the following <a href="https://developers.google.com/appengine/articles/sharding_counters">article</a> from developer.google.com, but uses Objectify for improved maintainability.<br/><br/>The rationale for a ShardedCounter is as follows (quoted from the above linked Google article):
 
