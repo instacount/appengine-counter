@@ -39,7 +39,7 @@ Because some counters may have a large number of counter shards, counter deletio
 To get started, please see the instructions and details in the [Getting Started](https://github.com/instacount/appengine-counter/wiki/Getting-Started) page.
 
 ## Usage
-To learn more about using appengine-counter, please see the [Usage](https://github.com/instacount/appengine-counter/wiki/Usage) page.
+To learn more about using appengine-counter, please see the [Usage](https://github.com/instacount/appengine-counter/wiki/Appengine-Counter-Usage) page.
 
 ## Change Log
 
