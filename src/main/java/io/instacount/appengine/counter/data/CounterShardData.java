@@ -12,21 +12,19 @@
  */
 package io.instacount.appengine.counter.data;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
-
-import org.apache.commons.lang3.StringUtils;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.googlecode.objectify.Key;
 import com.googlecode.objectify.annotation.Entity;
 import com.googlecode.objectify.annotation.Id;
 import com.googlecode.objectify.annotation.Unindex;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 /**
  * Represents a shard for a named counter in the datastore. An individual shard is written to infrequently to allow the
@@ -174,5 +172,24 @@ public class CounterShardData
 		return Key.create(CounterShardData.class,
 			constructCounterShardIdentifier(counterDataKey.getName(), shardNumber));
 	}
+
+    /**
+     * Helper method to compute the shard number index from an instance of {@link Key} of type {@link CounterShardData}.
+     * This method assumes that the "name" field of a counter shard key will end in a dash, followed by the shard
+     * index.
+     *
+     * @param counterShardDataKey
+     * @return
+     */
+    public static Integer computeShardIndex(final Key<CounterShardData> counterShardDataKey) {
+        Preconditions.checkNotNull(counterShardDataKey);
+
+        final String key = counterShardDataKey.getName();
+
+        int lastDashIndex = key.lastIndexOf("-");
+
+        final String shardIndexAsString = key.substring((lastDashIndex + 1), key.length());
+        return Integer.valueOf(shardIndexAsString);
+    }
 
 }
