@@ -1,5 +1,4 @@
-appengine-counter (A Sharded Counter for Google Appengine)
-===========================
+# appengine-counter (A Sharded Counter for Google Appengine)
 [![Build Status](https://travis-ci.org/instacount/appengine-counter.png)](https://travis-ci.org/instacount/appengine-counter)
 [![Coverage Status](https://coveralls.io/repos/github/instacount/appengine-counter/badge.svg?branch=master)](https://coveralls.io/github/instacount/appengine-counter?branch=master)
 
@@ -9,8 +8,7 @@ Appengine-counter is a ShardedCounter implementation for use in Google Appengine
 
 Thus, when a datastore-backed counter is required (i.e., for counter consistency, redundancy, and availability) we can increment random Counter shards in parallel and achieve a high-throughput counter without sacrificing consistency or availability.  For example, if a particular counter needs to support 100 increments per second, then the application supporting this counter could create the counter with approximately 20 shards, and the throughput could be sustained (this is because, per the above quote, any particular entity group in the appengine HRD can support ~5 updates/second).
 
-Features
---------
+## Features
 + <b>Durable</b><br/>
 Counter values are stored in the Google Appengine <a href="https://developers.google.com/appengine/docs/python/datastore/structuring_for_strong_consistency">HRD Datastore</a> for data durability and redundancy.  Once an increment or decrement is recorded by the datastore, it's there for good.
 
@@ -38,15 +36,12 @@ Because some counters may have a large number of counter shards, counter deletio
 <b><i><u>Note: The current release of this library is not compatible with Objectify versions prior to version 5.0.3, and it works best with Objectify version 5.1.x.  See the changelog for previous version support.</u></i></b>
 
 ## Getting Started
-----------
 To get started, please see the instructions and details in the [Getting Started](https://github.com/instacount/appengine-counter/wiki/Getting-Started) page.
 
 ## Usage
-----------
 To learn more about using appengine-counter, please see the [Usage](https://github.com/instacount/appengine-counter/wiki/Usage) page.
 
-Change Log
-----------
+## Change Log
 
 **Version 2.0.0**
 + Package naming change from com.theupswell to io.instacount.
