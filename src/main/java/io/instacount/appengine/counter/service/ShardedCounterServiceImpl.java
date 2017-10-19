@@ -774,7 +774,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 		// Create the Work to be done for this increment, which will be done inside of a TX. See
 		// "https://developers.google.com/appengine/docs/java/datastore/transactions#Java_Isolation_and_consistency"
 		final Work<CounterOperation> atomicIncrementShardWork = new IncrementShardWork(counterData,
-			incrementOperationId, optShardNumber, amount, false);
+			incrementOperationId, optShardNumber, amount, counterDataGetCreateContainer.isNewCounterDataCreated());
 
 		// Note that this operation is idempotent from the perspective of a ConcurrentModificationException. In that
 		// case, the increment operation will fail and will not have been applied. An Objectify retry of the
@@ -1462,7 +1462,7 @@ public class ShardedCounterServiceImpl implements ShardedCounterService
 	/**
 	 * Helper method to determine if a counter can be put into the {@code incomingCounterStatus} by an external caller.
 	 * Currently, external callers may only put a Counter into the AVAILABLE or READ_ONLY status.
-	 * 
+	 *
 	 * @param counterName The name of the counter.
 	 * @param incomingCounterStatus The status of an incoming counter that is being updated by an external counter.
 	 * @return
